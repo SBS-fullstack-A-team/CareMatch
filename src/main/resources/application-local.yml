@@ -1,0 +1,33 @@
+# ==========================================================================
+# local 프로필: 로컬 개발용. 외부 인프라 없이 바로 뜨도록 H2 인메모리 사용.
+# DB 벤더가 확정되면 prod 처럼 datasource 를 교체하면 된다.
+# ==========================================================================
+spring:
+  config:
+    activate:
+      on-profile: local
+
+  datasource:
+    url: jdbc:h2:mem:carematch;MODE=LEGACY;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        show_sql: true
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+logging:
+  level:
+    com.carematch: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG

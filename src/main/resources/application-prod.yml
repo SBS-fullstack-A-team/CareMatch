@@ -1,0 +1,37 @@
+# ==========================================================================
+# prod 프로필: Render 배포용. 모든 값은 환경변수로 주입된다.
+# DB 벤더 미확정 → 아래 datasource 값들은 플레이스홀더. 확정 시 실제 값 주입.
+#   - PostgreSQL 계열이 유력하나 확정 아님.
+#   - DB_URL 예시(Postgres): jdbc:postgresql://<host>:5432/<db>
+#   - DB_DRIVER 예시: org.postgresql.Driver
+#   - DB_DIALECT 예시: org.hibernate.dialect.PostgreSQLDialect
+# ==========================================================================
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  datasource:
+    url: ${DB_URL}
+    driver-class-name: ${DB_DRIVER:org.postgresql.Driver}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:5}
+
+  jpa:
+    database-platform: ${DB_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+    hibernate:
+      # 운영은 스키마 자동변경 금지. 마이그레이션 도구(Flyway 등)는 추후 도입.
+      ddl-auto: validate
+    properties:
+      hibernate:
+        show_sql: false
+
+server:
+  forward-headers-strategy: framework  # Render 프록시 뒤 https 인식
+
+logging:
+  level:
+    root: INFO
+    com.carematch: INFO
