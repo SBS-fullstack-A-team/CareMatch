@@ -61,6 +61,11 @@ public enum ErrorCode {
     FILE_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, "FILE_002", "파일 용량이 허용치를 초과했습니다."),
     FILE_NOT_FOUND(HttpStatus.NOT_FOUND, "FILE_003", "업로드된 파일을 확인할 수 없습니다."),
 
+    // --- 구인공고 ---
+    JOB_POSTING_NOT_FOUND(HttpStatus.NOT_FOUND, "JOBPOSTING_001", "구인공고를 찾을 수 없습니다."),
+    JOB_POSTING_ACCESS_DENIED(HttpStatus.FORBIDDEN, "JOBPOSTING_002", "본인이 등록한 공고만 수정·삭제할 수 있습니다."),
+    JOB_POSTING_POINT_SHORTAGE(HttpStatus.PAYMENT_REQUIRED, "JOBPOSTING_003", "구인공고 등록에 필요한 포인트가 부족합니다."),
+
     // --- 고객센터 ---
     NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "SUPPORT_001", "공지사항을 찾을 수 없습니다."),
     FAQ_NOT_FOUND(HttpStatus.NOT_FOUND, "SUPPORT_002", "FAQ를 찾을 수 없습니다."),

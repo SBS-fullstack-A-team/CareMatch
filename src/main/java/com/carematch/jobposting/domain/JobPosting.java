@@ -1,0 +1,262 @@
+package com.carematch.jobposting.domain;
+
+import com.carematch.common.converter.StringListConverter;
+import com.carematch.common.entity.BaseTimeEntity;
+import com.carematch.member.domain.FacilityProfile;
+import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.List;
+
+/**
+ * 구인공고. 승인된 시설회원(FacilityProfile)이 등록한다.
+ * 목록/상세 조회는 비로그인 공개, 등록/수정/삭제는 작성 시설 본인만.
+ *
+ * 카테고리성 값은 전부 enum, 다중값(주요업무/자격요건)은 @Convert 콤마 문자열.
+ * 지원마감일(deadline)은 노출옵션 만료(exposureExpiredAt)와 별개다.
+ */
+@Entity
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(name = "job_posting", indexes = {
+        @Index(name = "idx_job_posting_status_region", columnList = "status, sigungu, job_type"),
+        @Index(name = "idx_job_posting_deadline", columnList = "deadline")
+})
+public class JobPosting extends BaseTimeEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "facility_profile_id", nullable = false)
+    private FacilityProfile facilityProfile;
+
+    @Column(name = "title", nullable = false, length = 100)
+    private String title;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "job_type", nullable = false, length = 20)
+    private JobType jobType;
+
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
+    // ===== 근무조건 =====
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "work_type", nullable = false, length = 20)
+    private WorkType workType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "employment_type", nullable = false, length = 20)
+    private EmploymentType employmentType;
+
+    /** 고용형태 부가설명 (예: "3개월 후 정규직 전환 가능"). */
+    @Column(name = "employment_type_note", length = 200)
+    private String employmentTypeNote;
+
+    /** 근무요일 자유 표기 (예: "월~금 (주 5일)"). */
+    @Column(name = "work_days", nullable = false, length = 100)
+    private String workDays;
+
+    @Column(name = "work_start_time", nullable = false)
+    private LocalTime workStartTime;
+
+    @Column(name = "work_end_time", nullable = false)
+    private LocalTime workEndTime;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "pay_type", nullable = false, length = 20)
+    private PayType payType;
+
+    @Column(name = "pay_amount", nullable = false)
+    private Integer payAmount;
+
+    @Column(name = "recruit_count", nullable = false)
+    private Integer recruitCount;
+
+    /** 지원 마감일. */
+    @Column(name = "deadline", nullable = false)
+    private LocalDate deadline;
+
+    // ===== 근무지 =====
+
+    @Column(name = "sido", nullable = false, length = 30)
+    private String sido;
+
+    @Column(name = "sigungu", nullable = false, length = 30)
+    private String sigungu;
+
+    @Column(name = "address_detail", length = 200)
+    private String addressDetail;
+
+    // ===== 어르신 정보 =====
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "care_grade", nullable = false, length = 20)
+    private CareGrade careGrade;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "elder_gender", nullable = false, length = 10)
+    private ElderGender elderGender;
+
+    /** 연령대 자유 표기 (예: "70대"). */
+    @Column(name = "elder_age_range", length = 20)
+    private String elderAgeRange;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "mobility_status", nullable = false, length = 20)
+    private MobilityStatus mobilityStatus;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "meal_status", nullable = false, length = 20)
+    private MealStatus mealStatus;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "cognitive_status", nullable = false, length = 20)
+    private CognitiveStatus cognitiveStatus;
+
+    // ===== 다중값 (콤마 문자열, 검색조건 아님) =====
+
+    /** 주요 업무 (예: 말벗, 식사준비, 청소, 병원동행). */
+    @Convert(converter = StringListConverter.class)
+    @Column(name = "duties", length = 500)
+    private List<String> duties;
+
+    /** 자격요건 / 제출서류 (예: 요양보호사 자격증, 이력서, 건강검진서). */
+    @Convert(converter = StringListConverter.class)
+    @Column(name = "required_documents", length = 500)
+    private List<String> requiredDocuments;
+
+    // ===== 상태 / 노출 =====
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    private JobPostingStatus status;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "exposure_type", nullable = false, length = 20)
+    private ExposureType exposureType;
+
+    @Column(name = "exposure_expired_at")
+    private LocalDateTime exposureExpiredAt;
+
+    @Column(name = "view_count", nullable = false)
+    private long viewCount;
+
+    @Builder
+    private JobPosting(FacilityProfile facilityProfile, String title, JobType jobType, String description,
+                       WorkType workType, EmploymentType employmentType, String employmentTypeNote,
+                       String workDays, LocalTime workStartTime, LocalTime workEndTime,
+                       PayType payType, Integer payAmount, Integer recruitCount, LocalDate deadline,
+                       String sido, String sigungu, String addressDetail,
+                       CareGrade careGrade, ElderGender elderGender, String elderAgeRange,
+                       MobilityStatus mobilityStatus, MealStatus mealStatus, CognitiveStatus cognitiveStatus,
+                       List<String> duties, List<String> requiredDocuments, ExposureType exposureType) {
+        this.facilityProfile = facilityProfile;
+        this.title = title;
+        this.jobType = jobType;
+        this.description = description;
+        this.workType = workType;
+        this.employmentType = employmentType;
+        this.employmentTypeNote = employmentTypeNote;
+        this.workDays = workDays;
+        this.workStartTime = workStartTime;
+        this.workEndTime = workEndTime;
+        this.payType = payType;
+        this.payAmount = payAmount;
+        this.recruitCount = recruitCount == null ? 1 : recruitCount;
+        this.deadline = deadline;
+        this.sido = sido;
+        this.sigungu = sigungu;
+        this.addressDetail = addressDetail;
+        this.careGrade = careGrade;
+        this.elderGender = elderGender;
+        this.elderAgeRange = elderAgeRange;
+        this.mobilityStatus = mobilityStatus;
+        this.mealStatus = mealStatus;
+        this.cognitiveStatus = cognitiveStatus;
+        this.duties = duties;
+        this.requiredDocuments = requiredDocuments;
+        this.status = JobPostingStatus.OPEN;
+        this.exposureType = exposureType == null ? ExposureType.NORMAL : exposureType;
+        this.viewCount = 0L;
+    }
+
+    /** 공고 수정 폼. 노출옵션/상태/조회수는 이 경로로 바꾸지 않는다. */
+    public record UpdateForm(
+            String title, JobType jobType, String description,
+            WorkType workType, EmploymentType employmentType, String employmentTypeNote,
+            String workDays, LocalTime workStartTime, LocalTime workEndTime,
+            PayType payType, Integer payAmount, Integer recruitCount, LocalDate deadline,
+            String sido, String sigungu, String addressDetail,
+            CareGrade careGrade, ElderGender elderGender, String elderAgeRange,
+            MobilityStatus mobilityStatus, MealStatus mealStatus, CognitiveStatus cognitiveStatus,
+            List<String> duties, List<String> requiredDocuments
+    ) {
+    }
+
+    public void update(UpdateForm f) {
+        this.title = f.title();
+        this.jobType = f.jobType();
+        this.description = f.description();
+        this.workType = f.workType();
+        this.employmentType = f.employmentType();
+        this.employmentTypeNote = f.employmentTypeNote();
+        this.workDays = f.workDays();
+        this.workStartTime = f.workStartTime();
+        this.workEndTime = f.workEndTime();
+        this.payType = f.payType();
+        this.payAmount = f.payAmount();
+        this.recruitCount = f.recruitCount() == null ? 1 : f.recruitCount();
+        this.deadline = f.deadline();
+        this.sido = f.sido();
+        this.sigungu = f.sigungu();
+        this.addressDetail = f.addressDetail();
+        this.careGrade = f.careGrade();
+        this.elderGender = f.elderGender();
+        this.elderAgeRange = f.elderAgeRange();
+        this.mobilityStatus = f.mobilityStatus();
+        this.mealStatus = f.mealStatus();
+        this.cognitiveStatus = f.cognitiveStatus();
+        this.duties = f.duties();
+        this.requiredDocuments = f.requiredDocuments();
+    }
+
+    public void close() {
+        this.status = JobPostingStatus.CLOSED;
+    }
+
+    /** 프리미엄/스페셜 노출 옵션 구매 시 노출 만료 시각을 설정한다 (기본 7일). */
+    public void applyExposure(int days) {
+        this.exposureExpiredAt = LocalDateTime.now().plusDays(days);
+    }
+
+    /** 상세 조회 시 1 증가. 동시성 정합성은 데모 수준만 보장. */
+    public void increaseViewCount() {
+        this.viewCount++;
+    }
+
+    public boolean isOwnedBy(Long memberId) {
+        return facilityProfile.getMember().getId().equals(memberId);
+    }
+}

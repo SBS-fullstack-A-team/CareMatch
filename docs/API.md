@@ -293,3 +293,49 @@ POST /api/admin/facilities/13/approve     (Authorization: Bearer <ADMIN>)
 - 관리자: `admin` / `Admin123!`
 - 약관 3종 v1.0 (SERVICE·PRIVACY·MARKETING) active
 - 샘플 공지 1건, FAQ 1건
+
+---
+
+## 11. 구인공고 (job posting)
+
+| 메서드 | 경로 | 권한 | 설명 |
+|---|---|---|---|
+| GET | `/api/job-postings` | 공개 | 모집중(OPEN) 목록. `?page=&size=` (기본 size 20, 최신순) |
+| GET | `/api/job-postings/{id}` | 공개 | 상세. 호출 시 조회수 +1 |
+| POST | `/api/job-postings` | ROLE_FACILITY + 승인 | 등록. 포인트 차감(기본 500P + 노출옵션) |
+| PUT | `/api/job-postings/{id}` | 작성 시설 본인 | 수정 (노출옵션/상태/조회수는 불변) |
+| DELETE | `/api/job-postings/{id}` | 작성 시설 본인 | 삭제 |
+
+- 카테고리성 필드는 전부 enum 문자열. 잘못된 값 → 400 `COMMON_001`.
+- `duties` / `requiredDocuments` 는 문자열 배열 (표시용).
+- 응답 계산필드: `dDay`(마감까지 일수), `isNew`(등록 3일 내), `isClosingSoon`(D-7 & OPEN), `isRecommended`(매칭≥70, 현재 항상 false).
+- `matchingScore` 는 인재정보 파트 확장 전까지 항상 `null`.
+
+```http
+POST /api/job-postings   (Authorization: Bearer <FACILITY>)
+{
+  "title": "방문요양 요양보호사 모집 (4등급 여자 어르신)",
+  "jobType": "CAREGIVER", "description": "...",
+  "workType": "COMMUTE", "employmentType": "CONTRACT",
+  "employmentTypeNote": "3개월 후 정규직 전환 가능",
+  "workDays": "월~금 (주 5일)", "workStartTime": "09:00", "workEndTime": "12:00",
+  "payType": "HOURLY", "payAmount": 13500, "recruitCount": 1, "deadline": "2026-12-31",
+  "sido": "서울특별시", "sigungu": "강남구", "addressDetail": "테헤란로 123 (역삼동)",
+  "careGrade": "GRADE_4", "elderGender": "FEMALE", "elderAgeRange": "70대",
+  "mobilityStatus": "INDEPENDENT", "mealStatus": "ASSIST", "cognitiveStatus": "NORMAL",
+  "duties": ["말벗","식사준비","청소","병원동행"],
+  "requiredDocuments": ["요양보호사 자격증","이력서","건강검진서"],
+  "exposureType": "SPECIAL"
+}
+201 { "id": 1, ...전체 필드..., "status": "OPEN", "dDay": 115, "viewCount": 0,
+      "facilityName": "강남소망재가노인복지센터", "facilityPhone": "010-1234-5678",
+      "matchingScore": null }
+```
+
+```http
+GET /api/job-postings?page=0&size=20
+200 { "content": [ { "id": 1, "title": "...", "sigungu": "강남구",
+        "exposureType": "SPECIAL", "isNew": true, "dDay": 115,
+        "facilityName": "강남소망재가노인복지센터", "duties": ["말벗", ...] } ],
+      "page": 0, "size": 20, "totalElements": 1, "totalPages": 1 }
+```

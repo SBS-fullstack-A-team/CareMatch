@@ -18,8 +18,6 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -95,6 +93,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,
                                 "/api/support/notices/**", "/api/support/faqs/**", "/api/support/site-config").permitAll()
 
+                        // --- 구인공고: 목록/상세 조회는 비로그인 공개 (등록/수정/삭제는 ROLE_FACILITY) ---
+                        .requestMatchers(HttpMethod.GET, "/api/job-postings", "/api/job-postings/*").permitAll()
+
                         // --- 소셜 최초 로그인 후 회원유형 선택 (GUEST 포함 인증만 요구) ---
                         .requestMatchers(HttpMethod.POST, "/api/auth/social/select-role").authenticated()
 
@@ -124,11 +125,6 @@ public class SecurityConfig {
         FilterRegistrationBean<JwtAuthenticationFilter> registration = new FilterRegistrationBean<>(filter);
         registration.setEnabled(false);
         return registration;
-    }
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
     }
 
     @Bean
