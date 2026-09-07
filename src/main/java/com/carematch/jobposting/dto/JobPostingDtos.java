@@ -199,9 +199,16 @@ public final class JobPostingDtos {
             String facilityPhone,
 
             /** 매칭 스코어(0~100). JobSeekerProfile 확장 전까지 항상 null (TODO). */
-            Integer matchingScore
+            Integer matchingScore,
+
+            /** 로그인 회원의 찜 여부. 비로그인이면 null. */
+            Boolean scrapped
     ) {
         public static DetailResponse from(JobPosting jp, Integer matchingScore) {
+            return from(jp, matchingScore, null);
+        }
+
+        public static DetailResponse from(JobPosting jp, Integer matchingScore, Boolean scrapped) {
             FacilityProfile fp = jp.getFacilityProfile();
             Member m = fp.getMember();
             Long dDay = jp.getDeadline() == null ? null
@@ -219,7 +226,7 @@ public final class JobPostingDtos {
                     calcNew(jp), calcClosingSoon(jp, dDay), calcRecommended(matchingScore),
                     jp.getViewCount(), jp.getCreatedAt(), jp.getUpdatedAt(),
                     m.getId(), fp.getFacilityName(), m.getPhone(),
-                    matchingScore);
+                    matchingScore, scrapped);
         }
     }
 
@@ -248,9 +255,15 @@ public final class JobPostingDtos {
             boolean isClosingSoon,
             boolean isRecommended,
             String facilityName,
-            Integer matchingScore
+            Integer matchingScore,
+            /** 로그인 회원의 찜 여부. 비로그인이면 null. */
+            Boolean scrapped
     ) {
         public static SummaryResponse from(JobPosting jp) {
+            return from(jp, null);
+        }
+
+        public static SummaryResponse from(JobPosting jp, Boolean scrapped) {
             Long dDay = jp.getDeadline() == null ? null
                     : ChronoUnit.DAYS.between(LocalDate.now(), jp.getDeadline());
             return new SummaryResponse(
@@ -262,7 +275,7 @@ public final class JobPostingDtos {
                     jp.getDuties(), jp.getDeadline(), dDay, jp.getViewCount(),
                     jp.getStatus(), jp.getExposureType(),
                     calcNew(jp), calcClosingSoon(jp, dDay), false,
-                    jp.getFacilityProfile().getFacilityName(), null);
+                    jp.getFacilityProfile().getFacilityName(), null, scrapped);
         }
     }
 

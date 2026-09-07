@@ -302,6 +302,9 @@ POST /api/admin/facilities/13/approve     (Authorization: Bearer <ADMIN>)
 |---|---|---|---|
 | GET | `/api/job-postings` | 공개 | 모집중(OPEN) 목록/검색. 필터·정렬 아래 참고 |
 | GET | `/api/job-postings/featured` | 공개 | "소페셜 채용정보" — 만료 안 된 SPECIAL 공고 상위 3 |
+| POST | `/api/job-postings/{id}/scrap` | 인증 | 찜 추가 (멱등, 204) |
+| DELETE | `/api/job-postings/{id}/scrap` | 인증 | 찜 취소 (멱등, 204) |
+| GET | `/api/members/me/scraps` | 인증 | 내 찜 목록 (최신순, `PageResponse<SummaryResponse>`) |
 | GET | `/api/job-postings/{id}` | 공개 | 상세. 호출 시 조회수 +1 |
 | POST | `/api/job-postings` | ROLE_FACILITY + 승인 | 등록. 포인트 차감(기본 500P + 노출옵션) |
 | PUT | `/api/job-postings/{id}` | 작성 시설 본인 | 수정 (노출옵션/상태/조회수는 불변) |
@@ -311,6 +314,7 @@ POST /api/admin/facilities/13/approve     (Authorization: Bearer <ADMIN>)
 - `duties` / `requiredDocuments` 는 문자열 배열 (표시용).
 - 응답 계산필드: `dDay`(마감까지 일수), `isNew`(등록 3일 내), `isClosingSoon`(D-7 & OPEN), `isRecommended`(매칭≥70, 현재 항상 false).
 - `matchingScore` 는 인재정보 파트 확장 전까지 항상 `null`.
+- 목록/상세 응답의 `scrapped`: 로그인 회원의 찜 여부(true/false), 비로그인이면 `null`.
 
 ```http
 POST /api/job-postings   (Authorization: Bearer <FACILITY>)

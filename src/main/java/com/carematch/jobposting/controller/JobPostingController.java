@@ -59,6 +59,7 @@ public class JobPostingController {
      */
     @GetMapping
     public PageResponse<SummaryResponse> search(
+            @AuthenticationPrincipal CustomUserDetails principal,
             @RequestParam(required = false) String sido,
             @RequestParam(required = false) String sigungu,
             @RequestParam(required = false) List<JobType> jobTypes,
@@ -75,18 +76,23 @@ public class JobPostingController {
         SearchCondition cond = new SearchCondition(
                 sido, sigungu, jobTypes, workTypes, employmentTypes, careGrades, mobilityStatuses,
                 payType, payMin, payMax, sort);
-        return jobPostingService.search(cond, page, size);
+        return jobPostingService.search(cond, page, size, memberIdOrNull(principal));
     }
 
     /** "소페셜 채용정보" 상단 노출용 SPECIAL 공고 상위 3. */
     @GetMapping("/featured")
-    public List<SummaryResponse> featured() {
-        return jobPostingService.featured();
+    public List<SummaryResponse> featured(@AuthenticationPrincipal CustomUserDetails principal) {
+        return jobPostingService.featured(memberIdOrNull(principal));
     }
 
     @GetMapping("/{jobPostingId}")
-    public DetailResponse detail(@PathVariable Long jobPostingId) {
-        return jobPostingService.getDetail(jobPostingId);
+    public DetailResponse detail(@AuthenticationPrincipal CustomUserDetails principal,
+                                 @PathVariable Long jobPostingId) {
+        return jobPostingService.getDetail(jobPostingId, memberIdOrNull(principal));
+    }
+
+    private static Long memberIdOrNull(CustomUserDetails principal) {
+        return principal == null ? null : principal.getMemberId();
     }
 
     @PutMapping("/{jobPostingId}")
