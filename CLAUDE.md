@@ -1,4 +1,4 @@
-# 프로젝트 규칙 (1stProject)
+# 프로젝트 규칙 (CareMatch)
 
 > 브랜치 전략: **GitHub Flow** (`main` + `feature/*`, 배포는 태그로 표시)
 
@@ -54,7 +54,7 @@ gh auth status
   git config user.name "본인이름"
   git config user.email "본인 GitHub 계정 이메일"
   ```
-- 커밋 메시지는 아래 컨벤션을 따를 것
+- 커밋 메시지는 아래 컨벤션을 따를 것 (단, wip 커밋은 "작업 중단/재개 규칙" 참고)
 
 | 태그 | 의미 |
 |---|---|
@@ -64,6 +64,7 @@ gh auth status
 | `style:` | 코드 포맷팅, 세미콜론 등 |
 | `docs:` | 문서 수정 |
 | `chore:` | 빌드/설정 파일 수정 |
+| `wip:` | 미완성 작업 중간 저장 (아래 규칙 참고) |
 
 예시: `feat: 로그인 API 연동`, `fix: 회원가입 유효성 검사 오류 수정`
 
@@ -107,6 +108,21 @@ feature/*   # 개별 기능 작업 브랜치. main에서 분기 → main으로 P
    git fetch --prune
    git branch --merged main | grep -v '^\* \|main' | xargs -r git branch -d
    ```
+
+## 작업 중단/재개 규칙
+
+- 작업 장소를 옮기거나(다른 컴퓨터) 작업을 중단해야 할 때는, 미완성이어도 wip 커밋으로 push해둘 것
+  ```bash
+  git add .
+  git commit -m "wip: 작업중 - 어디까지 했는지 간단히"
+  git push origin feature/역할-기능명
+  ```
+  예: `wip: 로그인 API - 유효성 검사 로직 작성 중`
+- 작업을 다시 시작할 때는 항상 아래 순서로 원격 최신 상태부터 확인할 것:
+  1. `git fetch`로 원격 상태 확인
+  2. 현재 브랜치가 원격보다 뒤처져 있으면 `git pull origin 브랜치명`으로 최신화
+  3. pull 받은 내용 기준으로 "지난번엔 여기까지 했었네요"라고 요약해서 안내
+- wip 커밋들은 나중에 main으로 PR 올릴 때 Squash and merge로 1개로 압축되므로, 여러 번 wip 커밋해도 최종 히스토리는 깔끔하게 유지됨
 
 ## 배포 / 릴리스
 
