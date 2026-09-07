@@ -40,6 +40,31 @@ public final class JobPostingDtos {
     private static final int CLOSING_SOON_DAYS = 7;
 
     // =====================================================================
+    // 검색 조건
+    // =====================================================================
+
+    /**
+     * 목록/검색 필터. 모든 필드 선택. 상태는 서버가 OPEN 으로 고정.
+     * 급여 범위(payMin/payMax)는 payType 을 함께 지정하지 않으면 시급·월급이 섞여 비교되니
+     * 프론트에서 payType 과 함께 보내는 것을 권장.
+     */
+    public record SearchCondition(
+            String sido,
+            String sigungu,
+            List<JobType> jobTypes,
+            List<WorkType> workTypes,
+            List<EmploymentType> employmentTypes,
+            List<CareGrade> careGrades,
+            List<MobilityStatus> mobilityStatuses,
+            PayType payType,
+            Integer payMin,
+            Integer payMax,
+            /** RECOMMENDED(기본) / LATEST / DEADLINE / PAY_DESC / VIEWS */
+            String sort
+    ) {
+    }
+
+    // =====================================================================
     // 요청
     // =====================================================================
 

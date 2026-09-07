@@ -1,17 +1,21 @@
 package com.carematch.jobposting.controller;
 
+import com.carematch.jobposting.domain.CareGrade;
+import com.carematch.jobposting.domain.EmploymentType;
+import com.carematch.jobposting.domain.JobType;
+import com.carematch.jobposting.domain.MobilityStatus;
+import com.carematch.jobposting.domain.PayType;
+import com.carematch.jobposting.domain.WorkType;
 import com.carematch.jobposting.dto.JobPostingDtos.CreateRequest;
 import com.carematch.jobposting.dto.JobPostingDtos.DetailResponse;
 import com.carematch.jobposting.dto.JobPostingDtos.PageResponse;
+import com.carematch.jobposting.dto.JobPostingDtos.SearchCondition;
 import com.carematch.jobposting.dto.JobPostingDtos.SummaryResponse;
 import com.carematch.jobposting.dto.JobPostingDtos.UpdateRequest;
 import com.carematch.jobposting.service.JobPostingService;
 import com.carematch.security.CustomUserDetails;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,7 +27,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * 구인공고 API.
@@ -46,10 +53,35 @@ public class JobPostingController {
                 .body(jobPostingService.create(principal.getMemberId(), request));
     }
 
+    /**
+     * 목록/검색. 모든 필터는 선택. 다중값은 반복 파라미터(?jobTypes=A&jobTypes=B) 또는 콤마.
+     * sort: RECOMMENDED(기본)/LATEST/DEADLINE/PAY_DESC/VIEWS.
+     */
     @GetMapping
-    public PageResponse<SummaryResponse> list(
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return jobPostingService.listOpen(pageable);
+    public PageResponse<SummaryResponse> search(
+            @RequestParam(required = false) String sido,
+            @RequestParam(required = false) String sigungu,
+            @RequestParam(required = false) List<JobType> jobTypes,
+            @RequestParam(required = false) List<WorkType> workTypes,
+            @RequestParam(required = false) List<EmploymentType> employmentTypes,
+            @RequestParam(required = false) List<CareGrade> careGrades,
+            @RequestParam(required = false) List<MobilityStatus> mobilityStatuses,
+            @RequestParam(required = false) PayType payType,
+            @RequestParam(required = false) Integer payMin,
+            @RequestParam(required = false) Integer payMax,
+            @RequestParam(required = false) String sort,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        SearchCondition cond = new SearchCondition(
+                sido, sigungu, jobTypes, workTypes, employmentTypes, careGrades, mobilityStatuses,
+                payType, payMin, payMax, sort);
+        return jobPostingService.search(cond, page, size);
+    }
+
+    /** "소페셜 채용정보" 상단 노출용 SPECIAL 공고 상위 3. */
+    @GetMapping("/featured")
+    public List<SummaryResponse> featured() {
+        return jobPostingService.featured();
     }
 
     @GetMapping("/{jobPostingId}")
