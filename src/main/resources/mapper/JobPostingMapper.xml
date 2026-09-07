@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.carematch.mapper.JobPostingMapper">
+
+    <!--
+        map-underscore-to-camel-case: true (application.yml) 라서 job_type -> jobType 처럼
+        컬럼명이 카멜케이스 필드로 자동 매핑된다. enum(job_type 등)은 MyBatis 기본 EnumTypeHandler 가
+        이름 문자열로 매핑하고, LocalDate/LocalTime 도 내장 핸들러가 처리한다.
+
+        duties / required_documents 는 JPA @Convert(StringListConverter) 로 저장되는 콤마 문자열이라
+        MyBatis 쪽 매핑이 없다. 목록 카드에서 필요하면 2단계에서 별도 typeHandler 로 처리 예정 —
+        지금은 select 하지 않아 목록 응답에서는 null 이다(상세 조회는 JPA 경로라 정상).
+    -->
+    <resultMap id="jobPostingResultMap" type="JobPosting" autoMapping="true">
+        <id property="id" column="id"/>
+        <association property="member" javaType="Member" autoMapping="false">
+            <id property="id" column="member_id"/>
+            <result property="name" column="member_name"/>
+            <result property="phone" column="member_phone"/>
+            <result property="facilityName" column="member_facility_name"/>
+            <result property="facilityType" column="member_facility_type"/>
+            <result property="managerName" column="member_manager_name"/>
+            <result property="managerPosition" column="member_manager_position"/>
+            <result property="facilityAddress" column="member_facility_address"/>
+        </association>
+    </resultMap>
+
+    <sql id="searchWhere">
+        <where>
+            jp.status = 'OPEN'
+            <if test="region != null">
+                AND jp.sigungu = #{region}
+            </if>
+            <if test="jobType != null">
+                AND jp.job_type = #{jobType}
+            </if>
+        </where>
+    </sql>
+
+    <select id="search" resultMap="jobPostingResultMap">
+        SELECT
+            jp.id, jp.title, jp.job_type, jp.description,
+            jp.work_type, jp.employment_type, jp.employment_type_note,
+            jp.work_days, jp.work_start_time, jp.work_end_time,
+            jp.pay_type, jp.pay_amount, jp.recruit_count, jp.deadline,
+            jp.sido, jp.sigungu, jp.address_detail,
+            jp.care_grade, jp.elder_gender, jp.elder_age_range,
+            jp.mobility_status, jp.meal_status, jp.cognitive_status,
+            jp.status, jp.exposure_type, jp.exposure_expired_at,
+            jp.view_count, jp.created_at, jp.updated_at,
+            m.id AS member_id, m.name AS member_name, m.phone AS member_phone,
+            m.facility_name AS member_facility_name, m.facility_type AS member_facility_type,
+            m.manager_name AS member_manager_name, m.manager_position AS member_manager_position,
+            m.facility_address AS member_facility_address
+        FROM job_posting jp
+        JOIN member m ON m.id = jp.member_id
+        <include refid="searchWhere"/>
+        ORDER BY
+            CASE jp.exposure_type WHEN 'SPECIAL' THEN 0 WHEN 'PREMIUM' THEN 1 ELSE 2 END,
+            jp.created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countSearch" resultType="long">
+        SELECT COUNT(*)
+        FROM job_posting jp
+        <include refid="searchWhere"/>
+    </select>
+
+</mapper>

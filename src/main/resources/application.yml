@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: CareMatch
+  profiles:
+    active: local
+
+# MyBatis 설정 (동적 쿼리 전용 매퍼). type-aliases-package 덕분에
+# XML에서 JobPosting, Member처럼 짧은 이름으로 타입을 쓸 수 있다.
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.carematch.entity
+  configuration:
+    map-underscore-to-camel-case: true
