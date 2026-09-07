@@ -1,0 +1,32 @@
+# CODEOWNERS — PR 리뷰어 자동 지정
+#
+# 형식: <경로패턴>   <@GitHub아이디 또는 @조직/팀>
+# - 해당 경로의 파일이 포함된 PR이 열리면 나열된 사람이 리뷰어로 자동 요청됨
+# - 아래로 갈수록 우선순위 높음 (마지막에 매칭된 규칙이 이김)
+# - 조건: 나열된 사람은 저장소에 write 권한 이상 필요
+#
+# ⚠️ Private 저장소의 자동 지정은 GitHub Pro/Team 이상에서만 동작함.
+#    Free 플랜에서는 .github/workflows/auto-assign-reviewers.yml 이 대체 수행.
+
+# ── 기본값: 다른 규칙에 안 걸리는 모든 파일 ──────────────────────
+*                                   @heo-hyuk
+
+# ── 백엔드 (Heo, 경수) ──────────────────────────────────────────
+/src/main/java/                     @heo-hyuk @HurKyungsoo
+/src/main/resources/                @heo-hyuk @HurKyungsoo
+/src/test/                          @heo-hyuk @HurKyungsoo
+/build.gradle                       @heo-hyuk @HurKyungsoo
+/build.gradle.kts                   @heo-hyuk @HurKyungsoo
+/settings.gradle                    @heo-hyuk @HurKyungsoo
+/pom.xml                            @heo-hyuk @HurKyungsoo
+
+# ── 프론트엔드 (신영, 동한) ─────────────────────────────────────
+# (백엔드 resources 규칙보다 아래에 둬서 static/templates 는 프론트가 이김)
+/src/main/resources/static/         @syyu21b @Kim-dong-han
+/src/main/resources/templates/      @syyu21b @Kim-dong-han
+/frontend/                          @syyu21b @Kim-dong-han
+
+# ── 프로젝트 문서 / 설정 (팀장) ─────────────────────────────────
+/CLAUDE.md                          @heo-hyuk
+/README.md                          @heo-hyuk
+/.github/                           @heo-hyuk
