@@ -91,6 +91,13 @@ public class JobPostingController {
         return jobPostingService.getDetail(jobPostingId, memberIdOrNull(principal));
     }
 
+    /** 비슷한 공고 (같은 시군구 + 직종, 최대 6). 비로그인 공개. */
+    @GetMapping("/{jobPostingId}/similar")
+    public List<SummaryResponse> similar(@AuthenticationPrincipal CustomUserDetails principal,
+                                         @PathVariable Long jobPostingId) {
+        return jobPostingService.similar(jobPostingId, memberIdOrNull(principal));
+    }
+
     private static Long memberIdOrNull(CustomUserDetails principal) {
         return principal == null ? null : principal.getMemberId();
     }

@@ -88,6 +88,8 @@ public class JobPostingService {
                 .sido(req.sido())
                 .sigungu(req.sigungu())
                 .addressDetail(req.addressDetail())
+                .latitude(req.latitude())
+                .longitude(req.longitude())
                 .careGrade(req.careGrade())
                 .elderGender(req.elderGender())
                 .elderAgeRange(req.elderAgeRange())
@@ -156,6 +158,19 @@ public class JobPostingService {
             case "VIEWS" -> Sort.by(Sort.Direction.DESC, "viewCount");
             default -> Sort.by(Sort.Order.desc("exposureType"), Sort.Order.desc("createdAt"));
         };
+    }
+
+    /** 비슷한 공고 — 같은 시군구 + 직종, 자기 제외, OPEN 상위 6. */
+    public List<SummaryResponse> similar(Long jobPostingId, Long viewerMemberId) {
+        JobPosting base = jobPostingRepository.findById(jobPostingId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_POSTING_NOT_FOUND, "id=" + jobPostingId));
+        List<JobPosting> list = jobPostingRepository
+                .findTop6ByStatusAndSigunguAndJobTypeAndIdNotOrderByExposureTypeDescCreatedAtDesc(
+                        JobPostingStatus.OPEN, base.getSigungu(), base.getJobType(), jobPostingId);
+        Set<Long> scrappedIds = scrappedIdsAmong(viewerMemberId, list);
+        return list.stream()
+                .map(jp -> SummaryResponse.from(jp, scrappedFlag(viewerMemberId, scrappedIds, jp.getId())))
+                .toList();
     }
 
     @Transactional
