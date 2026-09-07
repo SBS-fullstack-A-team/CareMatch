@@ -300,7 +300,8 @@ POST /api/admin/facilities/13/approve     (Authorization: Bearer <ADMIN>)
 
 | 메서드 | 경로 | 권한 | 설명 |
 |---|---|---|---|
-| GET | `/api/job-postings` | 공개 | 모집중(OPEN) 목록. `?page=&size=` (기본 size 20, 최신순) |
+| GET | `/api/job-postings` | 공개 | 모집중(OPEN) 목록/검색. 필터·정렬 아래 참고 |
+| GET | `/api/job-postings/featured` | 공개 | "소페셜 채용정보" — 만료 안 된 SPECIAL 공고 상위 3 |
 | GET | `/api/job-postings/{id}` | 공개 | 상세. 호출 시 조회수 +1 |
 | POST | `/api/job-postings` | ROLE_FACILITY + 승인 | 등록. 포인트 차감(기본 500P + 노출옵션) |
 | PUT | `/api/job-postings/{id}` | 작성 시설 본인 | 수정 (노출옵션/상태/조회수는 불변) |
@@ -339,3 +340,18 @@ GET /api/job-postings?page=0&size=20
         "facilityName": "강남소망재가노인복지센터", "duties": ["말벗", ...] } ],
       "page": 0, "size": 20, "totalElements": 1, "totalPages": 1 }
 ```
+### 목록/검색 파라미터 (`GET /api/job-postings`)
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `sido` / `sigungu` | string | 지역(정확히 일치) |
+| `jobTypes` | enum[] | 직종 다중 (`?jobTypes=CAREGIVER&jobTypes=HOUSEKEEPER`) |
+| `workTypes` / `employmentTypes` / `careGrades` / `mobilityStatuses` | enum[] | 각 다중 |
+| `payType` | enum | HOURLY/DAILY/MONTHLY |
+| `payMin` / `payMax` | int | 급여 범위. payType 없이 쓰면 시급·월급이 섞이니 함께 지정 권장 |
+| `sort` | string | `RECOMMENDED`(기본: 노출등급→최신) / `LATEST` / `DEADLINE` / `PAY_DESC` / `VIEWS` |
+| `page` / `size` | int | 기본 0 / 20. size 상한 100 |
+
+- 상태는 서버가 OPEN 으로 고정. 잘못된 enum 값 → 400 `COMMON_001`.
+- 응답은 `PageResponse<SummaryResponse>` (`{content, page, size, totalElements, totalPages}`).
+
