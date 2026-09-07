@@ -7,11 +7,10 @@ plugins {
 group = 'com.carematch'
 version = '0.0.1-SNAPSHOT'
 
-java {
-    // 프롬프트 기준 Java 17 타깃 (IDE 툴체인이 21이어도 17 바이트코드로 빌드)
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
-    }
+// 배포 대상(Render / Dockerfile)이 JDK 17 → 17 바이트코드로 고정.
+// toolchain 대신 release 플래그를 써서 설치된 JDK 17+ 아무 버전으로나 빌드 가능하게 함.
+tasks.withType(JavaCompile).configureEach {
+    options.release = 17
 }
 
 configurations {
