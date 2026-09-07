@@ -133,13 +133,15 @@ public class SecurityConfig {
     }
 
     /**
-     * CORS 화이트리스트 — Vercel 배포 도메인만 허용.
-     * origin 은 환경변수(carematch.cors.allowed-origins)로 주입. 와일드카드(*) 미사용.
+     * CORS 화이트리스트 — 로컬 개발 서버 + Vercel 배포 도메인만 허용.
+     * origin 패턴은 환경변수(carematch.cors.allowed-origins)로 주입.
+     * setAllowedOriginPatterns 사용: Vercel 프리뷰 배포처럼 서브도메인이 매번 바뀌는 주소를
+     * "https://carematch-*.vercel.app" 같은 패턴으로 한 번에 허용하기 위함(전체 와일드카드 * 는 여전히 불가).
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(corsProperties.allowedOrigins());
+        config.setAllowedOriginPatterns(corsProperties.allowedOrigins());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
         config.setExposedHeaders(List.of("Location"));
