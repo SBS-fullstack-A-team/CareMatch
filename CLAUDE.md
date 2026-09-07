@@ -1,5 +1,7 @@
 # 프로젝트 규칙 (1stProject)
 
+> 브랜치 전략: **GitHub Flow** (`main` + `feature/*`, 배포는 태그로 표시)
+
 ## 사전 준비 (팀원 전원 최초 1회)
 
 PR 자동 생성 기능을 쓰려면 GitHub CLI(`gh`)가 설치되어 있어야 합니다.
@@ -65,26 +67,26 @@ gh auth status
 
 예시: `feat: 로그인 API 연동`, `fix: 회원가입 유효성 검사 오류 수정`
 
-## 브랜치 전략
+## 브랜치 전략 (GitHub Flow)
 
 ```
-main        # 배포/최종본, 직접 push 금지
-develop     # 개발 통합 브랜치, 모든 작업은 여기서 분기
-feature/*   # 개별 기능 작업 브랜치
+main        # 통합 + 배포 브랜치. 항상 배포 가능한 상태 유지, 직접 push 금지
+feature/*   # 개별 기능 작업 브랜치. main에서 분기 → main으로 PR
 ```
 
 - 프론트 담당자(신영, 동한): `feature/fe-기능명`
 - 백엔드 담당자(Heo, 경수): `feature/be-기능명`
 - 각자 본인 role에 맞는 브랜치명만 생성할 것
+- `develop` 브랜치는 사용하지 않음
 
 예시: `feature/fe-login`, `feature/be-login-api`, `feature/fe-mypage`, `feature/be-board-crud`
 
 ## 작업 흐름
 
-1. 작업 시작 전 develop 최신화
+1. 작업 시작 전 main 최신화
    ```bash
-   git checkout develop
-   git pull origin develop
+   git checkout main
+   git pull origin main
    ```
 2. 본인 role에 맞는 브랜치 생성
    ```bash
@@ -96,26 +98,43 @@ feature/*   # 개별 기능 작업 브랜치
    git commit -m "feat: 작업내용"
    git push origin feature/역할-기능명
    ```
-4. GitHub에서 `develop`으로 PR 생성
+4. GitHub에서 `main`으로 PR 생성
 5. 팀원 1명 이상 리뷰 승인 후 머지 (Squash and merge)
-6. 머지 완료된 브랜치는 삭제
+6. 머지 완료된 브랜치는 삭제 (PR 화면의 "Delete branch" 버튼, 원격 자동 삭제 설정도 적용됨)
+7. 로컬 정리
+   ```bash
+   git checkout main && git pull origin main
+   git fetch --prune
+   git branch --merged main | grep -v '^\* \|main' | xargs -r git branch -d
+   ```
+
+## 배포 / 릴리스
+
+- 배포 시점은 `main`에 **git 태그**로 표시 (별도 브랜치 만들지 않음)
+  ```bash
+  git checkout main && git pull origin main
+  git tag -a v1.0.0 -m "첫 배포"
+  git push origin v1.0.0
+  ```
+- 태그는 `v메이저.마이너.패치` 형식 (예: `v1.0.0`, `v1.1.0`, `v1.1.1`)
 
 ## 규칙
 
-- ⚠️ `main`, `develop`에 직접 push 금지 — 반드시 PR을 통해서만 병합
-- ✅ 작업 시작 전 `develop`을 최신 상태로 pull 받고 시작하기
+- ⚠️ `main`에 직접 push 금지 — 반드시 PR을 통해서만 병합
+- ✅ `main`은 항상 배포 가능한 상태로 유지 (깨진 코드 머지 금지)
+- ✅ 작업 시작 전 `main`을 최신 상태로 pull 받고 시작하기
 - ✅ PR 올리기 전 최소 1명 이상 코드 리뷰 승인받기
 - ✅ 본인 역할(프론트/백엔드)에 맞는 브랜치 접두사만 사용
 
 ## PR 생성 규칙
 
 - "오늘 ~작업했어" 또는 "커밋하고 PR까지 만들어줘"라고 말하면 아래 순서로 진행할 것:
-  1. 현재 브랜치가 `feature/*`인지 확인 (main, develop이면 먼저 feature 브랜치 생성)
+  1. 현재 브랜치가 `feature/*`인지 확인 (`main`이면 먼저 feature 브랜치 생성)
   2. `git add`, `git commit` (커밋 컨벤션 태그 사용)
   3. `git push origin 현재브랜치명`
   4. GitHub CLI로 PR 생성:
      ```bash
-     gh pr create --base develop --head feature/역할-기능명 \
+     gh pr create --base main --head feature/역할-기능명 \
        --title "feat: 기능 설명" \
        --body "작업 내용 요약"
      ```
@@ -128,3 +147,4 @@ feature/*   # 개별 기능 작업 브랜치
 - "이번 역할이 뭐야" 질문을 받으면 위 표에서 현재 git config user.name/email에 매칭되는 사람의 역할을 찾아 답할 것
 - "오늘 뭐 했어" 질문을 받으면 `git log --since="today"`로 오늘 커밋 내역을 조회해 요약하고, 아직 커밋하지 않은 변경사항(`git status`, `git diff`)도 함께 안내할 것
 - 브랜치를 새로 만들 때는 항상 위 표의 역할에 맞는 접두사(feature/fe-* 또는 feature/be-*)를 사용할 것
+- 새 브랜치는 항상 최신 `main`에서 분기할 것
