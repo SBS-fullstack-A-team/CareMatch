@@ -8,16 +8,22 @@ import com.carematch.jobposting.domain.JobPostingStatus;
 import com.carematch.jobposting.dto.JobPostingDtos.CreateRequest;
 import com.carematch.jobposting.dto.JobPostingDtos.DetailResponse;
 import com.carematch.jobposting.dto.JobPostingDtos.PageResponse;
+import com.carematch.jobposting.dto.JobPostingDtos.SearchCondition;
 import com.carematch.jobposting.dto.JobPostingDtos.SummaryResponse;
 import com.carematch.jobposting.dto.JobPostingDtos.UpdateRequest;
 import com.carematch.jobposting.repository.JobPostingRepository;
+import com.carematch.jobposting.repository.JobPostingSpecs;
 import com.carematch.member.domain.FacilityProfile;
 import com.carematch.member.repository.FacilityProfileRepository;
 import com.carematch.point.PointService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 구인공고 등록/조회/수정/삭제.
@@ -26,7 +32,6 @@ import org.springframework.transaction.annotation.Transactional;
  * /api/job-postings/** 를 이미 통제한다. 서비스는 방어적으로 승인 여부를 한 번 더 확인한다.
  *
  * 미구현(TODO):
- *  - 다중조건 검색(다음 PR)
  *  - 매칭 스코어: JobSeekerProfile 에 희망지역/직종/급여 필드가 없어 계산 불가 → 항상 null
  *  - 시설유형/담당자/주소: FacilityProfile 확장 후 응답에 포함
  */
@@ -39,6 +44,8 @@ public class JobPostingService {
     private static final int BASE_POSTING_COST = 500;
     /** 프리미엄/스페셜 상단 노출 기간(일). */
     private static final int EXPOSURE_DAYS = 7;
+    /** 페이지 크기 상한. */
+    private static final int MAX_PAGE_SIZE = 100;
 
     private final JobPostingRepository jobPostingRepository;
     private final FacilityProfileRepository facilityProfileRepository;
@@ -95,10 +102,37 @@ public class JobPostingService {
         return DetailResponse.from(jobPostingRepository.save(posting), null);
     }
 
-    public PageResponse<SummaryResponse> listOpen(Pageable pageable) {
+    /** 다중조건 검색 (상태 OPEN 고정). */
+    public PageResponse<SummaryResponse> search(SearchCondition cond, int page, int size) {
+        int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
+        PageRequest pageable = PageRequest.of(Math.max(page, 0), safeSize, resolveSort(cond.sort()));
         return PageResponse.of(
-                jobPostingRepository.findByStatus(JobPostingStatus.OPEN, pageable),
+                jobPostingRepository.findAll(JobPostingSpecs.from(cond), pageable),
                 SummaryResponse::from);
+    }
+
+    /** "소페셜 채용정보" 상단 노출 — 만료 안 된 SPECIAL 공고 상위 3. */
+    public List<SummaryResponse> featured() {
+        return jobPostingRepository
+                .findTop3ByStatusAndExposureTypeAndExposureExpiredAtAfterOrderByCreatedAtDesc(
+                        JobPostingStatus.OPEN, ExposureType.SPECIAL, LocalDateTime.now())
+                .stream().map(SummaryResponse::from).toList();
+    }
+
+    /**
+     * 정렬 규칙. RECOMMENDED 는 노출등급 → 최신 순.
+     * exposureType 을 문자열 DESC 로 정렬하면 SPECIAL &gt; PREMIUM &gt; NORMAL 이 되어 의도와 일치한다
+     * (enum 값이 3개로 고정이라 성립. 값이 늘면 명시적 우선순위로 교체할 것).
+     */
+    private Sort resolveSort(String sort) {
+        String key = sort == null ? "RECOMMENDED" : sort.toUpperCase();
+        return switch (key) {
+            case "LATEST" -> Sort.by(Sort.Direction.DESC, "createdAt");
+            case "DEADLINE" -> Sort.by(Sort.Direction.ASC, "deadline");
+            case "PAY_DESC" -> Sort.by(Sort.Direction.DESC, "payAmount");
+            case "VIEWS" -> Sort.by(Sort.Direction.DESC, "viewCount");
+            default -> Sort.by(Sort.Order.desc("exposureType"), Sort.Order.desc("createdAt"));
+        };
     }
 
     @Transactional
