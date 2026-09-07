@@ -1,5 +1,40 @@
 # 프로젝트 규칙 (1stProject)
 
+## 사전 준비 (팀원 전원 최초 1회)
+
+PR 자동 생성 기능을 쓰려면 GitHub CLI(`gh`)가 설치되어 있어야 합니다.
+
+**설치 확인**
+```bash
+gh --version
+```
+→ 버전이 뜨면 설치되어 있는 것, 안 뜨면 아래 설치 진행
+
+**설치 방법**
+
+Windows (PowerShell, 관리자 권한):
+```powershell
+winget install --id GitHub.cli
+```
+
+Mac:
+```bash
+brew install gh
+```
+
+**로그인**
+```bash
+gh auth login
+```
+- `GitHub.com` 선택 → `HTTPS` 선택 → `Login with a web browser` 선택
+- 코드가 나오면 복사 → 브라우저 열리면 붙여넣고 로그인/승인
+
+**로그인 확인**
+```bash
+gh auth status
+```
+→ `Logged in to github.com as 본인아이디` 뜨면 완료
+
 ## 팀원 & Git 계정 정보
 
 | 이름 | GitHub 아이디 | 역할 | 담당 브랜치 접두사 |
@@ -71,6 +106,22 @@ feature/*   # 개별 기능 작업 브랜치
 - ✅ 작업 시작 전 `develop`을 최신 상태로 pull 받고 시작하기
 - ✅ PR 올리기 전 최소 1명 이상 코드 리뷰 승인받기
 - ✅ 본인 역할(프론트/백엔드)에 맞는 브랜치 접두사만 사용
+
+## PR 생성 규칙
+
+- "오늘 ~작업했어" 또는 "커밋하고 PR까지 만들어줘"라고 말하면 아래 순서로 진행할 것:
+  1. 현재 브랜치가 `feature/*`인지 확인 (main, develop이면 먼저 feature 브랜치 생성)
+  2. `git add`, `git commit` (커밋 컨벤션 태그 사용)
+  3. `git push origin 현재브랜치명`
+  4. GitHub CLI로 PR 생성:
+     ```bash
+     gh pr create --base develop --head feature/역할-기능명 \
+       --title "feat: 기능 설명" \
+       --body "작업 내용 요약"
+     ```
+  5. PR 링크를 사용자에게 안내
+- **PR 승인(approve)과 머지(merge)는 절대 자동으로 하지 말 것** — 반드시 팀원 리뷰 후 사람이 직접 GitHub에서 진행
+- `gh` 명령 실행 전 `gh auth status`로 로그인 상태 확인, 안 되어 있으면 `gh auth login` 안내할 것
 
 ## CLI 응답 규칙
 
