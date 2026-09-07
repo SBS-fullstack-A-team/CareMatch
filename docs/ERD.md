@@ -111,3 +111,48 @@
 | residence | 서울시 강남구 역삼동 … | 서울특별시 강남구 | 위와 동일 |
 | certificate.file_key | 스토리지 키 | 서명(만료) URL | 본인 / 권한 있는 시설회원. 영구 공개 URL 금지 |
 | business_license_file_key | 스토리지 키 | 서명(만료) URL | 관리자(승인 심사) |
+
+---
+
+# 구인공고 도메인 ERD (job posting)
+
+```
+   ┌────────────────────┐         ┌──────────────────────────────┐
+   │  facility_profile  │  1:N    │        job_posting           │
+   ├────────────────────┤────────▶├──────────────────────────────┤
+   │ id (PK)            │         │ id (PK)                      │
+   └────────────────────┘         │ facility_profile_id (FK)     │
+                                  │ title                        │
+   근무조건                        │ job_type      (enum)         │ CAREGIVER/NURSING_ASSISTANT/HOUSEKEEPER/LIFE_SUPPORT/ETC
+                                  │ description   (TEXT)         │
+                                  │ work_type     (enum)         │ COMMUTE/LIVE_IN/REMOTE/NEGOTIABLE
+                                  │ employment_type (enum)       │ FULL_TIME/CONTRACT/TEMPORARY/PART_TIME
+                                  │ employment_type_note         │
+                                  │ work_days / work_start_time / work_end_time │
+                                  │ pay_type (enum) / pay_amount │ HOURLY/DAILY/MONTHLY
+                                  │ recruit_count / deadline     │ deadline = 지원마감일
+   근무지                          │ sido / sigungu / address_detail │
+   어르신정보                      │ care_grade (enum GRADE_1~5)  │
+                                  │ elder_gender (enum) / elder_age_range │ MALE/FEMALE, "70대"
+                                  │ mobility_status (enum)       │ INDEPENDENT/PARTIAL_ASSIST/BEDRIDDEN
+                                  │ meal_status (enum)           │ SELF/ASSIST/TUBE
+                                  │ cognitive_status (enum)      │ NORMAL/MILD/SEVERE
+   다중값(콤마 문자열)              │ duties / required_documents  │ @Convert(StringListConverter)
+   상태/노출                       │ status (enum OPEN/CLOSED)    │
+                                  │ exposure_type (enum) / exposure_expired_at │ NORMAL/PREMIUM/SPECIAL
+                                  │ view_count                   │
+                                  │ created_at / updated_at      │
+                                  └──────────────────────────────┘
+```
+
+| 관계 | 종류 | 비고 |
+|---|---|---|
+| facility_profile — job_posting | 1:N | 승인된 시설이 등록. 작성자 = facility_profile.member |
+
+인덱스: `(status, sigungu, job_type)`, `(deadline)`
+
+## 미반영 (후속 PR / 조율 필요)
+
+- **다중조건 검색**: `sido`/`sigungu`/직종·시설유형·근무형태·등급·거동 다중 + 급여범위 + 정렬 — 다음 PR
+- **매칭 스코어**: `jobseeker_profile` 에 희망지역/희망직종/희망급여 컬럼이 없어 계산 불가. 인재정보 파트에서 컬럼 추가 후 활성화
+- **시설 상세(시설유형·담당자명/직책·시설주소)**: `facility_profile` 확장 필요 → 회원 도메인 담당과 조율. 현재 응답은 `facilityName` + `facilityPhone`(member.phone) 만
