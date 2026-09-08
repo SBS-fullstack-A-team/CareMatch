@@ -60,6 +60,10 @@ public class JobPosting extends BaseTimeEntity {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
+    /** 대표 이미지 URL (목록 카드 / 상세 사이드바 썸네일). 프론트가 업로드 후 최종 URL 을 넘긴다. 선택. */
+    @Column(name = "thumbnail_url", length = 500)
+    private String thumbnailUrl;
+
     // ===== 근무조건 =====
 
     @Enumerated(EnumType.STRING)
@@ -142,6 +146,10 @@ public class JobPosting extends BaseTimeEntity {
     @Column(name = "cognitive_status", nullable = false, length = 20)
     private CognitiveStatus cognitiveStatus;
 
+    /** 어르신 특이사항 자유 기술 (낙상 주의, 알레르기, 과거 병력 등). 선택. */
+    @Column(name = "elder_note", columnDefinition = "TEXT")
+    private String elderNote;
+
     // ===== 다중값 (콤마 문자열, 검색조건 아님) =====
 
     /** 주요 업무 (예: 말벗, 식사준비, 청소, 병원동행). */
@@ -164,6 +172,10 @@ public class JobPosting extends BaseTimeEntity {
     @Column(name = "exposure_type", nullable = false, length = 20)
     private ExposureType exposureType;
 
+    /** RECOMMENDED / 비슷한공고 정렬용. exposureType.priority 를 비정규화 (SQL 정렬을 문자열에 의존하지 않기 위함). */
+    @Column(name = "exposure_priority", nullable = false)
+    private int exposurePriority;
+
     @Column(name = "exposure_expired_at")
     private LocalDateTime exposureExpiredAt;
 
@@ -172,17 +184,20 @@ public class JobPosting extends BaseTimeEntity {
 
     @Builder
     private JobPosting(FacilityProfile facilityProfile, String title, JobType jobType, String description,
+                       String thumbnailUrl,
                        WorkType workType, EmploymentType employmentType, String employmentTypeNote,
                        String workDays, LocalTime workStartTime, LocalTime workEndTime,
                        PayType payType, Integer payAmount, Integer recruitCount, LocalDate deadline,
                        String sido, String sigungu, String addressDetail, Double latitude, Double longitude,
                        CareGrade careGrade, ElderGender elderGender, String elderAgeRange,
                        MobilityStatus mobilityStatus, MealStatus mealStatus, CognitiveStatus cognitiveStatus,
+                       String elderNote,
                        List<String> duties, List<String> requiredDocuments, ExposureType exposureType) {
         this.facilityProfile = facilityProfile;
         this.title = title;
         this.jobType = jobType;
         this.description = description;
+        this.thumbnailUrl = thumbnailUrl;
         this.workType = workType;
         this.employmentType = employmentType;
         this.employmentTypeNote = employmentTypeNote;
@@ -204,22 +219,25 @@ public class JobPosting extends BaseTimeEntity {
         this.mobilityStatus = mobilityStatus;
         this.mealStatus = mealStatus;
         this.cognitiveStatus = cognitiveStatus;
+        this.elderNote = elderNote;
         this.duties = duties;
         this.requiredDocuments = requiredDocuments;
         this.status = JobPostingStatus.OPEN;
         this.exposureType = exposureType == null ? ExposureType.NORMAL : exposureType;
+        this.exposurePriority = this.exposureType.getPriority();
         this.viewCount = 0L;
     }
 
     /** 공고 수정 폼. 노출옵션/상태/조회수는 이 경로로 바꾸지 않는다. */
     public record UpdateForm(
-            String title, JobType jobType, String description,
+            String title, JobType jobType, String description, String thumbnailUrl,
             WorkType workType, EmploymentType employmentType, String employmentTypeNote,
             String workDays, LocalTime workStartTime, LocalTime workEndTime,
             PayType payType, Integer payAmount, Integer recruitCount, LocalDate deadline,
             String sido, String sigungu, String addressDetail, Double latitude, Double longitude,
             CareGrade careGrade, ElderGender elderGender, String elderAgeRange,
             MobilityStatus mobilityStatus, MealStatus mealStatus, CognitiveStatus cognitiveStatus,
+            String elderNote,
             List<String> duties, List<String> requiredDocuments
     ) {
     }
@@ -228,6 +246,7 @@ public class JobPosting extends BaseTimeEntity {
         this.title = f.title();
         this.jobType = f.jobType();
         this.description = f.description();
+        this.thumbnailUrl = f.thumbnailUrl();
         this.workType = f.workType();
         this.employmentType = f.employmentType();
         this.employmentTypeNote = f.employmentTypeNote();
@@ -249,6 +268,7 @@ public class JobPosting extends BaseTimeEntity {
         this.mobilityStatus = f.mobilityStatus();
         this.mealStatus = f.mealStatus();
         this.cognitiveStatus = f.cognitiveStatus();
+        this.elderNote = f.elderNote();
         this.duties = f.duties();
         this.requiredDocuments = f.requiredDocuments();
     }
@@ -260,6 +280,12 @@ public class JobPosting extends BaseTimeEntity {
     /** 프리미엄/스페셜 노출 옵션 구매 시 노출 만료 시각을 설정한다 (기본 7일). */
     public void applyExposure(int days) {
         this.exposureExpiredAt = LocalDateTime.now().plusDays(days);
+    }
+
+    /** 노출 옵션 만료 시 NORMAL 로 강등 (스케줄러가 호출). 정렬 우선순위도 함께 0 으로 내린다. */
+    public void demoteExposure() {
+        this.exposureType = ExposureType.NORMAL;
+        this.exposurePriority = ExposureType.NORMAL.getPriority();
     }
 
     /** 상세 조회 시 1 증가. 동시성 정합성은 데모 수준만 보장. */

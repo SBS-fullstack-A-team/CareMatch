@@ -9,6 +9,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -34,11 +37,26 @@ public interface JobPostingRepository
 
     /**
      * 비슷한 공고 — 같은 시군구 + 직종, 자기 자신 제외, OPEN, 상위 6.
-     * exposure_type 문자열 DESC 로 SPECIAL &gt; PREMIUM &gt; NORMAL 정렬 (enum 3개 고정이라 성립).
+     * exposure_priority(int) DESC → 최신순. 만료 강등은 스케줄러가 처리하므로 이 컬럼만 보면 된다.
      */
     @EntityGraph(attributePaths = {"facilityProfile", "facilityProfile.member"})
-    List<JobPosting> findTop6ByStatusAndSigunguAndJobTypeAndIdNotOrderByExposureTypeDescCreatedAtDesc(
+    List<JobPosting> findTop6ByStatusAndSigunguAndJobTypeAndIdNotOrderByExposurePriorityDescCreatedAtDesc(
             JobPostingStatus status, String sigungu, JobType jobType, Long excludeId);
+
+    /**
+     * 노출 옵션이 만료된 공고를 NORMAL(우선순위 0) 로 강등. 스케줄러가 주기적으로 호출.
+     * @return 강등된 행 수
+     */
+    @Modifying(clearAutomatically = true)
+    @Query("""
+            update JobPosting jp
+               set jp.exposureType = com.carematch.jobposting.domain.ExposureType.NORMAL,
+                   jp.exposurePriority = 0
+             where jp.exposureType <> com.carematch.jobposting.domain.ExposureType.NORMAL
+               and jp.exposureExpiredAt is not null
+               and jp.exposureExpiredAt < :now
+            """)
+    int demoteExpiredExposures(@Param("now") LocalDateTime now);
 
     /** 이 시설(회원 기준)이 등록한 특정 상태의 공고 전부. 인재 ↔ 우리 공고 매칭 계산용. */
     List<JobPosting> findByFacilityProfileMemberIdAndStatus(Long facilityMemberId, JobPostingStatus status);

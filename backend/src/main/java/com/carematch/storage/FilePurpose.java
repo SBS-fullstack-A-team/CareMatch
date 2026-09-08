@@ -6,7 +6,8 @@ package com.carematch.storage;
 public enum FilePurpose {
     BUSINESS_LICENSE("business-license"),
     CERTIFICATE("certificate"),
-    INQUIRY_ATTACHMENT("inquiry-attachment");
+    INQUIRY_ATTACHMENT("inquiry-attachment"),
+    JOB_POSTING_IMAGE("job-posting-image");
 
     private final String prefix;
 
