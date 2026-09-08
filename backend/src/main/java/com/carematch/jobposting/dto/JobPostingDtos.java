@@ -20,6 +20,8 @@ import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
+import org.hibernate.validator.constraints.URL;
 import org.springframework.data.domain.Page;
 
 import java.time.LocalDate;
@@ -74,6 +76,8 @@ public final class JobPostingDtos {
             @NotBlank String title,
             @NotNull JobType jobType,
             String description,
+            /** 대표 이미지 URL. 프론트가 업로드(POST /api/files/upload-url, purpose=JOB_POSTING_IMAGE) 후 최종 URL 전달. */
+            @Size(max = 500) @URL(regexp = "^https?://.*") String thumbnailUrl,
 
             @NotNull WorkType workType,
             @NotNull EmploymentType employmentType,
@@ -98,6 +102,8 @@ public final class JobPostingDtos {
             @NotNull MobilityStatus mobilityStatus,
             @NotNull MealStatus mealStatus,
             @NotNull CognitiveStatus cognitiveStatus,
+            /** 어르신 특이사항 (낙상 주의, 알레르기, 과거 병력 등). 선택. */
+            @Size(max = 2000) String elderNote,
 
             List<String> duties,
             List<String> requiredDocuments,
@@ -111,6 +117,7 @@ public final class JobPostingDtos {
             @NotBlank String title,
             @NotNull JobType jobType,
             String description,
+            @Size(max = 500) @URL(regexp = "^https?://.*") String thumbnailUrl,
 
             @NotNull WorkType workType,
             @NotNull EmploymentType employmentType,
@@ -135,19 +142,21 @@ public final class JobPostingDtos {
             @NotNull MobilityStatus mobilityStatus,
             @NotNull MealStatus mealStatus,
             @NotNull CognitiveStatus cognitiveStatus,
+            @Size(max = 2000) String elderNote,
 
             List<String> duties,
             List<String> requiredDocuments
     ) {
         public JobPosting.UpdateForm toUpdateForm() {
             return new JobPosting.UpdateForm(
-                    title, jobType, description,
+                    title, jobType, description, thumbnailUrl,
                     workType, employmentType, employmentTypeNote,
                     workDays, workStartTime, workEndTime,
                     payType, payAmount, recruitCount, deadline,
                     sido, sigungu, addressDetail, latitude, longitude,
                     careGrade, elderGender, elderAgeRange,
                     mobilityStatus, mealStatus, cognitiveStatus,
+                    elderNote,
                     duties, requiredDocuments);
         }
     }
@@ -162,6 +171,7 @@ public final class JobPostingDtos {
             String title,
             JobType jobType,
             String description,
+            String thumbnailUrl,
 
             WorkType workType,
             EmploymentType employmentType,
@@ -187,6 +197,7 @@ public final class JobPostingDtos {
             MobilityStatus mobilityStatus,
             MealStatus mealStatus,
             CognitiveStatus cognitiveStatus,
+            String elderNote,
 
             List<String> duties,
             List<String> requiredDocuments,
@@ -222,13 +233,13 @@ public final class JobPostingDtos {
             Long dDay = jp.getDeadline() == null ? null
                     : ChronoUnit.DAYS.between(LocalDate.now(), jp.getDeadline());
             return new DetailResponse(
-                    jp.getId(), jp.getTitle(), jp.getJobType(), jp.getDescription(),
+                    jp.getId(), jp.getTitle(), jp.getJobType(), jp.getDescription(), jp.getThumbnailUrl(),
                     jp.getWorkType(), jp.getEmploymentType(), jp.getEmploymentTypeNote(),
                     jp.getWorkDays(), jp.getWorkStartTime(), jp.getWorkEndTime(),
                     jp.getPayType(), jp.getPayAmount(), jp.getRecruitCount(), jp.getDeadline(), dDay,
                     jp.getSido(), jp.getSigungu(), jp.getAddressDetail(), jp.getLatitude(), jp.getLongitude(),
                     jp.getCareGrade(), jp.getElderGender(), jp.getElderAgeRange(),
-                    jp.getMobilityStatus(), jp.getMealStatus(), jp.getCognitiveStatus(),
+                    jp.getMobilityStatus(), jp.getMealStatus(), jp.getCognitiveStatus(), jp.getElderNote(),
                     jp.getDuties(), jp.getRequiredDocuments(),
                     jp.getStatus(), jp.getExposureType(),
                     calcNew(jp), calcClosingSoon(jp, dDay), calcRecommended(matchingScore),
@@ -243,6 +254,7 @@ public final class JobPostingDtos {
             Long id,
             String title,
             JobType jobType,
+            String thumbnailUrl,
             String sido,
             String sigungu,
             String workDays,
@@ -279,7 +291,7 @@ public final class JobPostingDtos {
             Long dDay = jp.getDeadline() == null ? null
                     : ChronoUnit.DAYS.between(LocalDate.now(), jp.getDeadline());
             return new SummaryResponse(
-                    jp.getId(), jp.getTitle(), jp.getJobType(),
+                    jp.getId(), jp.getTitle(), jp.getJobType(), jp.getThumbnailUrl(),
                     jp.getSido(), jp.getSigungu(),
                     jp.getWorkDays(), jp.getWorkStartTime(), jp.getWorkEndTime(),
                     jp.getPayType(), jp.getPayAmount(),

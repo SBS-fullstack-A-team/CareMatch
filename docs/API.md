@@ -164,6 +164,8 @@ POST /api/files/upload-url
 }
 ```
 
+- `purpose`: `BUSINESS_LICENSE`(사업자등록증) / `CERTIFICATE`(자격증) / `INQUIRY_ATTACHMENT`(문의 첨부) / `JOB_POSTING_IMAGE`(구인공고 대표 이미지).
+
 ## 5. 약관 (공개 조회)
 
 | 메서드 | 경로 | 설명 |
@@ -344,11 +346,16 @@ POST /api/admin/facilities/13/approve     (Authorization: Bearer <ADMIN>)
 
 - 카테고리성 필드는 전부 enum 문자열. 잘못된 값 → 400 `COMMON_001`.
 - `duties` / `requiredDocuments` 는 문자열 배열 (표시용).
+- `thumbnailUrl`(선택): 대표 이미지 URL. `http(s)://` 만 허용, 최대 500자. 목록 카드·상세에 내려줌.
+  프론트는 `POST /api/files/upload-url`(`purpose=JOB_POSTING_IMAGE`)로 업로드 후 최종 URL 을 여기에 담는다.
+- `elderNote`(선택, 최대 2000자): 어르신 특이사항 자유 기술 (낙상 주의, 알레르기 등). 상세 응답에만 포함.
 - 응답 계산필드: `dDay`(마감까지 일수), `isNew`(등록 3일 내), `isClosingSoon`(D-7 & OPEN), `isRecommended`(`matchingScore` ≥ 70).
 - `matchingScore`(0~100): **로그인한 구직자**가 희망조건(`desired*`, `PUT /api/jobseekers/me`)을 설정한 경우만 채워진다. 비로그인·시설회원·희망조건 미설정이면 `null`.
   - 가중치: 직종 35 / 지역 30(시군구 일치 만점, 시도만 일치 절반) / 근무형태 20(협의는 일치 처리) / 급여 15(희망액 충족 만점, 미달 시 비율, 급여유형 다르면 0).
   - 지정한 항목들의 가중치 합을 100점으로 환산 — 예: 직종·지역만 지정했으면 그 둘로 100점.
   - 목록 정렬(`sort=RECOMMENDED`)은 노출등급→최신 순 그대로. `matchingScore` 로는 재정렬하지 않음(페이지네이션 일관성).
+- 노출등급 정렬은 `exposure_priority`(int, SPECIAL 2 > PREMIUM 1 > NORMAL 0) 컬럼 기준. 노출 만료(`exposureExpiredAt` 경과) 시
+  매일 새벽 스케줄러가 NORMAL(0)로 강등하므로 만료된 프리미엄/스페셜은 상단에서 내려간다.
 
 ```http
 POST /api/job-postings   (Authorization: Bearer <FACILITY>)

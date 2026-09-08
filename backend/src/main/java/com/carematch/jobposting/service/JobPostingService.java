@@ -81,6 +81,7 @@ public class JobPostingService {
                 .title(req.title())
                 .jobType(req.jobType())
                 .description(req.description())
+                .thumbnailUrl(req.thumbnailUrl())
                 .workType(req.workType())
                 .employmentType(req.employmentType())
                 .employmentTypeNote(req.employmentTypeNote())
@@ -102,6 +103,7 @@ public class JobPostingService {
                 .mobilityStatus(req.mobilityStatus())
                 .mealStatus(req.mealStatus())
                 .cognitiveStatus(req.cognitiveStatus())
+                .elderNote(req.elderNote())
                 .duties(req.duties())
                 .requiredDocuments(req.requiredDocuments())
                 .exposureType(exposureType)
@@ -165,9 +167,9 @@ public class JobPostingService {
     }
 
     /**
-     * 정렬 규칙. RECOMMENDED 는 노출등급 → 최신 순.
-     * exposureType 을 문자열 DESC 로 정렬하면 SPECIAL &gt; PREMIUM &gt; NORMAL 이 되어 의도와 일치한다
-     * (enum 값이 3개로 고정이라 성립. 값이 늘면 명시적 우선순위로 교체할 것).
+     * 정렬 규칙. RECOMMENDED 는 노출등급(exposurePriority) → 최신 순.
+     * exposurePriority 는 등록 시 exposureType.priority 를 비정규화한 int 컬럼이고,
+     * 노출 만료 시 스케줄러({@link JobPostingExposureScheduler})가 NORMAL(0) 로 강등한다.
      */
     private Sort resolveSort(String sort) {
         String key = sort == null ? "RECOMMENDED" : sort.toUpperCase();
@@ -176,7 +178,7 @@ public class JobPostingService {
             case "DEADLINE" -> Sort.by(Sort.Direction.ASC, "deadline");
             case "PAY_DESC" -> Sort.by(Sort.Direction.DESC, "payAmount");
             case "VIEWS" -> Sort.by(Sort.Direction.DESC, "viewCount");
-            default -> Sort.by(Sort.Order.desc("exposureType"), Sort.Order.desc("createdAt"));
+            default -> Sort.by(Sort.Order.desc("exposurePriority"), Sort.Order.desc("createdAt"));
         };
     }
 
@@ -185,7 +187,7 @@ public class JobPostingService {
         JobPosting base = jobPostingRepository.findById(jobPostingId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_POSTING_NOT_FOUND, "id=" + jobPostingId));
         List<JobPosting> list = jobPostingRepository
-                .findTop6ByStatusAndSigunguAndJobTypeAndIdNotOrderByExposureTypeDescCreatedAtDesc(
+                .findTop6ByStatusAndSigunguAndJobTypeAndIdNotOrderByExposurePriorityDescCreatedAtDesc(
                         JobPostingStatus.OPEN, base.getSigungu(), base.getJobType(), jobPostingId);
         Set<Long> scrappedIds = scrappedIdsAmong(viewerMemberId, list);
         JobSeekerProfile viewer = viewerProfile(viewerMemberId);

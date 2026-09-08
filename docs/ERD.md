@@ -131,6 +131,7 @@
                                   │ title                        │
    근무조건                        │ job_type      (enum)         │ CAREGIVER/NURSING_ASSISTANT/HOUSEKEEPER/LIFE_SUPPORT/ETC
                                   │ description   (TEXT)         │
+                                  │ thumbnail_url                │ 대표 이미지 URL (선택, http(s), ≤500)
                                   │ work_type     (enum)         │ COMMUTE/LIVE_IN/REMOTE/NEGOTIABLE
                                   │ employment_type (enum)       │ FULL_TIME/CONTRACT/TEMPORARY/PART_TIME
                                   │ employment_type_note         │
@@ -143,9 +144,10 @@
                                   │ mobility_status (enum)       │ INDEPENDENT/PARTIAL_ASSIST/BEDRIDDEN
                                   │ meal_status (enum)           │ SELF/ASSIST/TUBE
                                   │ cognitive_status (enum)      │ NORMAL/MILD/SEVERE
+                                  │ elder_note (TEXT)            │ 어르신 특이사항 자유기술 (선택)
    다중값(콤마 문자열)              │ duties / required_documents  │ @Convert(StringListConverter)
    상태/노출                       │ status (enum OPEN/CLOSED)    │
-                                  │ exposure_type (enum) / exposure_expired_at │ NORMAL/PREMIUM/SPECIAL
+                                  │ exposure_type (enum) / exposure_priority (int) / exposure_expired_at │ NORMAL/PREMIUM/SPECIAL, priority 0/1/2, 만료 시 스케줄러가 NORMAL 강등
                                   │ view_count                   │
                                   │ created_at / updated_at      │
                                   └──────────────────────────────┘
