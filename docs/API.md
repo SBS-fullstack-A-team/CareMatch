@@ -485,3 +485,19 @@ DELETE /api/job-posting-drafts/7     → 204
 - `formJson` 최대 20,000자, `title` 최대 100자 → 초과 시 400.
 - 미승인(PENDING) 시설 → 403 `FACILITY_001`.
 
+## 12. 지원 (구직신청)
+
+| 메서드 | 경로 | 권한 | 설명 |
+|---|---|---|---|
+| POST | `/api/job-postings/{id}/applications` | JOBSEEKER | 공고에 지원. 취소 이력 있으면 되살림. 201 `{applicationId}` |
+| GET | `/api/job-postings/{id}/applications` | 공고 작성 시설 | 지원자 목록 (`PageResponse<ApplicantResponse>`, `?status=` 필터) |
+| GET | `/api/members/me/applications` | JOBSEEKER | 내 지원 내역 (`PageResponse<MyApplicationResponse>`, `?status=` 필터) |
+| PATCH | `/api/applications/{id}/cancel` | 지원자 본인 | 지원 취소 (APPLIED → CANCELED, 204) |
+| PATCH | `/api/applications/{id}/status` | 공고 작성 시설 | 수락/반려 (`{"status":"ACCEPTED"\|"REJECTED"}`, APPLIED 에서만, 204) |
+
+- 상태: `APPLIED`(지원 완료) → 지원자 `CANCELED` / 시설 `ACCEPTED`·`REJECTED`. `CANCELED` 후 재지원 시 같은 행이 `APPLIED` 로 되살아남.
+- `ApplicantResponse`: `applicationId, status, appliedAt, processedAt, message, profileId, memberId, applicantName, employmentStatus, desiredJobType, certificateNames[], matchScore` — `matchScore` 는 이 공고 ↔ 지원자 희망조건.
+- `MyApplicationResponse`: `applicationId, status, appliedAt, processedAt, message, jobPostingId, title, facilityName, sido, sigungu, deadline, dDay, postingStatus`.
+- 에러: 이미 지원 409 `APPLICATION_002` / 마감 공고 지원 409 `APPLICATION_003` / 잘못된 상태 전이·잘못된 decision 값 409 `APPLICATION_004` / 남의 지원 접근·없는 id → 404 `APPLICATION_001` / 타 시설이 지원자목록 조회 → 403 `JOBPOSTING_002`.
+- **발행 엔드포인트만 있고 알림은 없음** (알림 도메인 미구현).
+

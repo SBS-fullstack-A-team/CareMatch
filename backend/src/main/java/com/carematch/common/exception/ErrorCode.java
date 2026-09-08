@@ -69,6 +69,12 @@ public enum ErrorCode {
     JOB_POSTING_DRAFT_NOT_FOUND(HttpStatus.NOT_FOUND, "JOBPOSTING_005", "임시저장한 공고를 찾을 수 없습니다."),
     JOB_POSTING_DRAFT_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "JOBPOSTING_006", "임시저장은 최대 20건까지 가능합니다."),
 
+    // --- 지원(구직신청) ---
+    APPLICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "APPLICATION_001", "지원 내역을 찾을 수 없습니다."),
+    APPLICATION_ALREADY_EXISTS(HttpStatus.CONFLICT, "APPLICATION_002", "이미 지원한 공고입니다."),
+    APPLICATION_POSTING_CLOSED(HttpStatus.CONFLICT, "APPLICATION_003", "마감된 공고에는 지원할 수 없습니다."),
+    APPLICATION_INVALID_STATE(HttpStatus.CONFLICT, "APPLICATION_004", "현재 상태에서 처리할 수 없는 요청입니다."),
+
     // --- 고객센터 ---
     NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "SUPPORT_001", "공지사항을 찾을 수 없습니다."),
     FAQ_NOT_FOUND(HttpStatus.NOT_FOUND, "SUPPORT_002", "FAQ를 찾을 수 없습니다."),

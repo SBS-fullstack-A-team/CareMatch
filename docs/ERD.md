@@ -163,6 +163,7 @@
 |---|---|---|
 | facility_profile — job_posting | 1:N | 승인된 시설이 등록. 작성자 = facility_profile.member |
 | facility_profile — job_posting_draft | 1:N | 임시저장. 시설당 최대 20건 |
+| job_posting — application — jobseeker_profile | N:M 해소 | (공고, 지원자) UNIQUE. 지원 |
 
 인덱스: `(status, sigungu, job_type)`, `(deadline)`
 
@@ -173,6 +174,17 @@ id (PK) / facility_profile_id (FK) / title (nullable, ≤100) / form_json (TEXT,
 created_at / updated_at
 ```
 인덱스: `(facility_profile_id)`. 발행 경로 없음 — 완성 시 job_posting 으로 등록 후 draft 삭제.
+
+### application (구직신청)
+
+```
+id (PK) / job_posting_id (FK) / job_seeker_profile_id (FK)
+status (enum APPLIED/ACCEPTED/REJECTED/CANCELED) / message (nullable, ≤500) / processed_at (nullable)
+created_at(=지원시각) / updated_at
+UQ(job_posting_id, job_seeker_profile_id)  ← CANCELED 후 재지원 시 행 재사용
+IDX(job_posting_id, status), (job_seeker_profile_id, status)
+```
+상태 전이: APPLIED → 지원자 CANCELED / 시설 ACCEPTED·REJECTED. CANCELED → APPLIED(재지원). 알림 도메인 없음.
 
 ## 미반영 (후속 PR / 조율 필요)
 
