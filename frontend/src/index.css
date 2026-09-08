@@ -1,0 +1,174 @@
+@import 'tailwindcss';
+
+/* =========================================================================
+   케어매치 디자인 토큰 — DESIGN_SYSTEM.md 를 그대로 옮긴 Single Source of Truth.
+   화면/컴포넌트에서 임의의 색상·radius·shadow 값을 만들지 않는다.
+   ========================================================================= */
+@theme {
+  /* ---- Color / Primary ---- */
+  --color-primary: #2c7a68;
+  --color-primary-deep: #1f6255; /* Primary Dark */
+  --color-primary-light: #eaf5f2;
+
+  /* ---- Color / Accent ---- */
+  --color-accent: #b9612f;
+  --color-accent-deep: #964b21;
+  --color-accent-light: #f8ede5;
+
+  /* ---- Color / Neutral ---- */
+  --color-bg: #f7f7f4; /* Background */
+  --color-surface: #ffffff; /* Surface */
+  --color-surface-sunken: #f2f3f0;
+
+  --color-fg: #263332; /* Text Primary */
+  --color-fg-muted: #61706d; /* Text Secondary */
+  --color-fg-subtle: #87938f; /* Text Muted */
+
+  --color-border: #dde7e4;
+  --color-border-strong: #c8d5d1;
+
+  /* ---- Color / Semantic ---- */
+  --color-success: #2c7a68;
+  --color-warning: #b9612f;
+  --color-danger: #c94a4a;
+  --color-danger-light: #fbeaea;
+  --color-info: #4f7180;
+
+  /* ---- Typography ---- */
+  --font-sans:
+    'Pretendard Variable', Pretendard, 'Noto Sans KR', -apple-system,
+    BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+
+  /* DESIGN_SYSTEM.md §3 Font Scale.
+     40~60대 사용자를 고려해 스케일 하한을 13px 로 올려 두었다.
+     10 / 11 / 12px 는 토큰 자체가 존재하지 않는다. */
+  --text-xs: 0.8125rem; /* 13px — Meta (조회수·등록일) */
+  --text-xs--line-height: 1.5;
+  --text-sm: 0.875rem; /* 14px — Caption */
+  --text-sm--line-height: 1.5;
+  --text-base: 1rem; /* 16px — Body */
+  --text-base--line-height: 1.6;
+  --text-lg: 1.125rem; /* 18px — Card Title / Body Large */
+  --text-lg--line-height: 1.4;
+  --text-xl: 1.25rem; /* 20px — Sub Title */
+  --text-xl--line-height: 1.35;
+  --text-2xl: 1.5rem; /* 24px — Section Title */
+  --text-2xl--line-height: 1.3;
+  --text-3xl: 1.875rem; /* 30px — Page Title */
+  --text-3xl--line-height: 1.3;
+  --text-4xl: 2rem; /* 32px — Display */
+  --text-4xl--line-height: 1.3;
+
+  /* ---- Layout ---- */
+  --container-page: 1200px;
+  /* Header / Footer 는 목업상 본문(1200)보다 넓게 정렬된다 */
+  --container-chrome: 1400px;
+  /* 디자인 기준 화면이 1440px 이므로 2xl 을 1440 으로 맞춘다 (DESIGN_SYSTEM.md §6) */
+  --breakpoint-2xl: 1440px;
+
+  /* ---- Radius ---- */
+  --radius-badge: 6px;
+  --radius-input: 8px;
+  --radius-btn: 8px;
+  --radius-card: 10px;
+  --radius-panel: 12px; /* Modal / Drawer */
+
+  /* ---- Shadow ---- */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-header: 0 1px 2px rgba(38, 51, 50, 0.06);
+  --shadow-overlay: 0 8px 24px rgba(38, 51, 50, 0.12);
+  --shadow-focus: 0 0 0 3px rgba(44, 122, 104, 0.12);
+}
+
+/* =========================================================================
+   글자 크기 조절 (GNB의 "글자크기")
+   rem 기반 스케일이므로 루트 폰트 크기만 조절하면 전체가 함께 커진다.
+   ========================================================================= */
+:root {
+  font-size: 16px;
+}
+:root[data-font-scale='large'] {
+  font-size: 17.5px;
+}
+:root[data-font-scale='xlarge'] {
+  font-size: 19px;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    word-break: keep-all;
+  }
+
+  /* DESIGN_SYSTEM.md §4 Line Height — Heading 1.3 */
+  h1,
+  h2,
+  h3,
+  h4 {
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+    text-wrap: pretty;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: var(--color-primary-light);
+    color: var(--color-primary-deep);
+  }
+
+  /* 숫자가 흔들리지 않도록 (급여·매칭 점수 등) */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer utilities {
+  /* DESIGN_SYSTEM.md §6 — max-width 1200px / width calc(100% - 48px) */
+  .container-page {
+    width: 100%;
+    max-width: var(--container-page);
+    margin-inline: auto;
+    padding-inline: 16px; /* Mobile */
+  }
+
+  @media (min-width: 768px) {
+    .container-page {
+      padding-inline: 24px; /* Tablet / Desktop */
+    }
+  }
+
+  /* 2줄 말줄임 */
+  .line-clamp-2-ko {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+}
