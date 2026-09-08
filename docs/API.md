@@ -378,6 +378,11 @@ POST /api/admin/facilities/13/approve     (Authorization: Bearer <ADMIN>)
 | PUT | `/api/job-postings/{id}` | 작성 시설 본인 | 수정 (노출옵션/상태/조회수는 불변) |
 | PATCH | `/api/job-postings/{id}/close` | 작성 시설 본인 | 마감 (OPEN→CLOSED). `DetailResponse` 반환. 이미 마감이면 409 `JOBPOSTING_004` |
 | DELETE | `/api/job-postings/{id}` | 작성 시설 본인 | 삭제 |
+| POST | `/api/job-posting-drafts` | ROLE_FACILITY + 승인 | 임시저장 생성 (201) |
+| GET | `/api/job-posting-drafts` | 본인 | 내 임시저장 목록 (`updatedAt` 내림차순, `List<DraftSummary>`) |
+| GET | `/api/job-posting-drafts/{id}` | 본인 | 임시저장 단건 (폼에 로드, `formJson` 포함) |
+| PUT | `/api/job-posting-drafts/{id}` | 본인 | 임시저장 덮어쓰기 |
+| DELETE | `/api/job-posting-drafts/{id}` | 본인 | 임시저장 삭제 (204) |
 
 - 카테고리성 필드는 전부 enum 문자열. 잘못된 값 → 400 `COMMON_001`.
 - `duties` / `requiredDocuments` 는 문자열 배열 (표시용).
@@ -432,4 +437,30 @@ GET /api/job-postings?page=0&size=20
 
 - 상태는 서버가 OPEN 으로 고정. 잘못된 enum 값 → 400 `COMMON_001`.
 - 응답은 `PageResponse<SummaryResponse>` (`{content, page, size, totalElements, totalPages}`).
+
+### 임시저장 (`/api/job-posting-drafts`)
+
+등록 마법사를 중간에 저장했다가 이어서 작성하기 위한 것. **승인된 시설회원 본인만.**
+`formJson` 은 프론트가 스키마를 소유하는 등록 폼 스냅샷 문자열 — 서버는 검증 없이 보관·반환만 한다.
+`title` 만 목록 라벨용으로 따로 받는다. 둘 다 선택(빈 임시저장 허용).
+
+```http
+POST /api/job-posting-drafts     (Authorization: Bearer <FACILITY>)
+{ "title": "방문요양 요양보호사 (작성중)", "formJson": "{\"step\":3,\"jobType\":\"CAREGIVER\", ...}" }
+201 { "id": 7, "title": "방문요양 요양보호사 (작성중)",
+      "formJson": "{...}", "createdAt": "...", "updatedAt": "..." }
+
+GET /api/job-posting-drafts
+200 [ { "id": 7, "title": "방문요양 요양보호사 (작성중)", "updatedAt": "..." } ]   // formJson 제외, 최신 수정순
+
+GET /api/job-posting-drafts/7        → 200 DraftResponse (formJson 포함)
+PUT /api/job-posting-drafts/7        {title, formJson} → 200 DraftResponse (덮어쓰기)
+DELETE /api/job-posting-drafts/7     → 204
+```
+
+- **발행(publish) 엔드포인트 없음** — 프론트가 폼을 완성해 `POST /api/job-postings` 로 등록한 뒤 이 임시저장을 `DELETE`.
+- 남의 임시저장 접근 / 없는 id → 404 `JOBPOSTING_005` (존재 여부 비노출).
+- 시설당 최대 20건. 초과 시 409 `JOBPOSTING_006`.
+- `formJson` 최대 20,000자, `title` 최대 100자 → 초과 시 400.
+- 미승인(PENDING) 시설 → 403 `FACILITY_001`.
 
