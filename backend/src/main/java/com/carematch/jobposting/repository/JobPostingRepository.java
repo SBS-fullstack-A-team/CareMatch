@@ -57,4 +57,7 @@ public interface JobPostingRepository
                and jp.exposureExpiredAt < :now
             """)
     int demoteExpiredExposures(@Param("now") LocalDateTime now);
+
+    /** 이 시설(회원 기준)이 등록한 특정 상태의 공고 전부. 인재 ↔ 우리 공고 매칭 계산용. */
+    List<JobPosting> findByFacilityProfileMemberIdAndStatus(Long facilityMemberId, JobPostingStatus status);
 }

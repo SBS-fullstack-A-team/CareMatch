@@ -183,6 +183,7 @@ GET /api/terms
 
 | 메서드 | 경로 | 권한 | 설명 |
 |---|---|---|---|
+| GET | `/api/jobseekers` | FACILITY(승인)·ADMIN | 인재 검색 목록 (`PageResponse<TalentSummary>`) |
 | GET | `/api/jobseekers/me` | JOBSEEKER | 내 프로필(전체 공개) + 자격증 서명 URL |
 | PUT | `/api/jobseekers/me` | JOBSEEKER | 내 프로필 수정(거주지·자기소개·취업상태·희망 근무조건) |
 | GET | `/api/jobseekers/{profileId}` | FACILITY(승인)·ADMIN | 인재 상세(연락처/거주지 마스킹) |
@@ -190,6 +191,41 @@ GET /api/terms
 
 - 미승인(PENDING/REJECTED) 시설회원이 `/api/jobseekers/**` 접근 → `403 FACILITY_NOT_APPROVED`
 - 희망 근무조건(`desired*`)은 전부 선택. 매칭 스코어 계산 근거이며, 미설정 시 응답에서 `null`.
+
+### 인재 검색 (`GET /api/jobseekers`)
+
+승인된 시설회원 / 관리자만. 필터·정렬은 쿼리 파라미터. 지역·직종·근무형태·급여는 구직자 **희망조건** 컬럼 기준
+(해당 희망조건 미설정 구직자는 그 필터에서 제외).
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `desiredJobType` / `desiredWorkType` | enum | 희망 직종 / 희망 근무형태 |
+| `sido` / `sigungu` | string | 희망 근무지역(정확히 일치) |
+| `payType` | enum | 희망 급여유형 |
+| `payMax` | int | 희망 최소급여가 이 값 이하인 인재만 |
+| `seekingOnly` | bool | 생략/true = 구직중(SEEKING)만. false = 취업완료 포함 |
+| `updatedWithinDays` | int | 최근 N일 내 프로필 갱신 |
+| `sort` | string | `LATEST`(기본, 최근 갱신순) — 매칭점수 정렬은 SQL 불가로 미지원(구인공고 RECOMMENDED 와 동일 제약) |
+| `page` / `size` | int | 기본 0 / 20. size 상한 100 |
+
+- `TalentSummary`: `profileId, memberId, name, employmentStatus, desired*, certificateNames[], updatedAt, matchScore`
+- `matchScore`: **시설회원이 조회 시** 그 시설의 OPEN 공고들 중 최고 매칭 점수. 관리자·공고 없음·인재 희망조건 미설정이면 `null`.
+
+```http
+GET /api/jobseekers?desiredJobType=CAREGIVER&sido=서울특별시&sigungu=강남구     (Authorization: Bearer <FACILITY>)
+200 { "content": [ { "profileId": 42, "name": "김미영", "employmentStatus": "SEEKING",
+        "desiredJobType": "CAREGIVER", "desiredSido": "서울특별시", "desiredSigungu": "강남구",
+        "desiredPayType": "HOURLY", "desiredMinPay": 13000,
+        "certificateNames": ["요양보호사 자격증"], "updatedAt": "...", "matchScore": 92 } ],
+      "page": 0, "size": 20, "totalElements": 1, "totalPages": 1 }
+```
+
+### 인재 상세 매칭 (`GET /api/jobseekers/{id}`, 시설회원)
+
+상세 응답에 아래가 추가된다 (본인 `/me` 조회 시 `matchScore=null`, `postingMatches=[]`):
+
+- `matchScore`: 그 시설 OPEN 공고 중 최고 점수
+- `postingMatches`: `[{ jobPostingId, title, jobType, matchScore }]` — 공고별 매칭 (점수 내림차순). 목업 "이 인재와 우리 공고 매칭도".
 
 ```http
 PUT /api/jobseekers/me        (Authorization: Bearer <JOBSEEKER>)
@@ -344,6 +380,11 @@ POST /api/admin/facilities/13/approve     (Authorization: Bearer <ADMIN>)
 | PUT | `/api/job-postings/{id}` | 작성 시설 본인 | 수정 (노출옵션/상태/조회수는 불변) |
 | PATCH | `/api/job-postings/{id}/close` | 작성 시설 본인 | 마감 (OPEN→CLOSED). `DetailResponse` 반환. 이미 마감이면 409 `JOBPOSTING_004` |
 | DELETE | `/api/job-postings/{id}` | 작성 시설 본인 | 삭제 |
+| POST | `/api/job-posting-drafts` | ROLE_FACILITY + 승인 | 임시저장 생성 (201) |
+| GET | `/api/job-posting-drafts` | 본인 | 내 임시저장 목록 (`updatedAt` 내림차순, `List<DraftSummary>`) |
+| GET | `/api/job-posting-drafts/{id}` | 본인 | 임시저장 단건 (폼에 로드, `formJson` 포함) |
+| PUT | `/api/job-posting-drafts/{id}` | 본인 | 임시저장 덮어쓰기 |
+| DELETE | `/api/job-posting-drafts/{id}` | 본인 | 임시저장 삭제 (204) |
 
 - 카테고리성 필드는 전부 enum 문자열. 잘못된 값 → 400 `COMMON_001`.
 - `duties` / `requiredDocuments` 는 문자열 배열 (표시용).
@@ -403,4 +444,30 @@ GET /api/job-postings?page=0&size=20
 
 - 상태는 서버가 OPEN 으로 고정. 잘못된 enum 값 → 400 `COMMON_001`.
 - 응답은 `PageResponse<SummaryResponse>` (`{content, page, size, totalElements, totalPages}`).
+
+### 임시저장 (`/api/job-posting-drafts`)
+
+등록 마법사를 중간에 저장했다가 이어서 작성하기 위한 것. **승인된 시설회원 본인만.**
+`formJson` 은 프론트가 스키마를 소유하는 등록 폼 스냅샷 문자열 — 서버는 검증 없이 보관·반환만 한다.
+`title` 만 목록 라벨용으로 따로 받는다. 둘 다 선택(빈 임시저장 허용).
+
+```http
+POST /api/job-posting-drafts     (Authorization: Bearer <FACILITY>)
+{ "title": "방문요양 요양보호사 (작성중)", "formJson": "{\"step\":3,\"jobType\":\"CAREGIVER\", ...}" }
+201 { "id": 7, "title": "방문요양 요양보호사 (작성중)",
+      "formJson": "{...}", "createdAt": "...", "updatedAt": "..." }
+
+GET /api/job-posting-drafts
+200 [ { "id": 7, "title": "방문요양 요양보호사 (작성중)", "updatedAt": "..." } ]   // formJson 제외, 최신 수정순
+
+GET /api/job-posting-drafts/7        → 200 DraftResponse (formJson 포함)
+PUT /api/job-posting-drafts/7        {title, formJson} → 200 DraftResponse (덮어쓰기)
+DELETE /api/job-posting-drafts/7     → 204
+```
+
+- **발행(publish) 엔드포인트 없음** — 프론트가 폼을 완성해 `POST /api/job-postings` 로 등록한 뒤 이 임시저장을 `DELETE`.
+- 남의 임시저장 접근 / 없는 id → 404 `JOBPOSTING_005` (존재 여부 비노출).
+- 시설당 최대 20건. 초과 시 409 `JOBPOSTING_006`.
+- `formJson` 최대 20,000자, `title` 최대 100자 → 초과 시 400.
+- 미승인(PENDING) 시설 → 403 `FACILITY_001`.
 

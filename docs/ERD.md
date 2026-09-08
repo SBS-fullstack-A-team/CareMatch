@@ -156,8 +156,17 @@
 | 관계 | 종류 | 비고 |
 |---|---|---|
 | facility_profile — job_posting | 1:N | 승인된 시설이 등록. 작성자 = facility_profile.member |
+| facility_profile — job_posting_draft | 1:N | 임시저장. 시설당 최대 20건 |
 
 인덱스: `(status, sigungu, job_type)`, `(deadline)`
+
+### job_posting_draft (구인공고 임시저장)
+
+```
+id (PK) / facility_profile_id (FK) / title (nullable, ≤100) / form_json (TEXT, nullable, 프론트 소유 폼 스냅샷)
+created_at / updated_at
+```
+인덱스: `(facility_profile_id)`. 발행 경로 없음 — 완성 시 job_posting 으로 등록 후 draft 삭제.
 
 ## 미반영 (후속 PR / 조율 필요)
 
