@@ -205,6 +205,8 @@ public class JobPostingService {
     private static final double MAX_RADIUS_KM = 50.0;
     /** 반경 검색 결과 상한. */
     private static final int MAX_NEARBY_LIMIT = 100;
+    /** 바운딩 박스 1차 후보 상한 — 밀집 지역 + 넓은 반경에서 메모리 폭주 방지. */
+    private static final int NEARBY_CANDIDATE_CAP = 500;
 
     /**
      * "내 주변 일자리" — 기준 좌표 반경 내 OPEN 공고를 가까운 순으로.
@@ -218,7 +220,8 @@ public class JobPostingService {
         double latDelta = safeRadius / 111.0;
         double lngDelta = safeRadius / (111.0 * Math.max(Math.cos(Math.toRadians(lat)), 0.01));
         List<JobPosting> candidates = jobPostingRepository.findOpenWithinBoundingBox(
-                lat - latDelta, lat + latDelta, lng - lngDelta, lng + lngDelta);
+                lat - latDelta, lat + latDelta, lng - lngDelta, lng + lngDelta,
+                PageRequest.of(0, NEARBY_CANDIDATE_CAP));
 
         record Scored(JobPosting posting, double km) {
         }

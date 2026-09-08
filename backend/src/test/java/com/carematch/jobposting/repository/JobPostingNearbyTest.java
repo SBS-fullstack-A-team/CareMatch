@@ -18,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.data.domain.PageRequest;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -75,7 +76,7 @@ class JobPostingNearbyTest {
         em.clear();
 
         // 서울시청 주변 ±0.05도
-        var list = repository.findOpenWithinBoundingBox(37.516, 37.616, 126.928, 127.028);
+        var list = repository.findOpenWithinBoundingBox(37.516, 37.616, 126.928, 127.028, PageRequest.of(0, 100));
 
         assertThat(list).extracting(JobPosting::getTitle).containsExactly("inside");
     }
