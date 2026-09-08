@@ -29,7 +29,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -83,6 +85,7 @@ public class JobPostingService {
                 .title(req.title())
                 .jobType(req.jobType())
                 .description(req.description())
+                .preferredNote(req.preferredNote())
                 .thumbnailUrl(req.thumbnailUrl())
                 .workType(req.workType())
                 .employmentType(req.employmentType())
@@ -118,17 +121,44 @@ public class JobPostingService {
         return DetailResponse.from(jobPostingRepository.save(posting), null);
     }
 
-    /** 다중조건 검색 (상태 OPEN 고정). 로그인 회원이면 각 결과에 찜 여부(scrapped)를 채운다. */
+    /**
+     * 다중조건 검색 (상태 OPEN 고정). 로그인 회원이면 각 결과에 찜 여부(scrapped)·매칭점수를 채운다.
+     *
+     * <p><b>RECOMMENDED + 로그인 구직자</b>: SQL 은 노출등급→최신 순으로 뽑되, 그 <i>페이지 안에서만</i>
+     * 매칭점수 우선으로 재정렬한다. 매칭점수는 조회 시점 Java 계산이라 전역 SQL 정렬이 불가 —
+     * 페이지 경계를 넘는 순서는 근사치다 (부채 C2).
+     */
     public PageResponse<SummaryResponse> search(SearchCondition cond, int page, int size, Long viewerMemberId) {
         int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
-        PageRequest pageable = PageRequest.of(Math.max(page, 0), safeSize, resolveSort(cond.sort()));
+        String sortKey = sortKey(cond.sort());
+        PageRequest pageable = PageRequest.of(Math.max(page, 0), safeSize, resolveSort(sortKey));
         Page<JobPosting> pageResult = jobPostingRepository.findAll(JobPostingSpecs.from(cond), pageable);
 
-        Set<Long> scrappedIds = scrappedIdsAmong(viewerMemberId, pageResult.getContent());
         JobSeekerProfile viewer = viewerProfile(viewerMemberId);
-        return PageResponse.of(pageResult,
-                jp -> SummaryResponse.from(jp, scrappedFlag(viewerMemberId, scrappedIds, jp.getId()),
-                        matchScore(viewer, jp)));
+        Set<Long> scrappedIds = scrappedIdsAmong(viewerMemberId, pageResult.getContent());
+
+        Map<Long, Integer> scores = new HashMap<>();
+        pageResult.getContent().forEach(jp -> scores.put(jp.getId(), matchScore(viewer, jp)));
+
+        List<JobPosting> content = pageResult.getContent();
+        if ("RECOMMENDED".equals(sortKey) && viewer != null) {
+            content = content.stream().sorted(byMatchThenExposure(
+                    jp -> scores.get(jp.getId()) == null ? Integer.MIN_VALUE : scores.get(jp.getId()))).toList();
+        }
+
+        List<SummaryResponse> mapped = content.stream()
+                .map(jp -> SummaryResponse.from(jp,
+                        scrappedFlag(viewerMemberId, scrappedIds, jp.getId()), scores.get(jp.getId())))
+                .toList();
+        return new PageResponse<>(mapped, pageResult.getNumber(), pageResult.getSize(),
+                pageResult.getTotalElements(), pageResult.getTotalPages());
+    }
+
+    /** 매칭점수 desc(미채점은 뒤) → 노출등급 desc → 최신 desc. */
+    static Comparator<JobPosting> byMatchThenExposure(java.util.function.ToIntFunction<JobPosting> scoreOf) {
+        return Comparator.comparingInt(scoreOf).reversed()
+                .thenComparing(Comparator.comparingInt(JobPosting::getExposurePriority).reversed())
+                .thenComparing(JobPosting::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder()));
     }
 
     /** 로그인 회원이 구직자면 그 프로필, 아니면(비로그인·시설회원) null. 매칭 스코어 계산에만 사용. */
@@ -173,9 +203,12 @@ public class JobPostingService {
      * exposurePriority 는 등록 시 exposureType.priority 를 비정규화한 int 컬럼이고,
      * 노출 만료 시 스케줄러({@link JobPostingExposureScheduler})가 NORMAL(0) 로 강등한다.
      */
-    private Sort resolveSort(String sort) {
-        String key = sort == null ? "RECOMMENDED" : sort.toUpperCase();
-        return switch (key) {
+    private static String sortKey(String sort) {
+        return sort == null ? "RECOMMENDED" : sort.toUpperCase();
+    }
+
+    private Sort resolveSort(String sortKey) {
+        return switch (sortKey) {
             case "LATEST" -> Sort.by(Sort.Direction.DESC, "createdAt");
             case "DEADLINE" -> Sort.by(Sort.Direction.ASC, "deadline");
             case "PAY_DESC" -> Sort.by(Sort.Direction.DESC, "payAmount");
