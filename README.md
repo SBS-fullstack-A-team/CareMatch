@@ -60,3 +60,23 @@ cd backend && ./gradlew bootRun
 
 - 백엔드는 IntelliJ 로 열 때 `backend/` 를 Gradle 프로젝트로 임포트한다.
 - 프론트 개발 서버는 `http://localhost:5173`(Vite) / `http://localhost:3000` 기준으로 백엔드 CORS 가 열려 있다.
+
+## 트러블슈팅
+
+지금까지 겪고 해결한 이슈 기록. (괄호 안은 관련 커밋)
+
+### 1. 로컬 빌드 실패 — JDK 버전 & Gradle wrapper 누락 (`64f9ada`)
+- **증상**: JDK 17 이 없는 로컬(예: JDK 21)에서 `./gradlew build` 실패. wrapper 가 커밋되지 않아 clone 직후 빌드 불가.
+- **해결**: `build.gradle` 의 Java toolchain(17 고정) 제거 → `options.release = 17` 로 전환(17 바이트코드는 유지). Gradle wrapper(jar·스크립트·properties) 커밋. `.gitattributes` 로 `gradlew`=LF / `gradlew.bat`=CRLF 고정(Mac/Linux 팀원 대응).
+
+### 2. Spring 컨텍스트 로딩 실패 — SecurityConfig 순환참조 (`a1b1f0d`)
+- **증상**: `SecurityConfig → OAuth2SuccessHandler → AuthService → PasswordEncoder(@Bean, SecurityConfig 내부)` 로 자기 자신으로 돌아오는 순환참조. `BeanCurrentlyInCreationException` 으로 `contextLoads` 테스트 실패, `bootRun` 기동 불가.
+- **해결**: `PasswordEncoder` 빈을 의존성 없는 별도 클래스 `PasswordConfig` 로 분리해 고리를 끊음. `AuthenticationManager` 빈은 순환 경로가 아니라 그대로 유지.
+
+### 3. CORS — 프론트 연동 안 됨 (`8e1f8e9`)
+- **증상**: Vercel 프리뷰 배포(`carematch-*.vercel.app`)처럼 서브도메인이 매번 바뀌어 고정 origin 목록으로는 차단됨. 로컬 Vite 포트(5173)도 미허용.
+- **해결**: `setAllowedOrigins` → `setAllowedOriginPatterns`(패턴 허용)로 변경. 로컬 origin 에 `http://localhost:5173` 추가(3000 유지). `.env.example` 도 패턴 형식으로 갱신.
+
+### 4. 모노레포 전환에 따른 경로 조정 (`0246862`)
+- **증상**: 백엔드를 `backend/` 하위로 이동하면서 배포·IDE 경로가 어긋남.
+- **해결**: Render 의 Root Directory 를 `backend` 로 변경. IntelliJ 는 `backend/` 를 Gradle 프로젝트로 재임포트. `.gitignore` 의 wrapper jar 예외 경로를 `**/` 로 일반화.
