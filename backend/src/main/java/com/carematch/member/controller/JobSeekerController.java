@@ -2,10 +2,13 @@ package com.carematch.member.controller;
 
 import com.carematch.contact.dto.ContactUnlockResponse;
 import com.carematch.contact.service.ContactUnlockService;
+import com.carematch.jobposting.domain.EmploymentType;
 import com.carematch.jobposting.domain.JobType;
 import com.carematch.jobposting.domain.PayType;
 import com.carematch.jobposting.domain.WorkType;
 import com.carematch.jobposting.dto.JobPostingDtos.PageResponse;
+import com.carematch.member.domain.CareTask;
+import com.carematch.member.domain.Gender;
 import com.carematch.member.dto.JobSeekerProfileResponse;
 import com.carematch.member.dto.JobSeekerProfileUpdateRequest;
 import com.carematch.member.dto.TalentSearchDtos.SearchCondition;
@@ -71,6 +74,10 @@ public class JobSeekerController {
             @RequestParam(required = false) String sigungu,
             @RequestParam(required = false) PayType payType,
             @RequestParam(required = false) Integer payMax,
+            @RequestParam(required = false) Gender gender,
+            @RequestParam(required = false) Integer minCareerYears,
+            @RequestParam(required = false) java.util.List<CareTask> availableTasks,
+            @RequestParam(required = false) java.util.List<EmploymentType> desiredEmploymentTypes,
             @RequestParam(required = false) Boolean seekingOnly,
             @RequestParam(required = false) Integer updatedWithinDays,
             @RequestParam(required = false) String sort,
@@ -80,6 +87,7 @@ public class JobSeekerController {
                 .anyMatch(a -> a.getAuthority().equals("ROLE_FACILITY"));
         SearchCondition cond = new SearchCondition(
                 desiredJobType, desiredWorkType, sido, sigungu, payType, payMax,
+                gender, minCareerYears, availableTasks, desiredEmploymentTypes,
                 seekingOnly, updatedWithinDays, sort);
         return talentSearchService.search(cond, page, size, principal.getMemberId(), isFacility);
     }

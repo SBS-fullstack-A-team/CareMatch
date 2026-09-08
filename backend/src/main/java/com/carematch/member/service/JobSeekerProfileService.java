@@ -30,6 +30,7 @@ public class JobSeekerProfileService {
         profile.changeEmploymentStatus(req.employmentStatus());
         profile.updateProfile(req.residence(), req.introduction());
         profile.updateDesiredConditions(req.toDesiredConditions());
+        profile.updateDetails(req.toProfileDetails());
 
         return queryService.getMine(memberId);
     }
