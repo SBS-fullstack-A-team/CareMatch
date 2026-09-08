@@ -182,10 +182,38 @@ GET /api/terms
 | 메서드 | 경로 | 권한 | 설명 |
 |---|---|---|---|
 | GET | `/api/jobseekers/me` | JOBSEEKER | 내 프로필(전체 공개) + 자격증 서명 URL |
+| PUT | `/api/jobseekers/me` | JOBSEEKER | 내 프로필 수정(거주지·자기소개·취업상태·희망 근무조건) |
 | GET | `/api/jobseekers/{profileId}` | FACILITY(승인)·ADMIN | 인재 상세(연락처/거주지 마스킹) |
 | POST | `/api/jobseekers/{profileId}/contact/unlock` | FACILITY(승인) | 연락처 열람하기 |
 
 - 미승인(PENDING/REJECTED) 시설회원이 `/api/jobseekers/**` 접근 → `403 FACILITY_NOT_APPROVED`
+- 희망 근무조건(`desired*`)은 전부 선택. 매칭 스코어 계산 근거이며, 미설정 시 응답에서 `null`.
+
+```http
+PUT /api/jobseekers/me        (Authorization: Bearer <JOBSEEKER>)
+{
+  "employmentStatus": "SEEKING",
+  "residence": "서울특별시 강남구 역삼동 123-45",
+  "introduction": "10년 경력 요양보호사입니다.",
+  "desiredJobType": "CAREGIVER",           // JobType, 선택
+  "desiredWorkType": "COMMUTE",             // WorkType, 선택
+  "desiredSido": "서울특별시",               // 선택
+  "desiredSigungu": "강남구",                // 선택
+  "desiredPayType": "MONTHLY",              // PayType, 선택
+  "desiredMinPay": 2500000                  // 양수, desiredPayType 기준 최소 희망액
+}
+200 {
+  "profileId": 42, "memberId": 12, "name": "홍길동",
+  "employmentStatus": "SEEKING",
+  "phone": "01012345678", "residence": "서울특별시 강남구 역삼동 123-45",
+  "introduction": "10년 경력 요양보호사입니다.",
+  "contactUnlocked": true, "unlockCost": 300, "certificates": [ ... ],
+  "desiredJobType": "CAREGIVER", "desiredWorkType": "COMMUTE",
+  "desiredSido": "서울특별시", "desiredSigungu": "강남구",
+  "desiredPayType": "MONTHLY", "desiredMinPay": 2500000
+}
+```
+- 거주지/자기소개/취업상태/희망조건은 요청 값으로 **전체 덮어쓰기**(부분수정 아님). 보내지 않은 `desired*` 는 `null` 로 저장됨.
 
 ```http
 GET /api/jobseekers/42        (Authorization: Bearer <FACILITY>)
@@ -201,7 +229,10 @@ GET /api/jobseekers/42        (Authorization: Bearer <FACILITY>)
     { "id": 5, "certificateName": "요양보호사 1급", "certificateNumber": "2020-...",
       "status": "VERIFIED",
       "downloadUrl": "https://files.example.invalid/_stub-download/certificate/...?expires=...&sig=..." }
-  ]
+  ],
+  "desiredJobType": "CAREGIVER", "desiredWorkType": "COMMUTE",
+  "desiredSido": "서울특별시", "desiredSigungu": "강남구",
+  "desiredPayType": "MONTHLY", "desiredMinPay": 2500000    // 미설정 시 각각 null
 }
 ```
 ```http
@@ -314,9 +345,7 @@ POST /api/admin/facilities/13/approve     (Authorization: Bearer <ADMIN>)
 - 카테고리성 필드는 전부 enum 문자열. 잘못된 값 → 400 `COMMON_001`.
 - `duties` / `requiredDocuments` 는 문자열 배열 (표시용).
 - 응답 계산필드: `dDay`(마감까지 일수), `isNew`(등록 3일 내), `isClosingSoon`(D-7 & OPEN), `isRecommended`(매칭≥70, 현재 항상 false).
-- `matchingScore` 는 인재정보 파트 확장 전까지 항상 `null`.
-- 목록/상세 응답의 `scrapped`: 로그인 회원의 찜 여부(true/false), 비로그인이면 `null`.
-- `latitude`/`longitude`: 근무지 좌표(선택). 등록/수정 시 프론트가 지오코딩해서 전달, 상세 응답에 포함.
+- `matchingScore` 는 점수 계산 연결(후속 PR) 전까지 항상 `null`. 계산 근거가 되는 구직자 희망조건(`desired*`)은 `PUT /api/jobseekers/me` 로 설정.
 
 ```http
 POST /api/job-postings   (Authorization: Bearer <FACILITY>)

@@ -2,6 +2,9 @@ package com.carematch.member.domain;
 
 import com.carematch.common.entity.BaseTimeEntity;
 import com.carematch.certificate.domain.Certificate;
+import com.carematch.jobposting.domain.JobType;
+import com.carematch.jobposting.domain.PayType;
+import com.carematch.jobposting.domain.WorkType;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -55,6 +58,35 @@ public class JobSeekerProfile extends BaseTimeEntity {
     @Column(name = "introduction", length = 1000)
     private String introduction;
 
+    // ===== 희망 근무조건 (매칭 스코어 계산용, 전부 선택) =====
+
+    /** 희망 직종. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "desired_job_type", length = 20)
+    private JobType desiredJobType;
+
+    /** 희망 근무형태(출퇴근/입주 등). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "desired_work_type", length = 20)
+    private WorkType desiredWorkType;
+
+    /** 희망 근무지역 시/도. */
+    @Column(name = "desired_sido", length = 30)
+    private String desiredSido;
+
+    /** 희망 근무지역 시/군/구. */
+    @Column(name = "desired_sigungu", length = 30)
+    private String desiredSigungu;
+
+    /** 희망 급여 유형(시급/일급/월급). desiredMinPay 의 단위. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "desired_pay_type", length = 20)
+    private PayType desiredPayType;
+
+    /** 희망 최소 급여액(desiredPayType 기준). */
+    @Column(name = "desired_min_pay")
+    private Integer desiredMinPay;
+
     @OneToMany(mappedBy = "jobSeekerProfile", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Certificate> certificates = new ArrayList<>();
 
@@ -64,6 +96,17 @@ public class JobSeekerProfile extends BaseTimeEntity {
         this.employmentStatus = employmentStatus == null ? EmploymentStatus.SEEKING : employmentStatus;
         this.residence = residence;
         this.introduction = introduction;
+    }
+
+    /** 희망 근무조건 수정 폼. 지정하지 않은(null) 값은 "조건 없음"으로 그대로 저장한다. */
+    public record DesiredConditions(
+            JobType desiredJobType,
+            WorkType desiredWorkType,
+            String desiredSido,
+            String desiredSigungu,
+            PayType desiredPayType,
+            Integer desiredMinPay
+    ) {
     }
 
     public boolean isEmployed() {
@@ -77,6 +120,15 @@ public class JobSeekerProfile extends BaseTimeEntity {
     public void updateProfile(String residence, String introduction) {
         this.residence = residence;
         this.introduction = introduction;
+    }
+
+    public void updateDesiredConditions(DesiredConditions c) {
+        this.desiredJobType = c.desiredJobType();
+        this.desiredWorkType = c.desiredWorkType();
+        this.desiredSido = c.desiredSido();
+        this.desiredSigungu = c.desiredSigungu();
+        this.desiredPayType = c.desiredPayType();
+        this.desiredMinPay = c.desiredMinPay();
     }
 
     public void addCertificate(Certificate certificate) {

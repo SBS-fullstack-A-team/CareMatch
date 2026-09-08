@@ -3,14 +3,19 @@ package com.carematch.member.controller;
 import com.carematch.contact.dto.ContactUnlockResponse;
 import com.carematch.contact.service.ContactUnlockService;
 import com.carematch.member.dto.JobSeekerProfileResponse;
+import com.carematch.member.dto.JobSeekerProfileUpdateRequest;
 import com.carematch.member.service.JobSeekerProfileQueryService;
+import com.carematch.member.service.JobSeekerProfileService;
 import com.carematch.security.CustomUserDetails;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -24,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class JobSeekerController {
 
     private final JobSeekerProfileQueryService profileQueryService;
+    private final JobSeekerProfileService profileService;
     private final ContactUnlockService contactUnlockService;
 
     /** 내 구직자 프로필 (본인, 전체 공개) */
@@ -31,6 +37,14 @@ public class JobSeekerController {
     @PreAuthorize("hasRole('JOBSEEKER')")
     public JobSeekerProfileResponse myProfile(@AuthenticationPrincipal CustomUserDetails principal) {
         return profileQueryService.getMine(principal.getMemberId());
+    }
+
+    /** 내 구직자 프로필 수정 (거주지·자기소개·취업상태·희망 근무조건) */
+    @PutMapping("/me")
+    @PreAuthorize("hasRole('JOBSEEKER')")
+    public JobSeekerProfileResponse updateMyProfile(@AuthenticationPrincipal CustomUserDetails principal,
+                                                   @Valid @RequestBody JobSeekerProfileUpdateRequest request) {
+        return profileService.updateMine(principal.getMemberId(), request);
     }
 
     /** 인재 상세 (시설회원/관리자). 연락처·거주지는 기본 마스킹, 열람 이력 있으면 언마스크 */
