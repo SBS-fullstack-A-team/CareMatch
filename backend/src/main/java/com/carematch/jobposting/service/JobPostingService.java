@@ -205,8 +205,19 @@ public class JobPostingService {
 
         Boolean scrapped = viewerMemberId == null ? null
                 : scrapRepository.existsByMemberIdAndJobPostingId(viewerMemberId, jobPostingId);
-        Integer matchingScore = matchScore(viewerProfile(viewerMemberId), posting);
-        return DetailResponse.from(posting, matchingScore, scrapped);
+        MatchScoreCalculator.MatchResult match = matchScoreCalculator.evaluate(viewerProfile(viewerMemberId), posting);
+        return DetailResponse.from(posting, match.score(), match.reasons(), scrapped);
+    }
+
+    /** 공고 마감. 작성 시설 본인만. 이미 마감된 공고면 409. */
+    @Transactional
+    public DetailResponse close(Long memberId, Long jobPostingId) {
+        JobPosting posting = findOwned(memberId, jobPostingId);
+        if (posting.getStatus() == JobPostingStatus.CLOSED) {
+            throw new BusinessException(ErrorCode.JOB_POSTING_ALREADY_CLOSED, "id=" + jobPostingId);
+        }
+        posting.close();
+        return DetailResponse.from(posting, null);
     }
 
     @Transactional

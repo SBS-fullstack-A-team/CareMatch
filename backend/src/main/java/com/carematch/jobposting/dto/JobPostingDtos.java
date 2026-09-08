@@ -220,14 +220,22 @@ public final class JobPostingDtos {
             /** 매칭 스코어(0~100). 로그인한 구직자가 희망조건을 설정한 경우만 채워지고, 그 외에는 null. */
             Integer matchingScore,
 
+            /** 매칭 사유 문구 (예: "희망하는 근무지와 일치해요"). 일치한 항목만. 채점 불가면 빈 리스트. */
+            List<String> matchingReasons,
+
             /** 로그인 회원의 찜 여부. 비로그인이면 null. */
             Boolean scrapped
     ) {
         public static DetailResponse from(JobPosting jp, Integer matchingScore) {
-            return from(jp, matchingScore, null);
+            return from(jp, matchingScore, null, null);
         }
 
         public static DetailResponse from(JobPosting jp, Integer matchingScore, Boolean scrapped) {
+            return from(jp, matchingScore, null, scrapped);
+        }
+
+        public static DetailResponse from(JobPosting jp, Integer matchingScore,
+                                          List<String> matchingReasons, Boolean scrapped) {
             FacilityProfile fp = jp.getFacilityProfile();
             Member m = fp.getMember();
             Long dDay = jp.getDeadline() == null ? null
@@ -245,7 +253,7 @@ public final class JobPostingDtos {
                     calcNew(jp), calcClosingSoon(jp, dDay), calcRecommended(matchingScore),
                     jp.getViewCount(), jp.getCreatedAt(), jp.getUpdatedAt(),
                     m.getId(), fp.getFacilityName(), m.getPhone(),
-                    matchingScore, scrapped);
+                    matchingScore, matchingReasons == null ? List.of() : matchingReasons, scrapped);
         }
     }
 

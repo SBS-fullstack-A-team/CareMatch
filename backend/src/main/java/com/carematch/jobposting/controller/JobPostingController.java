@@ -22,6 +22,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -109,6 +110,15 @@ public class JobPostingController {
             @PathVariable Long jobPostingId,
             @Valid @RequestBody UpdateRequest request) {
         return jobPostingService.update(principal.getMemberId(), jobPostingId, request);
+    }
+
+    /** 공고 마감 (OPEN → CLOSED). 작성 시설 본인만. 이미 마감이면 409. */
+    @PatchMapping("/{jobPostingId}/close")
+    @PreAuthorize("hasRole('FACILITY')")
+    public DetailResponse close(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @PathVariable Long jobPostingId) {
+        return jobPostingService.close(principal.getMemberId(), jobPostingId);
     }
 
     @DeleteMapping("/{jobPostingId}")
