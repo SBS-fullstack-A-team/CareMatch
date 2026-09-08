@@ -7,6 +7,7 @@ import com.carematch.jobposting.domain.JobPosting;
 import com.carematch.jobposting.domain.JobPostingStatus;
 import com.carematch.jobposting.dto.JobPostingDtos.CreateRequest;
 import com.carematch.jobposting.dto.JobPostingDtos.DetailResponse;
+import com.carematch.jobposting.dto.JobPostingDtos.NearbyResult;
 import com.carematch.jobposting.dto.JobPostingDtos.PageResponse;
 import com.carematch.jobposting.dto.JobPostingDtos.SearchCondition;
 import com.carematch.jobposting.dto.JobPostingDtos.SummaryResponse;
@@ -27,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
@@ -195,6 +197,58 @@ public class JobPostingService {
                 .map(jp -> SummaryResponse.from(jp, scrappedFlag(viewerMemberId, scrappedIds, jp.getId()),
                         matchScore(viewer, jp)))
                 .toList();
+    }
+
+    /** 지구 반경(km). */
+    private static final double EARTH_RADIUS_KM = 6371.0;
+    /** 반경 검색 상한(km). */
+    private static final double MAX_RADIUS_KM = 50.0;
+    /** 반경 검색 결과 상한. */
+    private static final int MAX_NEARBY_LIMIT = 100;
+
+    /**
+     * "내 주변 일자리" — 기준 좌표 반경 내 OPEN 공고를 가까운 순으로.
+     * DB 는 위경도 바운딩 박스로 1차 필터하고, 정밀 거리 계산·정렬은 여기서 Haversine 으로 한다
+     * (DB 벤더 미확정이라 공간 함수 미사용).
+     */
+    public List<NearbyResult> nearby(double lat, double lng, double radiusKm, int limit, Long viewerMemberId) {
+        double safeRadius = Math.min(Math.max(radiusKm, 0.1), MAX_RADIUS_KM);
+        int safeLimit = Math.min(Math.max(limit, 1), MAX_NEARBY_LIMIT);
+
+        double latDelta = safeRadius / 111.0;
+        double lngDelta = safeRadius / (111.0 * Math.max(Math.cos(Math.toRadians(lat)), 0.01));
+        List<JobPosting> candidates = jobPostingRepository.findOpenWithinBoundingBox(
+                lat - latDelta, lat + latDelta, lng - lngDelta, lng + lngDelta);
+
+        record Scored(JobPosting posting, double km) {
+        }
+        List<Scored> within = candidates.stream()
+                .map(jp -> new Scored(jp, distanceKm(lat, lng, jp.getLatitude(), jp.getLongitude())))
+                .filter(s -> s.km() <= safeRadius)
+                .sorted(Comparator.comparingDouble(Scored::km))
+                .limit(safeLimit)
+                .toList();
+
+        List<JobPosting> postings = within.stream().map(Scored::posting).toList();
+        Set<Long> scrappedIds = scrappedIdsAmong(viewerMemberId, postings);
+        JobSeekerProfile viewer = viewerProfile(viewerMemberId);
+        return within.stream()
+                .map(s -> new NearbyResult(
+                        SummaryResponse.from(s.posting(),
+                                scrappedFlag(viewerMemberId, scrappedIds, s.posting().getId()),
+                                matchScore(viewer, s.posting())),
+                        Math.round(s.km() * 10.0) / 10.0))
+                .toList();
+    }
+
+    /** 두 좌표 간 대원 거리(km). Haversine. */
+    static double distanceKm(double lat1, double lng1, double lat2, double lng2) {
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLng = Math.toRadians(lng2 - lng1);
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        return EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
     @Transactional
