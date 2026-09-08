@@ -54,7 +54,7 @@ public class TalentSearchService {
         return PageResponse.of(result, p -> TalentSummary.from(
                 p,
                 certNames.getOrDefault(p.getId(), List.of()),
-                talentMatcher.bestScore(talentMatcher.matches(p, myPostings))));
+                talentMatcher.bestScore(p, myPostings)));
     }
 
     private Map<Long, List<String>> certificateNames(List<JobSeekerProfile> profiles) {

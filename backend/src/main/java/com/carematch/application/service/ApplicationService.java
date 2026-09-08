@@ -10,6 +10,7 @@ import com.carematch.certificate.domain.Certificate;
 import com.carematch.certificate.repository.CertificateRepository;
 import com.carematch.common.exception.BusinessException;
 import com.carematch.common.exception.ErrorCode;
+import com.carematch.contact.service.ContactUnlockService;
 import com.carematch.jobposting.domain.JobPosting;
 import com.carematch.jobposting.domain.JobPostingStatus;
 import com.carematch.jobposting.dto.JobPostingDtos.PageResponse;
@@ -44,11 +45,15 @@ public class ApplicationService {
     private final JobSeekerProfileRepository jobSeekerProfileRepository;
     private final CertificateRepository certificateRepository;
     private final MatchScoreCalculator matchScoreCalculator;
+    private final ContactUnlockService contactUnlockService;
 
-    /** 구직자가 공고에 지원. 취소했던 이력이 있으면 되살린다. */
+    /**
+     * 구직자가 공고에 지원. 취소했던 이력이 있으면 되살린다.
+     * 지원 = 그 시설에 연락처 공개 동의 → 해당 시설에 무료 열람 권한을 부여한다.
+     */
     @Transactional
     public Long apply(Long memberId, Long jobPostingId, ApplyRequest req) {
-        JobPosting posting = jobPostingRepository.findById(jobPostingId)
+        JobPosting posting = jobPostingRepository.findWithFacilityById(jobPostingId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_POSTING_NOT_FOUND, "id=" + jobPostingId));
         if (posting.getStatus() != JobPostingStatus.OPEN) {
             throw new BusinessException(ErrorCode.APPLICATION_POSTING_CLOSED, "status=" + posting.getStatus());
@@ -60,16 +65,22 @@ public class ApplicationService {
         Application existing = applicationRepository
                 .findByJobPostingIdAndJobSeekerProfileId(jobPostingId, seeker.getId())
                 .orElse(null);
+        Long applicationId;
         if (existing != null) {
             existing.reapply(req.message());   // CANCELED 가 아니면 APPLICATION_ALREADY_EXISTS
-            return existing.getId();
+            applicationId = existing.getId();
+        } else {
+            try {
+                applicationId = applicationRepository.save(Application.builder()
+                        .jobPosting(posting).jobSeekerProfile(seeker).message(req.message()).build()).getId();
+            } catch (DataIntegrityViolationException e) {
+                throw new BusinessException(ErrorCode.APPLICATION_ALREADY_EXISTS, "concurrent");
+            }
         }
-        try {
-            return applicationRepository.save(Application.builder()
-                    .jobPosting(posting).jobSeekerProfile(seeker).message(req.message()).build()).getId();
-        } catch (DataIntegrityViolationException e) {
-            throw new BusinessException(ErrorCode.APPLICATION_ALREADY_EXISTS, "concurrent");
-        }
+
+        contactUnlockService.grantFreeAccess(
+                posting.getFacilityProfile().getMember().getId(), seeker.getId());
+        return applicationId;
     }
 
     /** 지원자 본인이 취소 (APPLIED 상태에서만). */
@@ -82,7 +93,8 @@ public class ApplicationService {
     @Transactional
     public void decide(Long facilityMemberId, Long applicationId, ApplicationStatus decision) {
         if (decision != ApplicationStatus.ACCEPTED && decision != ApplicationStatus.REJECTED) {
-            throw new BusinessException(ErrorCode.APPLICATION_INVALID_STATE, "decision=" + decision);
+            // 잘못된 요청 값(ACCEPTED/REJECTED 외) → 상태 충돌(409)이 아니라 400
+            throw new BusinessException(ErrorCode.INVALID_INPUT, "decision must be ACCEPTED or REJECTED, got " + decision);
         }
         Application application = facilityApplication(facilityMemberId, applicationId);
         if (decision == ApplicationStatus.ACCEPTED) {

@@ -73,9 +73,9 @@ public final class TalentSearchDtos {
             /** "마지막 확인일" 표기용. */
             java.time.LocalDateTime updatedAt,
             /** 이 시설의 OPEN 공고들 중 최고 매칭 점수. 시설 아님 / 공고 없음 / 인재 희망조건 미설정이면 null. */
-            Integer matchScore
+            Integer matchingScore
     ) {
-        public static TalentSummary from(JobSeekerProfile p, List<String> certificateNames, Integer matchScore) {
+        public static TalentSummary from(JobSeekerProfile p, List<String> certificateNames, Integer matchingScore) {
             Integer age = p.getBirthYear() == null ? null : Year.now().getValue() - p.getBirthYear();
             return new TalentSummary(
                     p.getId(), p.getMember().getId(), p.getMember().getName(),
@@ -85,7 +85,7 @@ public final class TalentSearchDtos {
                     p.getDesiredSido(), p.getDesiredSigungu(),
                     name(p.getDesiredPayType()), p.getDesiredMinPay(),
                     p.getDesiredWorkDays(), p.getDesiredWorkStartTime(), p.getDesiredWorkEndTime(),
-                    certificateNames, p.getUpdatedAt(), matchScore);
+                    certificateNames, p.getUpdatedAt(), matchingScore);
         }
 
         private static String name(Enum<?> e) {
