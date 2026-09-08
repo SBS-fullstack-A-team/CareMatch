@@ -8,6 +8,7 @@ import com.carematch.jobposting.domain.PayType;
 import com.carematch.jobposting.domain.WorkType;
 import com.carematch.jobposting.dto.JobPostingDtos.CreateRequest;
 import com.carematch.jobposting.dto.JobPostingDtos.DetailResponse;
+import com.carematch.jobposting.dto.JobPostingDtos.NearbyResult;
 import com.carematch.jobposting.dto.JobPostingDtos.PageResponse;
 import com.carematch.jobposting.dto.JobPostingDtos.SearchCondition;
 import com.carematch.jobposting.dto.JobPostingDtos.SummaryResponse;
@@ -84,6 +85,19 @@ public class JobPostingController {
     @GetMapping("/featured")
     public List<SummaryResponse> featured(@AuthenticationPrincipal CustomUserDetails principal) {
         return jobPostingService.featured(memberIdOrNull(principal));
+    }
+
+    /**
+     * "내 주변 일자리" — 기준 좌표 반경 내 OPEN 공고를 가까운 순으로. 비로그인 공개.
+     * radiusKm 상한 50, limit 상한 100. 프론트가 사용자 위치를 위경도로 넘긴다.
+     */
+    @GetMapping("/nearby")
+    public List<NearbyResult> nearby(@AuthenticationPrincipal CustomUserDetails principal,
+                                     @RequestParam double lat,
+                                     @RequestParam double lng,
+                                     @RequestParam(defaultValue = "3") double radiusKm,
+                                     @RequestParam(defaultValue = "30") int limit) {
+        return jobPostingService.nearby(lat, lng, radiusKm, limit, memberIdOrNull(principal));
     }
 
     @GetMapping("/{jobPostingId}")

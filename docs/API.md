@@ -385,6 +385,7 @@ POST /api/admin/facilities/13/approve     (Authorization: Bearer <ADMIN>)
 |---|---|---|---|
 | GET | `/api/job-postings` | 공개 | 모집중(OPEN) 목록/검색. 필터·정렬 아래 참고 |
 | GET | `/api/job-postings/featured` | 공개 | "소페셜 채용정보" — 만료 안 된 SPECIAL 공고 상위 3 |
+| GET | `/api/job-postings/nearby` | 공개 | "내 주변 일자리" — 반경 내 OPEN 공고, 가까운 순 (`List<NearbyResult>`) |
 | POST | `/api/job-postings/{id}/scrap` | 인증 | 찜 추가 (멱등, 204) |
 | DELETE | `/api/job-postings/{id}/scrap` | 인증 | 찜 취소 (멱등, 204) |
 | GET | `/api/members/me/scraps` | 인증 | 내 찜 목록 (최신순, `PageResponse<SummaryResponse>`) |
@@ -458,6 +459,26 @@ GET /api/job-postings?page=0&size=20
 
 - 상태는 서버가 OPEN 으로 고정. 잘못된 enum 값 → 400 `COMMON_001`.
 - 응답은 `PageResponse<SummaryResponse>` (`{content, page, size, totalElements, totalPages}`).
+
+### 내 주변 일자리 (`GET /api/job-postings/nearby`)
+
+기준 좌표 반경 내 OPEN 공고를 가까운 순으로. 비로그인 공개. 프론트가 사용자 위치를 위경도로 넘긴다.
+DB 는 위경도 바운딩 박스로 1차 필터, 정밀 거리·정렬은 서버에서 Haversine (DB 벤더 함수 미사용).
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `lat` / `lng` | double | **필수**. 기준 좌표. 누락 시 400 |
+| `radiusKm` | double | 반경(km). 기본 3, 상한 50 |
+| `limit` | int | 최대 결과 수. 기본 30, 상한 100 |
+
+```http
+GET /api/job-postings/nearby?lat=37.5665&lng=126.9780&radiusKm=3
+200 [ { "posting": { ...SummaryResponse... }, "distanceKm": 0.8 },
+      { "posting": { ... }, "distanceKm": 2.1 } ]     // 가까운 순, distanceKm 소수 1자리
+```
+
+- 위경도가 없는 공고(`latitude`/`longitude` null)는 제외.
+- 로그인 회원이면 `posting.scrapped` / `posting.matchScore` 채워짐 (목록 검색과 동일).
 
 ### 임시저장 (`/api/job-posting-drafts`)
 
