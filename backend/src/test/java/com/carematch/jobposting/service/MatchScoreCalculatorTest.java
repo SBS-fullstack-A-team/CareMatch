@@ -100,4 +100,38 @@ class MatchScoreCalculatorTest {
         JobPosting p = posting(JobType.CAREGIVER, WorkType.COMMUTE, "서울특별시", "강남구", PayType.MONTHLY, 3_000_000);
         assertThat(calculator.score(s, p)).isEqualTo(0);
     }
+
+    @Test
+    void 채점_불가면_사유도_빈리스트() {
+        JobSeekerProfile empty = JobSeekerProfile.builder().employmentStatus(EmploymentStatus.SEEKING).build();
+        MatchScoreCalculator.MatchResult r = calculator.evaluate(
+                empty, posting(JobType.CAREGIVER, WorkType.COMMUTE, "서울특별시", "강남구", PayType.MONTHLY, 3_000_000));
+        assertThat(r.score()).isNull();
+        assertThat(r.reasons()).isEmpty();
+    }
+
+    @Test
+    void 일치한_항목만_사유에_담긴다() {
+        // 직종·근무형태 일치, 지역은 시/도만 일치, 급여 미달
+        JobSeekerProfile s = seeker(JobType.CAREGIVER, WorkType.COMMUTE, "서울특별시", "강남구", PayType.MONTHLY, 3_000_000);
+        JobPosting p = posting(JobType.CAREGIVER, WorkType.COMMUTE, "서울특별시", "송파구", PayType.MONTHLY, 2_400_000);
+        MatchScoreCalculator.MatchResult r = calculator.evaluate(s, p);
+        assertThat(r.reasons()).containsExactly(
+                "희망하는 직종과 일치해요",
+                "희망하는 시·도와 일치해요",
+                "희망하는 근무형태와 일치해요");
+    }
+
+    @Test
+    void 근무지_완전일치면_급여충족_사유_포함() {
+        JobSeekerProfile s = seeker(JobType.CAREGIVER, WorkType.COMMUTE, "서울특별시", "강남구", PayType.MONTHLY, 2_500_000);
+        JobPosting p = posting(JobType.CAREGIVER, WorkType.COMMUTE, "서울특별시", "강남구", PayType.MONTHLY, 3_000_000);
+        MatchScoreCalculator.MatchResult r = calculator.evaluate(s, p);
+        assertThat(r.score()).isEqualTo(100);
+        assertThat(r.reasons()).containsExactly(
+                "희망하는 직종과 일치해요",
+                "희망하는 근무지와 일치해요",
+                "희망하는 근무형태와 일치해요",
+                "희망하는 급여 조건을 충족해요");
+    }
 }

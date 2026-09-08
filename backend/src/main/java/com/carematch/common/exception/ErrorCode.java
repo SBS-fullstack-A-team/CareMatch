@@ -65,6 +65,7 @@ public enum ErrorCode {
     JOB_POSTING_NOT_FOUND(HttpStatus.NOT_FOUND, "JOBPOSTING_001", "구인공고를 찾을 수 없습니다."),
     JOB_POSTING_ACCESS_DENIED(HttpStatus.FORBIDDEN, "JOBPOSTING_002", "본인이 등록한 공고만 수정·삭제할 수 있습니다."),
     JOB_POSTING_POINT_SHORTAGE(HttpStatus.PAYMENT_REQUIRED, "JOBPOSTING_003", "구인공고 등록에 필요한 포인트가 부족합니다."),
+    JOB_POSTING_ALREADY_CLOSED(HttpStatus.CONFLICT, "JOBPOSTING_004", "이미 마감된 공고입니다."),
 
     // --- 고객센터 ---
     NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "SUPPORT_001", "공지사항을 찾을 수 없습니다."),
