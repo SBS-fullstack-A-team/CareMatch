@@ -331,6 +331,13 @@ public final class JobPostingDtos {
         }
     }
 
+    /** "내 주변 일자리" 결과 — 목록 카드 + 기준 좌표로부터의 거리(km, 소수 1자리). 가까운 순. */
+    public record NearbyResult(
+            SummaryResponse posting,
+            double distanceKm
+    ) {
+    }
+
     // =====================================================================
     // 계산 helper
     // =====================================================================

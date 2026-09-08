@@ -60,4 +60,22 @@ public interface JobPostingRepository
 
     /** 이 시설(회원 기준)이 등록한 특정 상태의 공고 전부. 인재 ↔ 우리 공고 매칭 계산용. */
     List<JobPosting> findByFacilityProfileMemberIdAndStatus(Long facilityMemberId, JobPostingStatus status);
+
+    /**
+     * "내 주변 일자리" — 위경도 바운딩 박스 안의 OPEN 공고 (최신순, {@code pageable} 로 상한).
+     * 정밀 반경 필터·정렬은 서비스에서 Haversine 으로 처리한다 (DB 벤더 함수 미사용).
+     * 밀집 지역 + 넓은 반경에서 결과 폭주를 막으려고 SQL 단에서 먼저 개수를 제한한다.
+     */
+    @EntityGraph(attributePaths = {"facilityProfile", "facilityProfile.member"})
+    @Query("""
+            select jp from JobPosting jp
+            where jp.status = com.carematch.jobposting.domain.JobPostingStatus.OPEN
+              and jp.latitude is not null and jp.longitude is not null
+              and jp.latitude between :minLat and :maxLat
+              and jp.longitude between :minLng and :maxLng
+            order by jp.createdAt desc
+            """)
+    List<JobPosting> findOpenWithinBoundingBox(@Param("minLat") double minLat, @Param("maxLat") double maxLat,
+                                               @Param("minLng") double minLng, @Param("maxLng") double maxLng,
+                                               Pageable pageable);
 }

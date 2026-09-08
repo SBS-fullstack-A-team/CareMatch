@@ -214,9 +214,9 @@ GET /api/terms
 enum: `CareTask` = `DAILY_LIFE_SUPPORT/MEAL_SUPPORT/BATH_SUPPORT/MOBILITY_SUPPORT/COGNITIVE_ACTIVITY/PERSONAL_HYGIENE/HOUSEWORK/HOSPITAL_ESCORT`,
 `EmploymentType` = `FULL_TIME/CONTRACT/TEMPORARY/PART_TIME`, `Gender` = `MALE/FEMALE`, `EducationLevel` = `MIDDLE_SCHOOL/HIGH_SCHOOL/ASSOCIATE/BACHELOR/GRADUATE`.
 
-- `TalentSummary`: `profileId, memberId, name, employmentStatus, gender, age, photoUrl, careerYears, education, desired*, desiredWorkDays, desiredWorkStartTime, desiredWorkEndTime, certificateNames[], updatedAt, matchScore`
+- `TalentSummary`: `profileId, memberId, name, employmentStatus, gender, age, photoUrl, careerYears, education, desired*, desiredWorkDays, desiredWorkStartTime, desiredWorkEndTime, certificateNames[], updatedAt, matchingScore`
 - `age` = 올해 − `birthYear` (birthYear 미설정이면 null).
-- `matchScore`: **시설회원이 조회 시** 그 시설의 OPEN 공고들 중 최고 매칭 점수. 관리자·공고 없음·인재 희망조건 미설정이면 `null`.
+- `matchingScore`: **시설회원이 조회 시** 그 시설의 OPEN 공고들 중 최고 매칭 점수. 관리자·공고 없음·인재 희망조건 미설정이면 `null`.
 
 ```http
 GET /api/jobseekers?desiredJobType=CAREGIVER&sido=서울특별시&sigungu=강남구&gender=FEMALE&minCareerYears=3     (Authorization: Bearer <FACILITY>)
@@ -225,16 +225,16 @@ GET /api/jobseekers?desiredJobType=CAREGIVER&sido=서울특별시&sigungu=강남
         "desiredJobType": "CAREGIVER", "desiredSido": "서울특별시", "desiredSigungu": "강남구",
         "desiredPayType": "HOURLY", "desiredMinPay": 13000,
         "desiredWorkDays": "월~금", "desiredWorkStartTime": "09:00:00", "desiredWorkEndTime": "16:00:00",
-        "certificateNames": ["요양보호사 자격증"], "updatedAt": "...", "matchScore": 92 } ],
+        "certificateNames": ["요양보호사 자격증"], "updatedAt": "...", "matchingScore": 92 } ],
       "page": 0, "size": 20, "totalElements": 1, "totalPages": 1 }
 ```
 
 ### 인재 상세 매칭 (`GET /api/jobseekers/{id}`, 시설회원)
 
-상세 응답에 아래가 추가된다 (본인 `/me` 조회 시 `matchScore=null`, `postingMatches=[]`):
+상세 응답에 아래가 추가된다 (본인 `/me` 조회 시 `matchingScore=null`, `postingMatches=[]`):
 
-- `matchScore`: 그 시설 OPEN 공고 중 최고 점수
-- `postingMatches`: `[{ jobPostingId, title, jobType, matchScore }]` — 공고별 매칭 (점수 내림차순). 목업 "이 인재와 우리 공고 매칭도".
+- `matchingScore`: 그 시설 OPEN 공고 중 최고 점수
+- `postingMatches`: `[{ jobPostingId, title, jobType, matchingScore }]` — 공고별 매칭 (점수 내림차순). 목업 "이 인재와 우리 공고 매칭도".
 
 ```http
 PUT /api/jobseekers/me        (Authorization: Bearer <JOBSEEKER>)
@@ -261,7 +261,7 @@ PUT /api/jobseekers/me        (Authorization: Bearer <JOBSEEKER>)
   "education": "HIGH_SCHOOL", "headline": "...", "availableTasks": ["BATH_SUPPORT","MEAL_SUPPORT"],
   "desiredJobType": "CAREGIVER", "desiredEmploymentTypes": ["CONTRACT","FULL_TIME"],
   "desiredWorkDays": "월~금", "desiredWorkStartTime": "09:00:00", "desiredWorkEndTime": "16:00:00",
-  "matchScore": null, "postingMatches": []
+  "matchingScore": null, "postingMatches": []
 }
 ```
 - 인적사항·표시필드·희망조건은 요청 값으로 **전체 덮어쓰기**(부분수정 아님). 안 보낸 값은 `null` / 빈 리스트로 저장됨.
@@ -385,6 +385,7 @@ POST /api/admin/facilities/13/approve     (Authorization: Bearer <ADMIN>)
 |---|---|---|---|
 | GET | `/api/job-postings` | 공개 | 모집중(OPEN) 목록/검색. 필터·정렬 아래 참고 |
 | GET | `/api/job-postings/featured` | 공개 | "소페셜 채용정보" — 만료 안 된 SPECIAL 공고 상위 3 |
+| GET | `/api/job-postings/nearby` | 공개 | "내 주변 일자리" — 반경 내 OPEN 공고, 가까운 순 (`List<NearbyResult>`) |
 | POST | `/api/job-postings/{id}/scrap` | 인증 | 찜 추가 (멱등, 204) |
 | DELETE | `/api/job-postings/{id}/scrap` | 인증 | 찜 취소 (멱등, 204) |
 | GET | `/api/members/me/scraps` | 인증 | 내 찜 목록 (최신순, `PageResponse<SummaryResponse>`) |
@@ -462,6 +463,26 @@ GET /api/job-postings?page=0&size=20
 - 상태는 서버가 OPEN 으로 고정. 잘못된 enum 값 → 400 `COMMON_001`.
 - 응답은 `PageResponse<SummaryResponse>` (`{content, page, size, totalElements, totalPages}`).
 
+### 내 주변 일자리 (`GET /api/job-postings/nearby`)
+
+기준 좌표 반경 내 OPEN 공고를 가까운 순으로. 비로그인 공개. 프론트가 사용자 위치를 위경도로 넘긴다.
+DB 는 위경도 바운딩 박스로 1차 필터, 정밀 거리·정렬은 서버에서 Haversine (DB 벤더 함수 미사용).
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `lat` / `lng` | double | **필수**. 기준 좌표. 누락 시 400 |
+| `radiusKm` | double | 반경(km). 기본 3, 상한 50 |
+| `limit` | int | 최대 결과 수. 기본 30, 상한 100 |
+
+```http
+GET /api/job-postings/nearby?lat=37.5665&lng=126.9780&radiusKm=3
+200 [ { "posting": { ...SummaryResponse... }, "distanceKm": 0.8 },
+      { "posting": { ... }, "distanceKm": 2.1 } ]     // 가까운 순, distanceKm 소수 1자리
+```
+
+- 위경도가 없는 공고(`latitude`/`longitude` null)는 제외.
+- 로그인 회원이면 `posting.scrapped` / `posting.matchScore` 채워짐 (목록 검색과 동일).
+
 ### 임시저장 (`/api/job-posting-drafts`)
 
 등록 마법사를 중간에 저장했다가 이어서 작성하기 위한 것. **승인된 시설회원 본인만.**
@@ -499,8 +520,9 @@ DELETE /api/job-posting-drafts/7     → 204
 | PATCH | `/api/applications/{id}/status` | 공고 작성 시설 | 수락/반려 (`{"status":"ACCEPTED"\|"REJECTED"}`, APPLIED 에서만, 204) |
 
 - 상태: `APPLIED`(지원 완료) → 지원자 `CANCELED` / 시설 `ACCEPTED`·`REJECTED`. `CANCELED` 후 재지원 시 같은 행이 `APPLIED` 로 되살아남.
-- `ApplicantResponse`: `applicationId, status, appliedAt, processedAt, message, profileId, memberId, applicantName, employmentStatus, desiredJobType, certificateNames[], matchScore` — `matchScore` 는 이 공고 ↔ 지원자 희망조건.
+- **지원 시 그 시설에 연락처 무료 열람 권한이 자동 부여된다** (0P 이력 저장). 이후 시설이 그 지원자 상세를 보면 연락처·거주지가 언마스크됨 (`POST .../contact/unlock` 안 해도 됨).
+- `ApplicantResponse`: `applicationId, status, appliedAt, processedAt, message, profileId, memberId, applicantName, employmentStatus, desiredJobType, certificateNames[], matchingScore` — `matchingScore` 는 이 공고 ↔ 지원자 희망조건.
 - `MyApplicationResponse`: `applicationId, status, appliedAt, processedAt, message, jobPostingId, title, facilityName, sido, sigungu, deadline, dDay, postingStatus`.
-- 에러: 이미 지원 409 `APPLICATION_002` / 마감 공고 지원 409 `APPLICATION_003` / 잘못된 상태 전이·잘못된 decision 값 409 `APPLICATION_004` / 남의 지원 접근·없는 id → 404 `APPLICATION_001` / 타 시설이 지원자목록 조회 → 403 `JOBPOSTING_002`.
+- 에러: 이미 지원 409 `APPLICATION_002` / 마감 공고 지원 409 `APPLICATION_003` / 잘못된 상태 전이(APPLIED 아닌데 취소·결정) 409 `APPLICATION_004` / decision 값이 ACCEPTED·REJECTED 아님 → 400 `COMMON_001` / 남의 지원 접근·없는 id → 404 `APPLICATION_001` / 타 시설이 지원자목록 조회 → 403 `JOBPOSTING_002`.
 - **발행 엔드포인트만 있고 알림은 없음** (알림 도메인 미구현).
 

@@ -9,6 +9,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -54,6 +55,15 @@ public class GlobalExceptionHandler {
         log.warn("[TypeMismatch] {} {} param={}", req.getMethod(), req.getRequestURI(), e.getName());
         return ResponseEntity.status(ErrorCode.INVALID_INPUT.getStatus())
                 .body(ErrorResponse.of(ErrorCode.INVALID_INPUT, req.getRequestURI()));
+    }
+
+    /** 필수 쿼리 파라미터 누락. */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorResponse> handleMissingParam(MissingServletRequestParameterException e, HttpServletRequest req) {
+        log.warn("[MissingParam] {} {} param={}", req.getMethod(), req.getRequestURI(), e.getParameterName());
+        return ResponseEntity.status(ErrorCode.INVALID_INPUT.getStatus())
+                .body(ErrorResponse.of(ErrorCode.INVALID_INPUT, req.getRequestURI(),
+                        List.of(new ErrorResponse.FieldError(e.getParameterName(), "필수 파라미터입니다."))));
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
