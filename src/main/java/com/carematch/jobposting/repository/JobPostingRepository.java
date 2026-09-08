@@ -3,6 +3,7 @@ package com.carematch.jobposting.repository;
 import com.carematch.jobposting.domain.ExposureType;
 import com.carematch.jobposting.domain.JobPosting;
 import com.carematch.jobposting.domain.JobPostingStatus;
+import com.carematch.jobposting.domain.JobType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -30,4 +31,12 @@ public interface JobPostingRepository
     @EntityGraph(attributePaths = {"facilityProfile", "facilityProfile.member"})
     List<JobPosting> findTop3ByStatusAndExposureTypeAndExposureExpiredAtAfterOrderByCreatedAtDesc(
             JobPostingStatus status, ExposureType exposureType, LocalDateTime now);
+
+    /**
+     * 비슷한 공고 — 같은 시군구 + 직종, 자기 자신 제외, OPEN, 상위 6.
+     * exposure_type 문자열 DESC 로 SPECIAL &gt; PREMIUM &gt; NORMAL 정렬 (enum 3개 고정이라 성립).
+     */
+    @EntityGraph(attributePaths = {"facilityProfile", "facilityProfile.member"})
+    List<JobPosting> findTop6ByStatusAndSigunguAndJobTypeAndIdNotOrderByExposureTypeDescCreatedAtDesc(
+            JobPostingStatus status, String sigungu, JobType jobType, Long excludeId);
 }
