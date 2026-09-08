@@ -76,6 +76,8 @@ public final class JobPostingDtos {
             @NotBlank String title,
             @NotNull JobType jobType,
             String description,
+            /** 우대사항 자유 기술 (예: "면접 후 즉시 근무 우대"). 선택. */
+            @Size(max = 2000) String preferredNote,
             /** 대표 이미지 URL. 프론트가 업로드(POST /api/files/upload-url, purpose=JOB_POSTING_IMAGE) 후 최종 URL 전달. */
             @Size(max = 500) @URL(regexp = "^https?://.*") String thumbnailUrl,
 
@@ -117,6 +119,7 @@ public final class JobPostingDtos {
             @NotBlank String title,
             @NotNull JobType jobType,
             String description,
+            @Size(max = 2000) String preferredNote,
             @Size(max = 500) @URL(regexp = "^https?://.*") String thumbnailUrl,
 
             @NotNull WorkType workType,
@@ -149,7 +152,7 @@ public final class JobPostingDtos {
     ) {
         public JobPosting.UpdateForm toUpdateForm() {
             return new JobPosting.UpdateForm(
-                    title, jobType, description, thumbnailUrl,
+                    title, jobType, description, preferredNote, thumbnailUrl,
                     workType, employmentType, employmentTypeNote,
                     workDays, workStartTime, workEndTime,
                     payType, payAmount, recruitCount, deadline,
@@ -171,6 +174,7 @@ public final class JobPostingDtos {
             String title,
             JobType jobType,
             String description,
+            String preferredNote,
             String thumbnailUrl,
 
             WorkType workType,
@@ -241,7 +245,8 @@ public final class JobPostingDtos {
             Long dDay = jp.getDeadline() == null ? null
                     : ChronoUnit.DAYS.between(LocalDate.now(), jp.getDeadline());
             return new DetailResponse(
-                    jp.getId(), jp.getTitle(), jp.getJobType(), jp.getDescription(), jp.getThumbnailUrl(),
+                    jp.getId(), jp.getTitle(), jp.getJobType(), jp.getDescription(),
+                    jp.getPreferredNote(), jp.getThumbnailUrl(),
                     jp.getWorkType(), jp.getEmploymentType(), jp.getEmploymentTypeNote(),
                     jp.getWorkDays(), jp.getWorkStartTime(), jp.getWorkEndTime(),
                     jp.getPayType(), jp.getPayAmount(), jp.getRecruitCount(), jp.getDeadline(), dDay,

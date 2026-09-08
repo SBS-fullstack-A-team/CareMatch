@@ -60,6 +60,10 @@ public class JobPosting extends BaseTimeEntity {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
+    /** 우대사항 자유 기술 (예: "면접 후 즉시 근무 우대", "인근 거주자 우대"). 선택. */
+    @Column(name = "preferred_note", columnDefinition = "TEXT")
+    private String preferredNote;
+
     /** 대표 이미지 URL (목록 카드 / 상세 사이드바 썸네일). 프론트가 업로드 후 최종 URL 을 넘긴다. 선택. */
     @Column(name = "thumbnail_url", length = 500)
     private String thumbnailUrl;
@@ -184,7 +188,7 @@ public class JobPosting extends BaseTimeEntity {
 
     @Builder
     private JobPosting(FacilityProfile facilityProfile, String title, JobType jobType, String description,
-                       String thumbnailUrl,
+                       String preferredNote, String thumbnailUrl,
                        WorkType workType, EmploymentType employmentType, String employmentTypeNote,
                        String workDays, LocalTime workStartTime, LocalTime workEndTime,
                        PayType payType, Integer payAmount, Integer recruitCount, LocalDate deadline,
@@ -197,6 +201,7 @@ public class JobPosting extends BaseTimeEntity {
         this.title = title;
         this.jobType = jobType;
         this.description = description;
+        this.preferredNote = preferredNote;
         this.thumbnailUrl = thumbnailUrl;
         this.workType = workType;
         this.employmentType = employmentType;
@@ -230,7 +235,7 @@ public class JobPosting extends BaseTimeEntity {
 
     /** 공고 수정 폼. 노출옵션/상태/조회수는 이 경로로 바꾸지 않는다. */
     public record UpdateForm(
-            String title, JobType jobType, String description, String thumbnailUrl,
+            String title, JobType jobType, String description, String preferredNote, String thumbnailUrl,
             WorkType workType, EmploymentType employmentType, String employmentTypeNote,
             String workDays, LocalTime workStartTime, LocalTime workEndTime,
             PayType payType, Integer payAmount, Integer recruitCount, LocalDate deadline,
@@ -246,6 +251,7 @@ public class JobPosting extends BaseTimeEntity {
         this.title = f.title();
         this.jobType = f.jobType();
         this.description = f.description();
+        this.preferredNote = f.preferredNote();
         this.thumbnailUrl = f.thumbnailUrl();
         this.workType = f.workType();
         this.employmentType = f.employmentType();

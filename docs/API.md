@@ -405,11 +405,14 @@ POST /api/admin/facilities/13/approve     (Authorization: Bearer <ADMIN>)
 - `thumbnailUrl`(선택): 대표 이미지 URL. `http(s)://` 만 허용, 최대 500자. 목록 카드·상세에 내려줌.
   프론트는 `POST /api/files/upload-url`(`purpose=JOB_POSTING_IMAGE`)로 업로드 후 최종 URL 을 여기에 담는다.
 - `elderNote`(선택, 최대 2000자): 어르신 특이사항 자유 기술 (낙상 주의, 알레르기 등). 상세 응답에만 포함.
+- `preferredNote`(선택, 최대 2000자): 우대사항 자유 기술 (예: "면접 후 즉시 근무 우대"). 상세 응답에만 포함.
 - 응답 계산필드: `dDay`(마감까지 일수), `isNew`(등록 3일 내), `isClosingSoon`(D-7 & OPEN), `isRecommended`(`matchingScore` ≥ 70).
 - `matchingScore`(0~100): **로그인한 구직자**가 희망조건(`desired*`, `PUT /api/jobseekers/me`)을 설정한 경우만 채워진다. 비로그인·시설회원·희망조건 미설정이면 `null`.
   - 가중치: 직종 35 / 지역 30(시군구 일치 만점, 시도만 일치 절반) / 근무형태 20(협의는 일치 처리) / 급여 15(희망액 충족 만점, 미달 시 비율, 급여유형 다르면 0).
   - 지정한 항목들의 가중치 합을 100점으로 환산 — 예: 직종·지역만 지정했으면 그 둘로 100점.
-  - 목록 정렬(`sort=RECOMMENDED`)은 노출등급→최신 순 그대로. `matchingScore` 로는 재정렬하지 않음(페이지네이션 일관성).
+  - 목록 정렬(`sort=RECOMMENDED`): SQL 은 노출등급→최신 순. **로그인한 구직자**면 그 위에 **각 페이지 안에서만** 매칭점수 우선으로 재정렬한다
+    (매칭점수 desc → 노출등급 desc → 최신 desc). 매칭점수는 조회 시점 Java 계산이라 페이지 경계를 넘는 전역 순서는 근사치.
+    비로그인·시설회원은 노출등급→최신 순 그대로.
 - `matchingReasons`(`List<String>`): **상세 응답 전용**. 실제로 일치한 항목의 문구만 담는다
   (예: `["희망하는 직종과 일치해요","희망하는 근무지와 일치해요","희망하는 급여 조건을 충족해요"]`).
   채점 불가(비로그인·희망조건 미설정)면 빈 리스트. 목록/featured/similar 응답에는 없음.

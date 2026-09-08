@@ -138,6 +138,7 @@
    근무조건                        │ job_type      (enum)         │ CAREGIVER/NURSING_ASSISTANT/HOUSEKEEPER/LIFE_SUPPORT/ETC
                                   │ description   (TEXT)         │
                                   │ thumbnail_url                │ 대표 이미지 URL (선택, http(s), ≤500)
+                                  │ preferred_note (TEXT)        │ 우대사항 자유기술 (선택)
                                   │ work_type     (enum)         │ COMMUTE/LIVE_IN/REMOTE/NEGOTIABLE
                                   │ employment_type (enum)       │ FULL_TIME/CONTRACT/TEMPORARY/PART_TIME
                                   │ employment_type_note         │
