@@ -82,6 +82,16 @@ public class JobSeekerProfileQueryService {
                 profile.getIntroduction(),
                 unlocked,
                 StubPointService.CONTACT_UNLOCK_COST,
-                certs);
+                certs,
+                name(profile.getDesiredJobType()),
+                name(profile.getDesiredWorkType()),
+                profile.getDesiredSido(),
+                profile.getDesiredSigungu(),
+                name(profile.getDesiredPayType()),
+                profile.getDesiredMinPay());
+    }
+
+    private static String name(Enum<?> e) {
+        return e == null ? null : e.name();
     }
 }

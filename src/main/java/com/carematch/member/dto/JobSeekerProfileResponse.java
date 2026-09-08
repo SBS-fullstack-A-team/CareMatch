@@ -20,6 +20,14 @@ public record JobSeekerProfileResponse(
         String introduction,
         boolean contactUnlocked,
         int unlockCost,
-        List<CertificateResponse> certificates
+        List<CertificateResponse> certificates,
+
+        // 희망 근무조건 (미설정 시 null). 매칭 스코어 계산 근거.
+        String desiredJobType,
+        String desiredWorkType,
+        String desiredSido,
+        String desiredSigungu,
+        String desiredPayType,
+        Integer desiredMinPay
 ) {
 }

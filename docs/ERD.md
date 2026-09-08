@@ -31,7 +31,13 @@
    │ employment_status │  SEEKING/EMPLOYED     │ provider_user_id   │
    │ residence         │  원본(응답 시 마스킹) │ member_id (FK)     │
    │ introduction      │           │           │ UQ(provider,        │
-   └─────────┬─────────┘           │           │    provider_user_id)│
+   │ desired_job_type  │  희망직종        │      │    provider_user_id)│
+   │ desired_work_type │  희망근무형태    │      └────────────────────┘
+   │ desired_sido      │  희망지역 시/도  │
+   │ desired_sigungu   │  희망지역 시/군/구│
+   │ desired_pay_type  │  희망급여 유형   │       (desired_* 전부 nullable,
+   │ desired_min_pay   │  희망 최소급여   │        매칭 스코어 계산 근거)
+   └─────────┬─────────┘           │
         1:N  │                     │           └────────────────────┘
    ┌─────────▼─────────┐           │
    │    certificate    │           │           ┌────────────────────┐
@@ -154,5 +160,5 @@
 ## 미반영 (후속 PR / 조율 필요)
 
 - **다중조건 검색**: `sido`/`sigungu`/직종·시설유형·근무형태·등급·거동 다중 + 급여범위 + 정렬 — 다음 PR
-- **매칭 스코어**: `jobseeker_profile` 에 희망지역/희망직종/희망급여 컬럼이 없어 계산 불가. 인재정보 파트에서 컬럼 추가 후 활성화
+- **매칭 스코어**: `jobseeker_profile.desired_*` 컬럼 추가 완료(이번 PR). 실제 점수 계산 + 구인공고 목록/상세 `matchingScore` 연결은 다음 PR
 - **시설 상세(시설유형·담당자명/직책·시설주소)**: `facility_profile` 확장 필요 → 회원 도메인 담당과 조율. 현재 응답은 `facilityName` + `facilityPhone`(member.phone) 만
