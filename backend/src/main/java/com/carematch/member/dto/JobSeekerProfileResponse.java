@@ -1,5 +1,6 @@
 package com.carematch.member.dto;
 
+import java.time.LocalTime;
 import java.util.List;
 
 /**
@@ -22,6 +23,15 @@ public record JobSeekerProfileResponse(
         int unlockCost,
         List<CertificateResponse> certificates,
 
+        // 인적사항 / 표시용 (미설정 시 null / 빈 리스트)
+        String gender,
+        Integer age,
+        String photoUrl,
+        Integer careerYears,
+        String education,
+        String headline,
+        List<String> availableTasks,
+
         // 희망 근무조건 (미설정 시 null). 매칭 스코어 계산 근거.
         String desiredJobType,
         String desiredWorkType,
@@ -29,6 +39,10 @@ public record JobSeekerProfileResponse(
         String desiredSigungu,
         String desiredPayType,
         Integer desiredMinPay,
+        List<String> desiredEmploymentTypes,
+        String desiredWorkDays,
+        LocalTime desiredWorkStartTime,
+        LocalTime desiredWorkEndTime,
 
         /** 시설회원이 볼 때: 그 시설의 OPEN 공고 중 최고 매칭 점수. 본인(/me)·매칭 불가면 null. */
         Integer matchScore,

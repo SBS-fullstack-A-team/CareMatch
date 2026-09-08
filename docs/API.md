@@ -183,7 +183,7 @@ GET /api/terms
 |---|---|---|---|
 | GET | `/api/jobseekers` | FACILITY(승인)·ADMIN | 인재 검색 목록 (`PageResponse<TalentSummary>`) |
 | GET | `/api/jobseekers/me` | JOBSEEKER | 내 프로필(전체 공개) + 자격증 서명 URL |
-| PUT | `/api/jobseekers/me` | JOBSEEKER | 내 프로필 수정(거주지·자기소개·취업상태·희망 근무조건) |
+| PUT | `/api/jobseekers/me` | JOBSEEKER | 내 프로필 수정(인적사항·표시필드·희망 근무조건 전체 덮어쓰기) |
 | GET | `/api/jobseekers/{profileId}` | FACILITY(승인)·ADMIN | 인재 상세(연락처/거주지 마스킹) |
 | POST | `/api/jobseekers/{profileId}/contact/unlock` | FACILITY(승인) | 연락처 열람하기 |
 
@@ -199,21 +199,30 @@ GET /api/terms
 |---|---|---|
 | `desiredJobType` / `desiredWorkType` | enum | 희망 직종 / 희망 근무형태 |
 | `sido` / `sigungu` | string | 희망 근무지역(정확히 일치) |
-| `payType` | enum | 희망 급여유형 |
-| `payMax` | int | 희망 최소급여가 이 값 이하인 인재만 |
+| `payType` / `payMax` | enum / int | 희망 급여유형 / 희망 최소급여가 이 값 이하인 인재만 |
+| `gender` | enum | `MALE` / `FEMALE` |
+| `minCareerYears` | int | 경력 연수가 이 값 이상 (0/1/3 …) |
+| `availableTasks` | enum[] | 가능 업무 다중. 하나라도 겹치면 매칭 (`?availableTasks=MEAL_SUPPORT&availableTasks=BATH_SUPPORT`) |
+| `desiredEmploymentTypes` | enum[] | 희망 고용형태 다중. 하나라도 겹치면 매칭 |
 | `seekingOnly` | bool | 생략/true = 구직중(SEEKING)만. false = 취업완료 포함 |
 | `updatedWithinDays` | int | 최근 N일 내 프로필 갱신 |
 | `sort` | string | `LATEST`(기본, 최근 갱신순) — 매칭점수 정렬은 SQL 불가로 미지원(구인공고 RECOMMENDED 와 동일 제약) |
 | `page` / `size` | int | 기본 0 / 20. size 상한 100 |
 
-- `TalentSummary`: `profileId, memberId, name, employmentStatus, desired*, certificateNames[], updatedAt, matchScore`
+enum: `CareTask` = `DAILY_LIFE_SUPPORT/MEAL_SUPPORT/BATH_SUPPORT/MOBILITY_SUPPORT/COGNITIVE_ACTIVITY/PERSONAL_HYGIENE/HOUSEWORK/HOSPITAL_ESCORT`,
+`EmploymentType` = `FULL_TIME/CONTRACT/TEMPORARY/PART_TIME`, `Gender` = `MALE/FEMALE`, `EducationLevel` = `MIDDLE_SCHOOL/HIGH_SCHOOL/ASSOCIATE/BACHELOR/GRADUATE`.
+
+- `TalentSummary`: `profileId, memberId, name, employmentStatus, gender, age, photoUrl, careerYears, education, desired*, desiredWorkDays, desiredWorkStartTime, desiredWorkEndTime, certificateNames[], updatedAt, matchScore`
+- `age` = 올해 − `birthYear` (birthYear 미설정이면 null).
 - `matchScore`: **시설회원이 조회 시** 그 시설의 OPEN 공고들 중 최고 매칭 점수. 관리자·공고 없음·인재 희망조건 미설정이면 `null`.
 
 ```http
-GET /api/jobseekers?desiredJobType=CAREGIVER&sido=서울특별시&sigungu=강남구     (Authorization: Bearer <FACILITY>)
+GET /api/jobseekers?desiredJobType=CAREGIVER&sido=서울특별시&sigungu=강남구&gender=FEMALE&minCareerYears=3     (Authorization: Bearer <FACILITY>)
 200 { "content": [ { "profileId": 42, "name": "김미영", "employmentStatus": "SEEKING",
+        "gender": "FEMALE", "age": 52, "photoUrl": "https://...", "careerYears": 3, "education": "HIGH_SCHOOL",
         "desiredJobType": "CAREGIVER", "desiredSido": "서울특별시", "desiredSigungu": "강남구",
         "desiredPayType": "HOURLY", "desiredMinPay": 13000,
+        "desiredWorkDays": "월~금", "desiredWorkStartTime": "09:00:00", "desiredWorkEndTime": "16:00:00",
         "certificateNames": ["요양보호사 자격증"], "updatedAt": "...", "matchScore": 92 } ],
       "page": 0, "size": 20, "totalElements": 1, "totalPages": 1 }
 ```
@@ -231,25 +240,30 @@ PUT /api/jobseekers/me        (Authorization: Bearer <JOBSEEKER>)
   "employmentStatus": "SEEKING",
   "residence": "서울특별시 강남구 역삼동 123-45",
   "introduction": "10년 경력 요양보호사입니다.",
-  "desiredJobType": "CAREGIVER",           // JobType, 선택
-  "desiredWorkType": "COMMUTE",             // WorkType, 선택
-  "desiredSido": "서울특별시",               // 선택
-  "desiredSigungu": "강남구",                // 선택
-  "desiredPayType": "MONTHLY",              // PayType, 선택
-  "desiredMinPay": 2500000                  // 양수, desiredPayType 기준 최소 희망액
-}
-200 {
-  "profileId": 42, "memberId": 12, "name": "홍길동",
-  "employmentStatus": "SEEKING",
-  "phone": "01012345678", "residence": "서울특별시 강남구 역삼동 123-45",
-  "introduction": "10년 경력 요양보호사입니다.",
-  "contactUnlocked": true, "unlockCost": 300, "certificates": [ ... ],
+  "headline": "꼼꼼하고 성실하게 어르신을 모시겠습니다",   // 한 줄 소개, 선택
+  "gender": "FEMALE",                       // 선택
+  "birthYear": 1974,                        // 선택 (나이는 응답에서 계산)
+  "photoUrl": "https://cdn.example.com/p.jpg",   // http(s), ≤500, 선택
+  "careerYears": 3,                         // 0 이상, 선택
+  "education": "HIGH_SCHOOL",               // EducationLevel, 선택
+  "availableTasks": ["MEAL_SUPPORT","BATH_SUPPORT"],   // CareTask[], 선택
   "desiredJobType": "CAREGIVER", "desiredWorkType": "COMMUTE",
   "desiredSido": "서울특별시", "desiredSigungu": "강남구",
-  "desiredPayType": "MONTHLY", "desiredMinPay": 2500000
+  "desiredPayType": "MONTHLY", "desiredMinPay": 2500000,
+  "desiredEmploymentTypes": ["FULL_TIME","CONTRACT"],  // EmploymentType[], 선택
+  "desiredWorkDays": "월~금", "desiredWorkStartTime": "09:00", "desiredWorkEndTime": "16:00"
+}
+200 {  // JobSeekerProfileResponse (아래 GET 상세와 동일 구조)
+  "profileId": 42, "name": "홍길동", "employmentStatus": "SEEKING",
+  "gender": "FEMALE", "age": 52, "photoUrl": "https://...", "careerYears": 3,
+  "education": "HIGH_SCHOOL", "headline": "...", "availableTasks": ["BATH_SUPPORT","MEAL_SUPPORT"],
+  "desiredJobType": "CAREGIVER", "desiredEmploymentTypes": ["CONTRACT","FULL_TIME"],
+  "desiredWorkDays": "월~금", "desiredWorkStartTime": "09:00:00", "desiredWorkEndTime": "16:00:00",
+  "matchScore": null, "postingMatches": []
 }
 ```
-- 거주지/자기소개/취업상태/희망조건은 요청 값으로 **전체 덮어쓰기**(부분수정 아님). 보내지 않은 `desired*` 는 `null` 로 저장됨.
+- 인적사항·표시필드·희망조건은 요청 값으로 **전체 덮어쓰기**(부분수정 아님). 안 보낸 값은 `null` / 빈 리스트로 저장됨.
+- `availableTasks` / `desiredEmploymentTypes` 응답은 enum 이름 정렬됨.
 
 ```http
 GET /api/jobseekers/42        (Authorization: Bearer <FACILITY>)

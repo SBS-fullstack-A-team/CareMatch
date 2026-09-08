@@ -6,6 +6,7 @@ import com.carematch.member.dto.TalentSearchDtos.SearchCondition;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
@@ -52,9 +53,29 @@ public final class JobSeekerProfileSpecs {
             if (c.payMax() != null) {
                 ps.add(cb.lessThanOrEqualTo(root.get("desiredMinPay"), c.payMax()));
             }
+            if (c.gender() != null) {
+                ps.add(cb.equal(root.get("gender"), c.gender()));
+            }
+            if (c.minCareerYears() != null && c.minCareerYears() > 0) {
+                ps.add(cb.greaterThanOrEqualTo(root.get("careerYears"), c.minCareerYears()));
+            }
             if (c.updatedWithinDays() != null) {
                 ps.add(cb.greaterThanOrEqualTo(root.get("updatedAt"),
                         LocalDateTime.now().minusDays(c.updatedWithinDays())));
+            }
+
+            // 다중값(가능 업무 / 희망 고용형태): 요청 집합과 하나라도 겹치면 매칭 → 컬렉션 조인 + distinct
+            boolean joined = false;
+            if (!CollectionUtils.isEmpty(c.availableTasks())) {
+                ps.add(root.join("availableTasks", JoinType.INNER).in(c.availableTasks()));
+                joined = true;
+            }
+            if (!CollectionUtils.isEmpty(c.desiredEmploymentTypes())) {
+                ps.add(root.join("desiredEmploymentTypes", JoinType.INNER).in(c.desiredEmploymentTypes()));
+                joined = true;
+            }
+            if (joined) {
+                query.distinct(true);
             }
 
             return cb.and(ps.toArray(Predicate[]::new));

@@ -17,6 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.time.Year;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -78,6 +80,9 @@ public class JobSeekerProfileQueryService {
     private JobSeekerProfileResponse build(JobSeekerProfile profile, String phone, String residence,
                                            boolean unlocked, List<CertificateResponse> certs,
                                            Integer matchScore, List<PostingMatchResponse> postingMatches) {
+        Integer age = profile.getBirthYear() == null ? null
+                : Year.now().getValue() - profile.getBirthYear();
+
         return new JobSeekerProfileResponse(
                 profile.getId(),
                 profile.getMember().getId(),
@@ -89,17 +94,32 @@ public class JobSeekerProfileQueryService {
                 unlocked,
                 StubPointService.CONTACT_UNLOCK_COST,
                 certs,
+                name(profile.getGender()),
+                age,
+                profile.getPhotoUrl(),
+                profile.getCareerYears(),
+                name(profile.getEducation()),
+                profile.getHeadline(),
+                names(profile.getAvailableTasks()),
                 name(profile.getDesiredJobType()),
                 name(profile.getDesiredWorkType()),
                 profile.getDesiredSido(),
                 profile.getDesiredSigungu(),
                 name(profile.getDesiredPayType()),
                 profile.getDesiredMinPay(),
+                names(profile.getDesiredEmploymentTypes()),
+                profile.getDesiredWorkDays(),
+                profile.getDesiredWorkStartTime(),
+                profile.getDesiredWorkEndTime(),
                 matchScore,
                 postingMatches);
     }
 
     private static String name(Enum<?> e) {
         return e == null ? null : e.name();
+    }
+
+    private static List<String> names(Collection<? extends Enum<?>> es) {
+        return es == null ? List.of() : es.stream().map(Enum::name).sorted().toList();
     }
 }

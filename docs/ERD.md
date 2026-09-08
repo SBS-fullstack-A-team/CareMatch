@@ -31,13 +31,19 @@
    │ employment_status │  SEEKING/EMPLOYED     │ provider_user_id   │
    │ residence         │  원본(응답 시 마스킹) │ member_id (FK)     │
    │ introduction      │           │           │ UQ(provider,        │
-   │ desired_job_type  │  희망직종        │      │    provider_user_id)│
-   │ desired_work_type │  희망근무형태    │      └────────────────────┘
-   │ desired_sido      │  희망지역 시/도  │
-   │ desired_sigungu   │  희망지역 시/군/구│
-   │ desired_pay_type  │  희망급여 유형   │       (desired_* 전부 nullable,
-   │ desired_min_pay   │  희망 최소급여   │        매칭 스코어 계산 근거)
+   │ gender / birth_year│ MALE/FEMALE, 나이계산 │    provider_user_id)│
+   │ photo_url / headline│ 사진 URL / 한줄소개  └────────────────────┘
+   │ career_years / education│ 경력연수 / MIDDLE_SCHOOL~GRADUATE
+   │ desired_job_type  │  희망직종        │
+   │ desired_work_type │  희망근무형태    │
+   │ desired_sido / desired_sigungu │  희망지역
+   │ desired_pay_type / desired_min_pay │  희망급여   (desired_* 전부 nullable,
+   │ desired_work_days │  희망요일 자유표기        매칭 스코어 계산 근거)
+   │ desired_work_start_time / _end_time │  희망 근무시간
    └─────────┬─────────┘           │
+      1:N(ElementCollection):
+        jobseeker_available_task(jobseeker_profile_id, task)              CareTask, 검색 필터
+        jobseeker_desired_employment_type(jobseeker_profile_id, employment_type)  EmploymentType, 검색 필터
         1:N  │                     │           └────────────────────┘
    ┌─────────▼─────────┐           │
    │    certificate    │           │           ┌────────────────────┐
