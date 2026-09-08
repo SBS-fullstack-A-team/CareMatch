@@ -15,7 +15,9 @@ import com.carematch.jobposting.repository.JobPostingRepository;
 import com.carematch.jobposting.repository.JobPostingSpecs;
 import com.carematch.jobposting.repository.ScrapRepository;
 import com.carematch.member.domain.FacilityProfile;
+import com.carematch.member.domain.JobSeekerProfile;
 import com.carematch.member.repository.FacilityProfileRepository;
+import com.carematch.member.repository.JobSeekerProfileRepository;
 import com.carematch.point.PointService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -34,8 +36,10 @@ import java.util.Set;
  * 접근 제어: SecurityFilterChain(ROLE_FACILITY) + FacilityApprovalInterceptor(승인 시설) 가
  * /api/job-postings/** 를 이미 통제한다. 서비스는 방어적으로 승인 여부를 한 번 더 확인한다.
  *
+ * 매칭 스코어: 로그인한 구직자가 희망조건을 설정한 경우 {@link MatchScoreCalculator} 로 계산해
+ * 목록/상세/비슷한공고/featured 응답에 채운다. 그 외(비로그인·시설회원·희망조건 미설정)는 null.
+ *
  * 미구현(TODO):
- *  - 매칭 스코어: JobSeekerProfile 에 희망지역/직종/급여 필드가 없어 계산 불가 → 항상 null
  *  - 시설유형/담당자/주소: FacilityProfile 확장 후 응답에 포함
  */
 @Service
@@ -52,8 +56,10 @@ public class JobPostingService {
 
     private final JobPostingRepository jobPostingRepository;
     private final FacilityProfileRepository facilityProfileRepository;
+    private final JobSeekerProfileRepository jobSeekerProfileRepository;
     private final ScrapRepository scrapRepository;
     private final PointService pointService;
+    private final MatchScoreCalculator matchScoreCalculator;
 
     @Transactional
     public DetailResponse create(Long memberId, CreateRequest req) {
@@ -115,8 +121,20 @@ public class JobPostingService {
         Page<JobPosting> pageResult = jobPostingRepository.findAll(JobPostingSpecs.from(cond), pageable);
 
         Set<Long> scrappedIds = scrappedIdsAmong(viewerMemberId, pageResult.getContent());
+        JobSeekerProfile viewer = viewerProfile(viewerMemberId);
         return PageResponse.of(pageResult,
-                jp -> SummaryResponse.from(jp, scrappedFlag(viewerMemberId, scrappedIds, jp.getId())));
+                jp -> SummaryResponse.from(jp, scrappedFlag(viewerMemberId, scrappedIds, jp.getId()),
+                        matchScore(viewer, jp)));
+    }
+
+    /** 로그인 회원이 구직자면 그 프로필, 아니면(비로그인·시설회원) null. 매칭 스코어 계산에만 사용. */
+    private JobSeekerProfile viewerProfile(Long viewerMemberId) {
+        return viewerMemberId == null ? null
+                : jobSeekerProfileRepository.findByMemberId(viewerMemberId).orElse(null);
+    }
+
+    private Integer matchScore(JobSeekerProfile viewer, JobPosting posting) {
+        return viewer == null ? null : matchScoreCalculator.score(viewer, posting);
     }
 
     /** 여러 공고 중 이 회원이 찜한 id 집합. 비로그인/빈 목록이면 빈 집합. */
@@ -139,8 +157,10 @@ public class JobPostingService {
                 .findTop3ByStatusAndExposureTypeAndExposureExpiredAtAfterOrderByCreatedAtDesc(
                         JobPostingStatus.OPEN, ExposureType.SPECIAL, LocalDateTime.now());
         Set<Long> scrappedIds = scrappedIdsAmong(viewerMemberId, postings);
+        JobSeekerProfile viewer = viewerProfile(viewerMemberId);
         return postings.stream()
-                .map(jp -> SummaryResponse.from(jp, scrappedFlag(viewerMemberId, scrappedIds, jp.getId())))
+                .map(jp -> SummaryResponse.from(jp, scrappedFlag(viewerMemberId, scrappedIds, jp.getId()),
+                        matchScore(viewer, jp)))
                 .toList();
     }
 
@@ -168,8 +188,10 @@ public class JobPostingService {
                 .findTop6ByStatusAndSigunguAndJobTypeAndIdNotOrderByExposureTypeDescCreatedAtDesc(
                         JobPostingStatus.OPEN, base.getSigungu(), base.getJobType(), jobPostingId);
         Set<Long> scrappedIds = scrappedIdsAmong(viewerMemberId, list);
+        JobSeekerProfile viewer = viewerProfile(viewerMemberId);
         return list.stream()
-                .map(jp -> SummaryResponse.from(jp, scrappedFlag(viewerMemberId, scrappedIds, jp.getId())))
+                .map(jp -> SummaryResponse.from(jp, scrappedFlag(viewerMemberId, scrappedIds, jp.getId()),
+                        matchScore(viewer, jp)))
                 .toList();
     }
 
@@ -181,7 +203,8 @@ public class JobPostingService {
 
         Boolean scrapped = viewerMemberId == null ? null
                 : scrapRepository.existsByMemberIdAndJobPostingId(viewerMemberId, jobPostingId);
-        return DetailResponse.from(posting, null, scrapped);
+        Integer matchingScore = matchScore(viewerProfile(viewerMemberId), posting);
+        return DetailResponse.from(posting, matchingScore, scrapped);
     }
 
     @Transactional
