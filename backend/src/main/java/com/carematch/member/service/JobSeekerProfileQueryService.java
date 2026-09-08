@@ -7,6 +7,7 @@ import com.carematch.contact.service.ContactUnlockService;
 import com.carematch.member.domain.JobSeekerProfile;
 import com.carematch.member.dto.CertificateResponse;
 import com.carematch.member.dto.JobSeekerProfileResponse;
+import com.carematch.member.dto.PostingMatchResponse;
 import com.carematch.member.repository.JobSeekerProfileRepository;
 import com.carematch.point.StubPointService;
 import com.carematch.storage.FileStorageService;
@@ -31,6 +32,7 @@ public class JobSeekerProfileQueryService {
     private final ContactUnlockService contactUnlockService;
     private final FileStorageService fileStorageService;
     private final StorageProperties storageProperties;
+    private final TalentMatcher talentMatcher;
 
     /** 시설회원이 보는 인재 상세 (기본 마스킹). */
     @Transactional(readOnly = true)
@@ -47,7 +49,9 @@ public class JobSeekerProfileQueryService {
                 ? profile.getResidence()
                 : MaskingUtil.maskResidence(profile.getResidence());
 
-        return build(profile, phone, residence, unlocked, signedCertificates(profile));
+        List<PostingMatchResponse> matches = talentMatcher.matchesFor(profile, facilityMemberId);
+        return build(profile, phone, residence, unlocked, signedCertificates(profile),
+                talentMatcher.bestScore(matches), matches);
     }
 
     /** 본인이 보는 내 프로필 (전체 공개). */
@@ -55,7 +59,8 @@ public class JobSeekerProfileQueryService {
     public JobSeekerProfileResponse getMine(Long memberId) {
         JobSeekerProfile profile = jobSeekerProfileRepository.findByMemberId(memberId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "jobseeker profile of member " + memberId));
-        return build(profile, profile.getMember().getPhone(), profile.getResidence(), true, signedCertificates(profile));
+        return build(profile, profile.getMember().getPhone(), profile.getResidence(), true, signedCertificates(profile),
+                null, List.of());
     }
 
     private JobSeekerProfile load(Long profileId) {
@@ -71,7 +76,8 @@ public class JobSeekerProfileQueryService {
     }
 
     private JobSeekerProfileResponse build(JobSeekerProfile profile, String phone, String residence,
-                                           boolean unlocked, List<CertificateResponse> certs) {
+                                           boolean unlocked, List<CertificateResponse> certs,
+                                           Integer matchScore, List<PostingMatchResponse> postingMatches) {
         return new JobSeekerProfileResponse(
                 profile.getId(),
                 profile.getMember().getId(),
@@ -88,7 +94,9 @@ public class JobSeekerProfileQueryService {
                 profile.getDesiredSido(),
                 profile.getDesiredSigungu(),
                 name(profile.getDesiredPayType()),
-                profile.getDesiredMinPay());
+                profile.getDesiredMinPay(),
+                matchScore,
+                postingMatches);
     }
 
     private static String name(Enum<?> e) {

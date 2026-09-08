@@ -2,10 +2,17 @@ package com.carematch.member.controller;
 
 import com.carematch.contact.dto.ContactUnlockResponse;
 import com.carematch.contact.service.ContactUnlockService;
+import com.carematch.jobposting.domain.JobType;
+import com.carematch.jobposting.domain.PayType;
+import com.carematch.jobposting.domain.WorkType;
+import com.carematch.jobposting.dto.JobPostingDtos.PageResponse;
 import com.carematch.member.dto.JobSeekerProfileResponse;
 import com.carematch.member.dto.JobSeekerProfileUpdateRequest;
+import com.carematch.member.dto.TalentSearchDtos.SearchCondition;
+import com.carematch.member.dto.TalentSearchDtos.TalentSummary;
 import com.carematch.member.service.JobSeekerProfileQueryService;
 import com.carematch.member.service.JobSeekerProfileService;
+import com.carematch.member.service.TalentSearchService;
 import com.carematch.security.CustomUserDetails;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +24,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -31,6 +39,7 @@ public class JobSeekerController {
     private final JobSeekerProfileQueryService profileQueryService;
     private final JobSeekerProfileService profileService;
     private final ContactUnlockService contactUnlockService;
+    private final TalentSearchService talentSearchService;
 
     /** 내 구직자 프로필 (본인, 전체 공개) */
     @GetMapping("/me")
@@ -45,6 +54,34 @@ public class JobSeekerController {
     public JobSeekerProfileResponse updateMyProfile(@AuthenticationPrincipal CustomUserDetails principal,
                                                    @Valid @RequestBody JobSeekerProfileUpdateRequest request) {
         return profileService.updateMine(principal.getMemberId(), request);
+    }
+
+    /**
+     * 인재 검색 목록 (승인 시설회원 / 관리자). 필터·정렬은 쿼리 파라미터.
+     * 지역/직종/근무형태/급여는 구직자 희망조건 기준. 정렬은 최근 갱신순 고정.
+     * 시설회원이면 각 카드에 "그 시설 OPEN 공고 중 최고 매칭 점수"(matchScore)가 채워진다.
+     */
+    @GetMapping
+    @PreAuthorize("hasAnyRole('FACILITY','ADMIN')")
+    public PageResponse<TalentSummary> search(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @RequestParam(required = false) JobType desiredJobType,
+            @RequestParam(required = false) WorkType desiredWorkType,
+            @RequestParam(required = false) String sido,
+            @RequestParam(required = false) String sigungu,
+            @RequestParam(required = false) PayType payType,
+            @RequestParam(required = false) Integer payMax,
+            @RequestParam(required = false) Boolean seekingOnly,
+            @RequestParam(required = false) Integer updatedWithinDays,
+            @RequestParam(required = false) String sort,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        boolean isFacility = principal.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_FACILITY"));
+        SearchCondition cond = new SearchCondition(
+                desiredJobType, desiredWorkType, sido, sigungu, payType, payMax,
+                seekingOnly, updatedWithinDays, sort);
+        return talentSearchService.search(cond, page, size, principal.getMemberId(), isFacility);
     }
 
     /** 인재 상세 (시설회원/관리자). 연락처·거주지는 기본 마스킹, 열람 이력 있으면 언마스크 */

@@ -39,4 +39,7 @@ public interface JobPostingRepository
     @EntityGraph(attributePaths = {"facilityProfile", "facilityProfile.member"})
     List<JobPosting> findTop6ByStatusAndSigunguAndJobTypeAndIdNotOrderByExposureTypeDescCreatedAtDesc(
             JobPostingStatus status, String sigungu, JobType jobType, Long excludeId);
+
+    /** 이 시설(회원 기준)이 등록한 특정 상태의 공고 전부. 인재 ↔ 우리 공고 매칭 계산용. */
+    List<JobPosting> findByFacilityProfileMemberIdAndStatus(Long facilityMemberId, JobPostingStatus status);
 }
