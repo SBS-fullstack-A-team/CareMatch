@@ -159,6 +159,8 @@
 
 ## 미반영 (후속 PR / 조율 필요)
 
-- **다중조건 검색**: `sido`/`sigungu`/직종·시설유형·근무형태·등급·거동 다중 + 급여범위 + 정렬 — 다음 PR
-- **매칭 스코어**: `jobseeker_profile.desired_*` 컬럼 추가 완료(이번 PR). 실제 점수 계산 + 구인공고 목록/상세 `matchingScore` 연결은 다음 PR
 - **시설 상세(시설유형·담당자명/직책·시설주소)**: `facility_profile` 확장 필요 → 회원 도메인 담당과 조율. 현재 응답은 `facilityName` + `facilityPhone`(member.phone) 만
+
+### 반영 완료
+- **다중조건 검색** (PR #12): `sido`/`sigungu`/직종·근무형태·등급·거동 다중 + 급여범위 + 정렬
+- **매칭 스코어**: `jobseeker_profile.desired_*` ↔ 구인공고 적합도를 `MatchScoreCalculator` 로 계산해 로그인한 구직자에게 `matchingScore`(0~100) 제공. 정렬 반영은 미적용(페이지네이션 일관성)

@@ -206,7 +206,7 @@ public final class JobPostingDtos {
             String facilityName,
             String facilityPhone,
 
-            /** 매칭 스코어(0~100). JobSeekerProfile 확장 전까지 항상 null (TODO). */
+            /** 매칭 스코어(0~100). 로그인한 구직자가 희망조건을 설정한 경우만 채워지고, 그 외에는 null. */
             Integer matchingScore,
 
             /** 로그인 회원의 찜 여부. 비로그인이면 null. */
@@ -268,10 +268,14 @@ public final class JobPostingDtos {
             Boolean scrapped
     ) {
         public static SummaryResponse from(JobPosting jp) {
-            return from(jp, null);
+            return from(jp, null, null);
         }
 
         public static SummaryResponse from(JobPosting jp, Boolean scrapped) {
+            return from(jp, scrapped, null);
+        }
+
+        public static SummaryResponse from(JobPosting jp, Boolean scrapped, Integer matchingScore) {
             Long dDay = jp.getDeadline() == null ? null
                     : ChronoUnit.DAYS.between(LocalDate.now(), jp.getDeadline());
             return new SummaryResponse(
@@ -282,8 +286,8 @@ public final class JobPostingDtos {
                     jp.getCareGrade(), jp.getElderGender(), jp.getMobilityStatus(),
                     jp.getDuties(), jp.getDeadline(), dDay, jp.getViewCount(),
                     jp.getStatus(), jp.getExposureType(),
-                    calcNew(jp), calcClosingSoon(jp, dDay), false,
-                    jp.getFacilityProfile().getFacilityName(), null, scrapped);
+                    calcNew(jp), calcClosingSoon(jp, dDay), calcRecommended(matchingScore),
+                    jp.getFacilityProfile().getFacilityName(), matchingScore, scrapped);
         }
     }
 

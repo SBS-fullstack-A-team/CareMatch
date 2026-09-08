@@ -344,8 +344,11 @@ POST /api/admin/facilities/13/approve     (Authorization: Bearer <ADMIN>)
 
 - 카테고리성 필드는 전부 enum 문자열. 잘못된 값 → 400 `COMMON_001`.
 - `duties` / `requiredDocuments` 는 문자열 배열 (표시용).
-- 응답 계산필드: `dDay`(마감까지 일수), `isNew`(등록 3일 내), `isClosingSoon`(D-7 & OPEN), `isRecommended`(매칭≥70, 현재 항상 false).
-- `matchingScore` 는 점수 계산 연결(후속 PR) 전까지 항상 `null`. 계산 근거가 되는 구직자 희망조건(`desired*`)은 `PUT /api/jobseekers/me` 로 설정.
+- 응답 계산필드: `dDay`(마감까지 일수), `isNew`(등록 3일 내), `isClosingSoon`(D-7 & OPEN), `isRecommended`(`matchingScore` ≥ 70).
+- `matchingScore`(0~100): **로그인한 구직자**가 희망조건(`desired*`, `PUT /api/jobseekers/me`)을 설정한 경우만 채워진다. 비로그인·시설회원·희망조건 미설정이면 `null`.
+  - 가중치: 직종 35 / 지역 30(시군구 일치 만점, 시도만 일치 절반) / 근무형태 20(협의는 일치 처리) / 급여 15(희망액 충족 만점, 미달 시 비율, 급여유형 다르면 0).
+  - 지정한 항목들의 가중치 합을 100점으로 환산 — 예: 직종·지역만 지정했으면 그 둘로 100점.
+  - 목록 정렬(`sort=RECOMMENDED`)은 노출등급→최신 순 그대로. `matchingScore` 로는 재정렬하지 않음(페이지네이션 일관성).
 
 ```http
 POST /api/job-postings   (Authorization: Bearer <FACILITY>)
