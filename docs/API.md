@@ -340,6 +340,7 @@ POST /api/admin/facilities/13/approve     (Authorization: Bearer <ADMIN>)
 | GET | `/api/job-postings/{id}` | 공개 | 상세. 호출 시 조회수 +1 |
 | POST | `/api/job-postings` | ROLE_FACILITY + 승인 | 등록. 포인트 차감(기본 500P + 노출옵션) |
 | PUT | `/api/job-postings/{id}` | 작성 시설 본인 | 수정 (노출옵션/상태/조회수는 불변) |
+| PATCH | `/api/job-postings/{id}/close` | 작성 시설 본인 | 마감 (OPEN→CLOSED). `DetailResponse` 반환. 이미 마감이면 409 `JOBPOSTING_004` |
 | DELETE | `/api/job-postings/{id}` | 작성 시설 본인 | 삭제 |
 
 - 카테고리성 필드는 전부 enum 문자열. 잘못된 값 → 400 `COMMON_001`.
@@ -349,6 +350,9 @@ POST /api/admin/facilities/13/approve     (Authorization: Bearer <ADMIN>)
   - 가중치: 직종 35 / 지역 30(시군구 일치 만점, 시도만 일치 절반) / 근무형태 20(협의는 일치 처리) / 급여 15(희망액 충족 만점, 미달 시 비율, 급여유형 다르면 0).
   - 지정한 항목들의 가중치 합을 100점으로 환산 — 예: 직종·지역만 지정했으면 그 둘로 100점.
   - 목록 정렬(`sort=RECOMMENDED`)은 노출등급→최신 순 그대로. `matchingScore` 로는 재정렬하지 않음(페이지네이션 일관성).
+- `matchingReasons`(`List<String>`): **상세 응답 전용**. 실제로 일치한 항목의 문구만 담는다
+  (예: `["희망하는 직종과 일치해요","희망하는 근무지와 일치해요","희망하는 급여 조건을 충족해요"]`).
+  채점 불가(비로그인·희망조건 미설정)면 빈 리스트. 목록/featured/similar 응답에는 없음.
 
 ```http
 POST /api/job-postings   (Authorization: Bearer <FACILITY>)
