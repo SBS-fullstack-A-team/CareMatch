@@ -2,6 +2,10 @@
 # 멀티스테이지 빌드 — 최종 이미지에는 JRE + jar 만 남긴다.
 # gradlew(wrapper) 대신 gradle 베이스 이미지를 사용 → 별도 wrapper 바이너리 불필요.
 # (로컬 개발자는 IntelliJ 또는 `gradle wrapper` 로 ./gradlew 를 생성해 쓰면 된다)
+#
+# ⚠️ 빌드 컨텍스트는 이 파일이 있는 backend/ 디렉터리다.
+#    - 로컬:  docker build -f backend/Dockerfile backend/
+#    - Render: Root Directory 를 `backend` 로 설정 (Dockerfile Path: Dockerfile)
 # ==========================================================================
 
 # ---- build stage ----

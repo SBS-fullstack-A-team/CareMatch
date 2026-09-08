@@ -68,6 +68,21 @@ gh auth status
 
 예시: `feat: 로그인 API 연동`, `fix: 회원가입 유효성 검사 오류 수정`
 
+## 저장소 구조 (모노레포)
+
+```
+backend/    # Spring Boot API 서버. 백엔드 담당(Heo, 경수). Render 배포
+frontend/   # React 앱. 프론트 담당(신영, 동한). Vercel 배포
+docs/       # API / ERD 문서 (공용)
+.github/    # CODEOWNERS, 워크플로우 (공용, 팀장 관리)
+CLAUDE.md   # 이 파일 (공용)
+```
+
+- 백엔드 작업은 `backend/` 안에서만, 프론트 작업은 `frontend/` 안에서만 한다.
+- IntelliJ 는 `backend/` 를 Gradle 프로젝트로 임포트한다. (루트를 열면 Gradle 인식 안 됨)
+- 빌드/실행: `cd backend && ./gradlew bootRun`
+- 이 구조로 바뀐 뒤 처음 pull 받으면 IDE 프로젝트 재임포트가 필요하다.
+
 ## 브랜치 전략 (GitHub Flow)
 
 ```

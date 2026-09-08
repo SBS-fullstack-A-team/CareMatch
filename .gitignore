@@ -19,7 +19,7 @@
 *.tar.gz
 *.rar
 # Gradle wrapper jar 는 커밋 대상 (팀 전원 동일 Gradle 버전 보장)
-!gradle/wrapper/gradle-wrapper.jar
+!**/gradle/wrapper/gradle-wrapper.jar
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
