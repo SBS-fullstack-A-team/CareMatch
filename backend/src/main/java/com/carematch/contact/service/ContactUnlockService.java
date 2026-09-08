@@ -99,4 +99,33 @@ public class ContactUnlockService {
         return unlockHistoryRepository
                 .existsByFacilityMemberIdAndJobSeekerProfileId(facilityMemberId, jobSeekerProfileId);
     }
+
+    /**
+     * 포인트 차감 없이 열람 권한을 부여한다 (0P 이력 저장). 이미 있으면 아무것도 안 함.
+     * 구직자가 그 시설 공고에 <b>지원</b>하면 = 연락처 공개에 동의한 것으로 보고 호출한다.
+     * (EMPLOYED 차단 규칙은 적용하지 않는다 — 본인이 지원한 것이므로.)
+     */
+    @Transactional
+    public void grantFreeAccess(Long facilityMemberId, Long jobSeekerProfileId) {
+        if (unlockHistoryRepository
+                .existsByFacilityMemberIdAndJobSeekerProfileId(facilityMemberId, jobSeekerProfileId)) {
+            return;
+        }
+        Member facilityMember = memberRepository.findById(facilityMemberId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+        JobSeekerProfile profile = jobSeekerProfileRepository.findById(jobSeekerProfileId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND,
+                        "jobSeekerProfile " + jobSeekerProfileId));
+        try {
+            unlockHistoryRepository.save(ContactUnlockHistory.builder()
+                    .facilityMember(facilityMember)
+                    .jobSeekerProfile(profile)
+                    .pointsSpent(0)
+                    .build());
+            log.info("[ContactUnlock] 지원으로 무료 열람 권한 부여 facilityMemberId={} profileId={}",
+                    facilityMemberId, jobSeekerProfileId);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            // 동시 요청으로 이미 생성됨 — 무시
+        }
+    }
 }

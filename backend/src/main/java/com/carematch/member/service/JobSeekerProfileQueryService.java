@@ -79,7 +79,7 @@ public class JobSeekerProfileQueryService {
 
     private JobSeekerProfileResponse build(JobSeekerProfile profile, String phone, String residence,
                                            boolean unlocked, List<CertificateResponse> certs,
-                                           Integer matchScore, List<PostingMatchResponse> postingMatches) {
+                                           Integer matchingScore, List<PostingMatchResponse> postingMatches) {
         Integer age = profile.getBirthYear() == null ? null
                 : Year.now().getValue() - profile.getBirthYear();
 
@@ -111,7 +111,7 @@ public class JobSeekerProfileQueryService {
                 profile.getDesiredWorkDays(),
                 profile.getDesiredWorkStartTime(),
                 profile.getDesiredWorkEndTime(),
-                matchScore,
+                matchingScore,
                 postingMatches);
     }
 

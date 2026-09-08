@@ -45,7 +45,7 @@ public record JobSeekerProfileResponse(
         LocalTime desiredWorkEndTime,
 
         /** 시설회원이 볼 때: 그 시설의 OPEN 공고 중 최고 매칭 점수. 본인(/me)·매칭 불가면 null. */
-        Integer matchScore,
+        Integer matchingScore,
         /** 시설회원이 볼 때: 그 시설의 OPEN 공고별 매칭 결과(점수 내림차순). 본인(/me)이면 빈 리스트. */
         List<PostingMatchResponse> postingMatches
 ) {

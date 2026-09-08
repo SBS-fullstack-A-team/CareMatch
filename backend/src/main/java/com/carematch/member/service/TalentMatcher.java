@@ -38,7 +38,7 @@ public class TalentMatcher {
                             : new PostingMatchResponse(jp.getId(), jp.getTitle(), jp.getJobType().name(), score);
                 })
                 .filter(m -> m != null)
-                .sorted(Comparator.comparing(PostingMatchResponse::matchScore).reversed())
+                .sorted(Comparator.comparing(PostingMatchResponse::matchingScore).reversed())
                 .toList();
     }
 
@@ -49,6 +49,18 @@ public class TalentMatcher {
 
     /** 매칭 결과 중 최고 점수. 빈 리스트면 null. */
     public Integer bestScore(List<PostingMatchResponse> matches) {
-        return matches.isEmpty() ? null : matches.get(0).matchScore();
+        return matches.isEmpty() ? null : matches.get(0).matchingScore();
+    }
+
+    /**
+     * 목록 카드용 — 최고 매칭 점수만. 전체 매칭 리스트를 만들지 않고 max 만 구한다.
+     * 인재 희망조건 미설정 / 공고 없음이면 null.
+     */
+    public Integer bestScore(JobSeekerProfile seeker, List<JobPosting> postings) {
+        return postings.stream()
+                .map(jp -> matchScoreCalculator.score(seeker, jp))
+                .filter(s -> s != null)
+                .max(Comparator.naturalOrder())
+                .orElse(null);
     }
 }

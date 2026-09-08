@@ -62,7 +62,7 @@ public class JobSeekerController {
     /**
      * 인재 검색 목록 (승인 시설회원 / 관리자). 필터·정렬은 쿼리 파라미터.
      * 지역/직종/근무형태/급여는 구직자 희망조건 기준. 정렬은 최근 갱신순 고정.
-     * 시설회원이면 각 카드에 "그 시설 OPEN 공고 중 최고 매칭 점수"(matchScore)가 채워진다.
+     * 시설회원이면 각 카드에 "그 시설 OPEN 공고 중 최고 매칭 점수"(matchingScore)가 채워진다.
      */
     @GetMapping
     @PreAuthorize("hasAnyRole('FACILITY','ADMIN')")

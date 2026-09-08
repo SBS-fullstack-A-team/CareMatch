@@ -48,16 +48,16 @@ public final class ApplicationDtos {
             String desiredJobType,
             List<String> certificateNames,
             /** 이 공고 ↔ 지원자 희망조건 매칭 점수. 지원자 희망조건 미설정이면 null. */
-            Integer matchScore
+            Integer matchingScore
     ) {
-        public static ApplicantResponse from(Application a, List<String> certificateNames, Integer matchScore) {
+        public static ApplicantResponse from(Application a, List<String> certificateNames, Integer matchingScore) {
             var seeker = a.getJobSeekerProfile();
             return new ApplicantResponse(
                     a.getId(), a.getStatus(), a.getCreatedAt(), a.getProcessedAt(), a.getMessage(),
                     seeker.getId(), seeker.getMember().getId(), seeker.getMember().getName(),
                     seeker.getEmploymentStatus().name(),
                     seeker.getDesiredJobType() == null ? null : seeker.getDesiredJobType().name(),
-                    certificateNames, matchScore);
+                    certificateNames, matchingScore);
         }
     }
 
