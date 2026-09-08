@@ -93,8 +93,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,
                                 "/api/support/notices/**", "/api/support/faqs/**", "/api/support/site-config").permitAll()
 
-                        // --- 구인공고: 목록/상세 조회는 비로그인 공개 (등록/수정/삭제는 ROLE_FACILITY) ---
-                        .requestMatchers(HttpMethod.GET, "/api/job-postings", "/api/job-postings/*").permitAll()
+                        // --- 구인공고: 목록/상세/추천(featured)/비슷한공고 조회는 비로그인 공개 (등록/수정/삭제·찜은 인증) ---
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/job-postings", "/api/job-postings/*", "/api/job-postings/*/similar").permitAll()
 
                         // --- 소셜 최초 로그인 후 회원유형 선택 (GUEST 포함 인증만 요구) ---
                         .requestMatchers(HttpMethod.POST, "/api/auth/social/select-role").authenticated()

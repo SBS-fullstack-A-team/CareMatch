@@ -13,10 +13,12 @@ import com.carematch.jobposting.dto.JobPostingDtos.SummaryResponse;
 import com.carematch.jobposting.dto.JobPostingDtos.UpdateRequest;
 import com.carematch.jobposting.repository.JobPostingRepository;
 import com.carematch.jobposting.repository.JobPostingSpecs;
+import com.carematch.jobposting.repository.ScrapRepository;
 import com.carematch.member.domain.FacilityProfile;
 import com.carematch.member.repository.FacilityProfileRepository;
 import com.carematch.point.PointService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 구인공고 등록/조회/수정/삭제.
@@ -49,6 +52,7 @@ public class JobPostingService {
 
     private final JobPostingRepository jobPostingRepository;
     private final FacilityProfileRepository facilityProfileRepository;
+    private final ScrapRepository scrapRepository;
     private final PointService pointService;
 
     @Transactional
@@ -84,6 +88,8 @@ public class JobPostingService {
                 .sido(req.sido())
                 .sigungu(req.sigungu())
                 .addressDetail(req.addressDetail())
+                .latitude(req.latitude())
+                .longitude(req.longitude())
                 .careGrade(req.careGrade())
                 .elderGender(req.elderGender())
                 .elderAgeRange(req.elderAgeRange())
@@ -102,21 +108,40 @@ public class JobPostingService {
         return DetailResponse.from(jobPostingRepository.save(posting), null);
     }
 
-    /** 다중조건 검색 (상태 OPEN 고정). */
-    public PageResponse<SummaryResponse> search(SearchCondition cond, int page, int size) {
+    /** 다중조건 검색 (상태 OPEN 고정). 로그인 회원이면 각 결과에 찜 여부(scrapped)를 채운다. */
+    public PageResponse<SummaryResponse> search(SearchCondition cond, int page, int size, Long viewerMemberId) {
         int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
         PageRequest pageable = PageRequest.of(Math.max(page, 0), safeSize, resolveSort(cond.sort()));
-        return PageResponse.of(
-                jobPostingRepository.findAll(JobPostingSpecs.from(cond), pageable),
-                SummaryResponse::from);
+        Page<JobPosting> pageResult = jobPostingRepository.findAll(JobPostingSpecs.from(cond), pageable);
+
+        Set<Long> scrappedIds = scrappedIdsAmong(viewerMemberId, pageResult.getContent());
+        return PageResponse.of(pageResult,
+                jp -> SummaryResponse.from(jp, scrappedFlag(viewerMemberId, scrappedIds, jp.getId())));
+    }
+
+    /** 여러 공고 중 이 회원이 찜한 id 집합. 비로그인/빈 목록이면 빈 집합. */
+    private Set<Long> scrappedIdsAmong(Long viewerMemberId, List<JobPosting> postings) {
+        if (viewerMemberId == null || postings.isEmpty()) {
+            return Set.of();
+        }
+        return Set.copyOf(scrapRepository.findScrappedPostingIds(
+                viewerMemberId, postings.stream().map(JobPosting::getId).toList()));
+    }
+
+    /** 비로그인이면 null, 로그인이면 찜 여부. */
+    private Boolean scrappedFlag(Long viewerMemberId, Set<Long> scrappedIds, Long postingId) {
+        return viewerMemberId == null ? null : scrappedIds.contains(postingId);
     }
 
     /** "소페셜 채용정보" 상단 노출 — 만료 안 된 SPECIAL 공고 상위 3. */
-    public List<SummaryResponse> featured() {
-        return jobPostingRepository
+    public List<SummaryResponse> featured(Long viewerMemberId) {
+        List<JobPosting> postings = jobPostingRepository
                 .findTop3ByStatusAndExposureTypeAndExposureExpiredAtAfterOrderByCreatedAtDesc(
-                        JobPostingStatus.OPEN, ExposureType.SPECIAL, LocalDateTime.now())
-                .stream().map(SummaryResponse::from).toList();
+                        JobPostingStatus.OPEN, ExposureType.SPECIAL, LocalDateTime.now());
+        Set<Long> scrappedIds = scrappedIdsAmong(viewerMemberId, postings);
+        return postings.stream()
+                .map(jp -> SummaryResponse.from(jp, scrappedFlag(viewerMemberId, scrappedIds, jp.getId())))
+                .toList();
     }
 
     /**
@@ -135,12 +160,28 @@ public class JobPostingService {
         };
     }
 
+    /** 비슷한 공고 — 같은 시군구 + 직종, 자기 제외, OPEN 상위 6. */
+    public List<SummaryResponse> similar(Long jobPostingId, Long viewerMemberId) {
+        JobPosting base = jobPostingRepository.findById(jobPostingId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_POSTING_NOT_FOUND, "id=" + jobPostingId));
+        List<JobPosting> list = jobPostingRepository
+                .findTop6ByStatusAndSigunguAndJobTypeAndIdNotOrderByExposureTypeDescCreatedAtDesc(
+                        JobPostingStatus.OPEN, base.getSigungu(), base.getJobType(), jobPostingId);
+        Set<Long> scrappedIds = scrappedIdsAmong(viewerMemberId, list);
+        return list.stream()
+                .map(jp -> SummaryResponse.from(jp, scrappedFlag(viewerMemberId, scrappedIds, jp.getId())))
+                .toList();
+    }
+
     @Transactional
-    public DetailResponse getDetail(Long jobPostingId) {
+    public DetailResponse getDetail(Long jobPostingId, Long viewerMemberId) {
         JobPosting posting = jobPostingRepository.findWithFacilityById(jobPostingId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_POSTING_NOT_FOUND, "id=" + jobPostingId));
         posting.increaseViewCount();
-        return DetailResponse.from(posting, null);
+
+        Boolean scrapped = viewerMemberId == null ? null
+                : scrapRepository.existsByMemberIdAndJobPostingId(viewerMemberId, jobPostingId);
+        return DetailResponse.from(posting, null, scrapped);
     }
 
     @Transactional

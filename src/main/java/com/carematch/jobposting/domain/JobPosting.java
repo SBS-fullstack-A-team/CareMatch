@@ -109,6 +109,13 @@ public class JobPosting extends BaseTimeEntity {
     @Column(name = "address_detail", length = 200)
     private String addressDetail;
 
+    /** 근무지 위도/경도 (지도 표시용, 선택). 프론트가 지오코딩해서 넘긴다. */
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
+
     // ===== 어르신 정보 =====
 
     @Enumerated(EnumType.STRING)
@@ -168,7 +175,7 @@ public class JobPosting extends BaseTimeEntity {
                        WorkType workType, EmploymentType employmentType, String employmentTypeNote,
                        String workDays, LocalTime workStartTime, LocalTime workEndTime,
                        PayType payType, Integer payAmount, Integer recruitCount, LocalDate deadline,
-                       String sido, String sigungu, String addressDetail,
+                       String sido, String sigungu, String addressDetail, Double latitude, Double longitude,
                        CareGrade careGrade, ElderGender elderGender, String elderAgeRange,
                        MobilityStatus mobilityStatus, MealStatus mealStatus, CognitiveStatus cognitiveStatus,
                        List<String> duties, List<String> requiredDocuments, ExposureType exposureType) {
@@ -189,6 +196,8 @@ public class JobPosting extends BaseTimeEntity {
         this.sido = sido;
         this.sigungu = sigungu;
         this.addressDetail = addressDetail;
+        this.latitude = latitude;
+        this.longitude = longitude;
         this.careGrade = careGrade;
         this.elderGender = elderGender;
         this.elderAgeRange = elderAgeRange;
@@ -208,7 +217,7 @@ public class JobPosting extends BaseTimeEntity {
             WorkType workType, EmploymentType employmentType, String employmentTypeNote,
             String workDays, LocalTime workStartTime, LocalTime workEndTime,
             PayType payType, Integer payAmount, Integer recruitCount, LocalDate deadline,
-            String sido, String sigungu, String addressDetail,
+            String sido, String sigungu, String addressDetail, Double latitude, Double longitude,
             CareGrade careGrade, ElderGender elderGender, String elderAgeRange,
             MobilityStatus mobilityStatus, MealStatus mealStatus, CognitiveStatus cognitiveStatus,
             List<String> duties, List<String> requiredDocuments
@@ -232,6 +241,8 @@ public class JobPosting extends BaseTimeEntity {
         this.sido = f.sido();
         this.sigungu = f.sigungu();
         this.addressDetail = f.addressDetail();
+        this.latitude = f.latitude();
+        this.longitude = f.longitude();
         this.careGrade = f.careGrade();
         this.elderGender = f.elderGender();
         this.elderAgeRange = f.elderAgeRange();
