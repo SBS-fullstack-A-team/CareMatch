@@ -168,25 +168,33 @@ POST /api/auth/social/select-role     (Authorization: Bearer <GUEST accessToken>
       "tokenType": "Bearer", "accessTokenExpiresIn": 1800, "roleSelected": true }
 ```
 
-## 4. 파일 업로드 URL (스토리지 스텁)
+## 4. 파일 업로드 URL
 
 | 메서드 | 경로 | 권한 | 설명 |
 |---|---|---|---|
-| POST | `/api/files/upload-url` | 공개 | 업로드용(임시) URL 발급 |
-| POST | `/api/files/confirm` | 공개 | 업로드 완료 후 파일 검증(스텁: 더미 메타) |
+| POST | `/api/files/upload-url` | 공개 | 업로드용(임시) presigned URL 발급 |
+| POST | `/api/files/confirm` | 공개 | 업로드 완료 후 파일 검증 |
+
+구현체는 `carematch.storage.provider` 로 전환:
+- `stub` (로컬 기본): 더미 URL / 더미 메타
+- `r2` (운영): Cloudflare R2(S3 호환). presigned PUT/GET, `confirm` 은 실제 HeadObject 검증
 
 ```http
 POST /api/files/upload-url
 { "purpose": "BUSINESS_LICENSE", "originalFilename": "license.pdf", "contentType": "application/pdf" }
 200 {
   "fileKey": "business-license/2026/09/6f1c...-.pdf",
-  "uploadUrl": "https://files.example.invalid/_stub-upload/business-license/2026/09/6f1c...pdf?expires=...",
+  "uploadUrl": "https://<account>.r2.cloudflarestorage.com/<bucket>/business-license/2026/09/6f1c....pdf?X-Amz-Algorithm=...&X-Amz-Signature=...",
   "httpMethod": "PUT",
   "expiresAt": "2026-09-07T12:45:00+09:00"
 }
 ```
 
 - `purpose`: `BUSINESS_LICENSE`(사업자등록증) / `CERTIFICATE`(자격증) / `INQUIRY_ATTACHMENT`(문의 첨부) / `JOB_POSTING_IMAGE`(구인공고 대표 이미지).
+- 클라이언트는 `uploadUrl` 에 **PUT** 하되, `Content-Type` 헤더를 `upload-url` 요청 때 보낸 `contentType` 과 **동일하게** 보내야 한다(서명에 포함됨). 바디는 파일 바이트 그대로.
+- 업로드 후 `POST /api/files/confirm { "fileKey": "..." }` → `{ exists, sizeBytes, contentType }`. `r2` 모드에서는 없으면 `404 FILE_003`, 용량 초과 `413 FILE_002`, 허용 안 된 타입 `400 FILE_001`.
+- 다운로드는 서버가 발급하는 만료형 presigned GET URL 로만 (영구 공개 URL 없음).
+- R2 버킷에는 프론트 도메인 대상 **CORS 정책**을 Cloudflare 대시보드에서 별도 설정해야 브라우저 PUT/GET 이 된다 (백엔드 CORS 와 무관).
 
 ## 5. 약관 (공개 조회)
 
