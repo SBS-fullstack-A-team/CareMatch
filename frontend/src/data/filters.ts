@@ -114,9 +114,31 @@ export const WORK_TIME_OPTIONS: SelectOption[] = [
   { value: 'shift', label: '교대 근무' },
 ]
 
-export const SORT_OPTIONS: SelectOption[] = [
-  { value: 'matching', label: '매칭순' },
+/**
+ * 구인공고 목록 정렬.
+ * 위치 기반 기능이 없어 거리순은 두지 않고, 실제로 계산 가능한 3종만 제공한다.
+ */
+export const JOB_SORT_OPTIONS: SelectOption[] = [
   { value: 'latest', label: '최신순' },
-  { value: 'pay', label: '급여 높은순' },
-  { value: 'deadline', label: '마감 임박순' },
+  { value: 'payDesc', label: '급여 높은순' },
+  { value: 'payAsc', label: '급여 낮은순' },
+]
+
+/**
+ * 근무형태 — Job.workType 의 실제 값과 1:1 로 대응한다.
+ * (WORK_TIME_OPTIONS 는 시간대 범위를 고르는 등록 폼용이라 용도가 다르다)
+ */
+export const WORK_TYPE_OPTIONS: SelectOption[] = [
+  { value: '주간', label: '주간' },
+  { value: '오전', label: '오전' },
+  { value: '오후', label: '오후' },
+  { value: '야간', label: '야간' },
+  { value: '교대', label: '교대' },
+]
+
+/** 급여 형태 — Job.payType 중 목록 필터에서 사용하는 3종 */
+export const PAY_TYPE_OPTIONS: SelectOption[] = [
+  { value: 'hourly', label: '시급' },
+  { value: 'daily', label: '일급' },
+  { value: 'monthly', label: '월급' },
 ]

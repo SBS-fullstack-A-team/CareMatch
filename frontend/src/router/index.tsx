@@ -2,16 +2,14 @@ import { createBrowserRouter } from 'react-router-dom'
 import { PlaceholderPage } from '@/components/common/placeholder-page'
 import { SiteLayout } from '@/components/layout/site-layout'
 import { HomePage } from '@/pages/Home'
+import { JobListPage } from '@/pages/JobList'
 
 export const router = createBrowserRouter([
   {
     element: <SiteLayout />,
     children: [
       { path: '/', element: <HomePage /> },
-      {
-        path: '/jobs',
-        element: <PlaceholderPage title="구인공고" description="구인공고 목록 화면을 준비 중입니다." />,
-      },
+      { path: '/jobs', element: <JobListPage /> },
       {
         path: '/jobs/:jobId',
         element: <PlaceholderPage title="공고 상세" description="구인공고 상세 화면을 준비 중입니다." />,

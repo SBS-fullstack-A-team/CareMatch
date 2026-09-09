@@ -98,15 +98,16 @@ src/
 │   ├── layout/      # Header, Footer, Section, ProfileDropdown,
 │   │                # FontSizeControl, MobileNav, SiteLayout, Logo
 │   ├── job/         # JobCard, SpecialJobCard, JobTable, JobListItem,
-│   │                # JobBadge, FacilityBadge
+│   │                # JobBadge, FacilityBadge, JobFilterPanel
 │   ├── talent/      # TalentCard
 │   └── matching/    # MatchingScore
 ├── data/
 │   ├── mock/        # jobs.ts, talents.ts, notices.ts  (API 연동 시 교체)
 │   └── filters.ts   # 시·도, 구·군, 직종, 시설유형, 지역 바로가기
 ├── hooks/           # use-app(세션·글자크기), use-click-outside, use-dismissable
-├── lib/             # cn, 포맷터(급여·날짜·마스킹), nav, site(고객센터 정보)
-├── pages/           # Home/ ...
+├── lib/             # cn, 포맷터(급여·날짜·마스킹), nav, site(고객센터 정보),
+│                    # job-filters(목록 검색·필터·정렬 규칙)
+├── pages/           # Home/, JobList/ ...
 ├── router/
 └── types/           # Job, Talent, Matching, ElderlyInfo, Notice
 ```
@@ -146,7 +147,8 @@ pill 형태는 §8(과도한 pill 금지)의 명시적 예외입니다.
 - [x] JobCard · SpecialJobCard · JobTable · JobBadge · FacilityBadge · MatchingScore · TalentCard
 - [x] JobSearchBar · Section · SectionHeader · Pagination
 - [x] **메인** — `capture/메인.png` 반영 완료
-- [ ] 구인공고 목록 / 상세 / 등록
+- [x] **구인공고 목록** — 검색·필터·정렬·페이지네이션 (mock 데이터 기준)
+- [ ] 구인공고 상세 / 등록
 - [ ] 인재정보 목록 / 상세
 - [ ] 구직신청서
 - [ ] 로그인 / 회원가입
@@ -170,6 +172,35 @@ pill 형태는 §8(과도한 pill 금지)의 명시적 예외입니다.
 | 맞춤 공고 카드 배지 줄 | 매칭 pill + 사유 칩 2개가 한 줄 | 두 줄로 wrap | 본문 폭 1200px(§6) 기준 4열 카드는 288px 이라 한 줄에 들어가지 않음. 네 장 모두 배지 영역 높이를 고정해 본문 시작 위치를 맞춤 |
 | 최신 구인공고 TABLE | 모든 폭에서 표 | 1024px 이상에서만 표, 그 아래는 세로 목록 | 7열 표를 태블릿 폭에 넣으면 가로 스크롤이 생기고 §38(가독성 우선)에 어긋남 |
 | 인재 이름 | 실명 | 마스킹 | §21 |
+
+## 구인공고 목록 구현 메모
+
+라우트는 `/jobs` 이며 구조는 다음과 같습니다. (COMPONENT_RULES.md §17)
+
+```
+페이지 타이틀 → 검색(JobSearchBar compact) → 결과 요약 + 정렬
+→ 좌 필터(248px) / 우 목록(JobListItem) → 페이지네이션
+```
+
+- 목적성이 높은 업무형 화면이라 **Hero 배너를 두지 않습니다.** 본문 폭은 메인과 같은 1200px 입니다.
+- `JobSearchBar` 에 `variant="compact"` 를 추가했습니다. 메인의 리드 카피와 보조 버튼
+  (내 주변 일자리 / 알림받기, §16 의 메인 전용 요소)만 감추고 검색 필드는 그대로 씁니다.
+- 목록 행은 홈의 `JobCard` 를 복제하지 않고 `JobListItem` 을 사용합니다.
+  정보 우선순위는 **시설명 + 직종 > 급여 > 지역 + 근무형태 > 근무시간 > 등록일 > 상태** 이고,
+  상태 배지는 메인 TABLE 과 같이 5종을 모두 노출합니다. (§14 화면별 예외 — 목록에서는 상태가 비교 기준)
+- 검색·필터·정렬 규칙은 `src/lib/job-filters.ts` 한 곳에 모아 필터 패널의 건수 집계와
+  목록 필터링이 같은 기준을 쓰도록 했습니다.
+- 좌측 필터 항목은 **기존 데이터 구조를 그대로** 씁니다. 직종/시설유형은 `CATEGORY_OPTIONS`,
+  `FACILITY_TYPE_OPTIONS`, 지역은 `REGION_SHORTCUTS`(17개, 주요 8개 + 더보기),
+  근무형태·급여는 `Job.workType` / `Job.payType` 에 1:1 대응하는 옵션을 새로 추가했습니다.
+- 옵션 옆 건수는 **자기 그룹의 선택을 제외하고** 계산합니다. 같은 그룹에서 다른 항목을
+  추가로 켤 때 건수가 0 으로 사라지지 않게 하기 위해서입니다.
+- 정렬은 최신순 / 급여 높은순 / 급여 낮은순 3종입니다. 위치 기반 기능이 없어 거리순은 두지 않았습니다.
+  급여 정렬은 시급·일급·월급을 월 환산(209시간 / 21일)해 비교하고, 급여 협의 공고는 항상 뒤로 보냅니다.
+- 검색 조건과 정렬은 쿼리스트링에 반영되어 URL 로 공유됩니다. (`/jobs?sido=서울특별시&sort=payDesc`)
+  좌측 체크박스 필터는 아직 URL 에 넣지 않고 화면 상태로만 관리합니다.
+- 페이지당 10건이며, 백엔드 페이지네이션 전까지 mock 데이터를 클라이언트에서 자릅니다.
+- 관심공고(하트)는 기존 `ScrapButton` 을 그대로 씁니다. 아직 저장 API 가 없어 화면 상태만 토글합니다.
 
 ## 알려진 제약
 

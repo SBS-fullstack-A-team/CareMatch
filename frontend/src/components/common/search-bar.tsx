@@ -29,16 +29,22 @@ const EMPTY_VALUES: SearchValues = {
 }
 
 /**
- * 메인 검색 패널 (DESIGN_SYSTEM.md §16)
- * Hero 와 분리된 별도 패널이며, 5개 필드 모두 상단 Label 을 노출한다.
+ * 검색 패널 (DESIGN_SYSTEM.md §16)
+ * 5개 필드 모두 상단 Label 을 노출한다.
+ *
+ * - main    : 메인 화면. 좌측 리드 카피 + 보조 버튼 2개 포함
+ * - compact : 구인공고 목록 화면. 목록의 정보 밀도를 고려해 검색 필드만 남긴다.
+ *             (보조 버튼은 메인 §16 의 요소라 목록에서는 노출하지 않는다)
  */
 export function JobSearchBar({
   defaultValues,
   onSearch,
+  variant = 'main',
   className,
 }: {
   defaultValues?: Partial<SearchValues>
   onSearch?: (values: SearchValues) => void
+  variant?: 'main' | 'compact'
   className?: string
 }) {
   const navigate = useNavigate()
@@ -70,12 +76,14 @@ export function JobSearchBar({
       className={cn('rounded-card border border-border bg-surface p-5 lg:p-6', className)}
     >
       <div className="lg:flex lg:gap-8">
-        <p className="shrink-0 text-xl leading-snug font-bold text-fg lg:w-[152px] lg:self-center">
-          원하는 일자리를
-          <br className="hidden lg:block" /> 찾아보세요
-        </p>
+        {variant === 'main' && (
+          <p className="shrink-0 text-xl leading-snug font-bold text-fg lg:w-[152px] lg:self-center">
+            원하는 일자리를
+            <br className="hidden lg:block" /> 찾아보세요
+          </p>
+        )}
 
-        <div className="mt-4 min-w-0 flex-1 lg:mt-0">
+        <div className={cn('min-w-0 flex-1', variant === 'main' && 'mt-4 lg:mt-0')}>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[repeat(4,minmax(0,1fr))_minmax(0,1.5fr)_auto]">
             <Field id={`${id}-sido`} label="지역">
               <Select
@@ -135,6 +143,7 @@ export function JobSearchBar({
             </div>
           </div>
 
+          {variant === 'main' && (
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <Link to="/nearby" className={cn(buttonVariants({ variant: 'outline', block: true }))}>
               <MapPin aria-hidden />
@@ -148,6 +157,7 @@ export function JobSearchBar({
               구인공고 알림받기
             </Link>
           </div>
+          )}
         </div>
       </div>
     </form>
