@@ -77,6 +77,16 @@ public class Member extends BaseTimeEntity {
     @Column(name = "account_locked_until")
     private LocalDateTime accountLockedUntil;
 
+    // --- 화면 표시 설정 (고연령 사용자 대응: 쉬운 화면 모드 / 글자 크기) ---
+    /** 쉬운 화면 모드. 켜면 프론트가 글자·여백·터치영역을 키우고 부가 정보를 숨긴다. 기본 false. */
+    @Column(name = "easy_mode", nullable = false)
+    private boolean easyMode;
+
+    /** 글자 크기 설정. 기본 NORMAL. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "font_scale", nullable = false, length = 10)
+    private FontScale fontScale;
+
     @Builder
     private Member(String loginId, String password, String email, String name, String phone,
                    Role role, MemberStatus status, boolean verified, String membershipType) {
@@ -90,6 +100,8 @@ public class Member extends BaseTimeEntity {
         this.verified = verified;
         this.membershipType = membershipType == null ? "BASIC" : membershipType;
         this.loginFailCount = 0;
+        this.easyMode = false;
+        this.fontScale = FontScale.NORMAL;
     }
 
     // ---------------------------------------------------------------------
@@ -138,6 +150,12 @@ public class Member extends BaseTimeEntity {
     public void resetLoginFail() {
         this.loginFailCount = 0;
         this.accountLockedUntil = null;
+    }
+
+    /** 화면 표시 설정(쉬운 화면 모드 / 글자 크기) 변경. fontScale 이 null 이면 NORMAL 로 보정. */
+    public void changeDisplayPreference(boolean easyMode, FontScale fontScale) {
+        this.easyMode = easyMode;
+        this.fontScale = fontScale == null ? FontScale.NORMAL : fontScale;
     }
 
     public void suspend() {

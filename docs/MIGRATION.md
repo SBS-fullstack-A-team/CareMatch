@@ -30,13 +30,17 @@
 
 > 예: PR #29 `preferred_note` 컬럼 추가 →
 > `ALTER TABLE job_posting ADD COLUMN preferred_note TEXT;` 를 배포 전 실행해야 함.
+>
+> 예: 회원 화면 표시 설정(쉬운 화면 모드) — `member` 에 2컬럼 추가 →
+> `ALTER TABLE member ADD COLUMN easy_mode boolean NOT NULL DEFAULT false, ADD COLUMN font_scale varchar(10) NOT NULL DEFAULT 'NORMAL';`
 
 ## 스냅샷 재생성
 
-엔티티를 바꾼 뒤:
+엔티티를 바꾼 뒤 (target 파일이 이미 있으면 append 되므로 `rm` 먼저):
 
 ```bash
 cd backend
+rm -f build/schema-postgres.sql
 ./gradlew bootRun --args="\
   --spring.main.web-application-type=none \
   --spring.jpa.properties.jakarta.persistence.schema-generation.scripts.action=create \

@@ -20,6 +20,8 @@
                           │ membership_type    │  BASIC (확장 여지)
                           │ login_fail_count   │
                           │ account_locked_until│
+                          │ easy_mode          │  쉬운 화면 모드 (고연령 대응)
+                          │ font_scale         │  NORMAL/LARGE/XLARGE
                           │ created_at/updated_at│
                           └─────────┬──────────┘
              1:1                    │ 1:1                 1:N
