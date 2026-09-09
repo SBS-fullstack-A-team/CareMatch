@@ -30,7 +30,8 @@ USER spring:spring
 
 COPY --from=build /workspace/build/libs/*.jar app.jar
 
-# Render 는 $PORT 를 주입한다. 기본 8080.
+# Render 는 $PORT 를 주입한다. 서버 포트는 application.yml 의 server.port=${PORT:8080} 가 처리.
+# EXPOSE 는 문서용 힌트일 뿐 실제 바인딩 포트를 고정하지 않는다.
 ENV SPRING_PROFILES_ACTIVE=prod
 ENV JAVA_OPTS="-XX:MaxRAMPercentage=75.0"
 EXPOSE 8080
@@ -39,4 +40,7 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD wget -qO- "http://localhost:${PORT:-8080}/actuator/health" | grep -q '"status":"UP"' || exit 1
 
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -Dserver.port=${PORT:-8080} -jar app.jar"]
+# 포트는 -Dserver.port 로 고정하지 않는다. application.yml 의 server.port=${PORT:8080} 가
+# Render 가 주입하는 PORT 환경변수를 그대로 읽는다.
+# exec 로 java 를 PID 1 로 띄워 SIGTERM(무중단 배포/셧다운)이 정상 전달되게 한다.
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]
