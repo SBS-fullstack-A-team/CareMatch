@@ -106,13 +106,18 @@ carematch:
       lock-minutes: ${LOGIN_LOCK_MINUTES:15}
 
   storage:
-    # 스토리지 벤더 미확정(R2 등 후보). 키 이름만 선점. 스텁 구현체가 참조.
+    # provider=stub : 외부 연동 없이 더미 URL (기본). provider=r2 : Cloudflare R2(S3 호환).
     provider: ${STORAGE_PROVIDER:stub}
     bucket: ${STORAGE_BUCKET:carematch-dev}
     public-base-url: ${STORAGE_PUBLIC_BASE_URL:https://files.example.invalid}
     presign-expiry-seconds: ${STORAGE_PRESIGN_TTL:600}
     max-upload-size-bytes: ${STORAGE_MAX_UPLOAD_BYTES:5242880} # 5MB
     allowed-content-types: image/jpeg,image/png,application/pdf
+    # provider=r2 일 때만 필요. 값은 Render 대시보드 Environment 에 등록.
+    r2:
+      endpoint: ${R2_ENDPOINT:}
+      access-key-id: ${R2_ACCESS_KEY_ID:}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY:}
 
   support:
     tel: ${SUPPORT_TEL:1600-0000}
