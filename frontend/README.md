@@ -94,11 +94,13 @@ src/
 │   ├── ui/          # Button, Input, Textarea, Select, Checkbox, RadioGroup,
 │   │                # SegmentedControl, Badge, Tag, Modal, Drawer, Toast
 │   ├── common/      # JobSearchBar, SectionHeader, Pagination, ScrapButton,
-│   │                # EmptyState, LoadingState, PlaceholderPage
+│   │                # EmptyState, LoadingState, PlaceholderPage,
+│   │                # Breadcrumb, DetailSection
 │   ├── layout/      # Header, Footer, Section, ProfileDropdown,
 │   │                # FontSizeControl, MobileNav, SiteLayout, Logo
 │   ├── job/         # JobCard, SpecialJobCard, JobTable, JobListItem,
-│   │                # JobBadge, FacilityBadge, JobFilterPanel
+│   │                # JobBadge, FacilityBadge, JobFilterPanel,
+│   │                # JobDetailHeader, JobApplyPanel, ElderlyInfoCard
 │   ├── talent/      # TalentCard
 │   └── matching/    # MatchingScore
 ├── data/
@@ -107,7 +109,7 @@ src/
 ├── hooks/           # use-app(세션·글자크기), use-click-outside, use-dismissable
 ├── lib/             # cn, 포맷터(급여·날짜·마스킹), nav, site(고객센터 정보),
 │                    # job-filters(목록 검색·필터·정렬 규칙)
-├── pages/           # Home/, JobList/ ...
+├── pages/           # Home/, JobList/, JobDetail/ ...
 ├── router/
 └── types/           # Job, Talent, Matching, ElderlyInfo, Notice
 ```
@@ -148,7 +150,8 @@ pill 형태는 §8(과도한 pill 금지)의 명시적 예외입니다.
 - [x] JobSearchBar · Section · SectionHeader · Pagination
 - [x] **메인** — `capture/메인.png` 반영 완료
 - [x] **구인공고 목록** — 검색·필터·정렬·페이지네이션 (mock 데이터 기준)
-- [ ] 구인공고 상세 / 등록
+- [x] **구인공고 상세** — 화면 구현 완료 (지원·관심공고는 UI 만, API 미연결)
+- [ ] 구인공고 등록
 - [ ] 인재정보 목록 / 상세
 - [ ] 구직신청서
 - [ ] 로그인 / 회원가입
@@ -201,6 +204,40 @@ pill 형태는 §8(과도한 pill 금지)의 명시적 예외입니다.
   좌측 체크박스 필터는 아직 URL 에 넣지 않고 화면 상태로만 관리합니다.
 - 페이지당 10건이며, 백엔드 페이지네이션 전까지 mock 데이터를 클라이언트에서 자릅니다.
 - 관심공고(하트)는 기존 `ScrapButton` 을 그대로 씁니다. 아직 저장 API 가 없어 화면 상태만 토글합니다.
+
+## 구인공고 상세 구현 메모
+
+라우트는 `/jobs/:jobId` 이며 구조는 다음과 같습니다. (COMPONENT_RULES.md §21, §22)
+
+```
+Breadcrumb → 공고 핵심 정보 → 근무조건 → 모집내용 → 어르신 정보 → 시설정보
+→ 지원방법 → 유의사항 → 비슷한 구인공고
+본문 1fr + 우측 sticky 340px (top 96px = Header 72px + 여백)
+```
+
+- **데이터가 없는 항목은 행·섹션 자체를 렌더링하지 않습니다.** `DetailRow` 가 값이 없으면
+  `null` 을 반환하고, 모집내용·어르신 정보·전화 지원도 데이터가 있는 공고에서만 나타납니다.
+  없는 정보를 화면에서 만들어내지 않기 위한 규칙입니다.
+- 시각적 우선순위는 **공고 제목 > 시설명 > 급여 > 지역·근무형태 > 등록일** 입니다.
+  목록에서는 시설명이 행 제목이지만, 상세에서는 제목이 h1 이고 시설명은 그 위 보조 라인입니다.
+- 지도 API 가 없어 **지도 UI 를 만들지 않았습니다.** 주소 데이터가 있는 공고만 주소를 텍스트로 표시합니다.
+- 상태 배지는 목록과 동일하게 5종을 모두 노출합니다. (§14 화면별 예외)
+- 비슷한 구인공고는 추천 모델이 아니라 `getRelatedJobs()` 의 단순 유사도입니다.
+  같은 직종(4점) > 같은 시·도(2점) > 같은 시설유형(1점) 순으로 점수를 매겨 상위 3건을 보여줍니다.
+- 유의사항 문구는 공고 데이터가 아니라 서비스 공통 안내라 `lib/site.ts` 의 `JOB_APPLY_NOTICES` 에 두었습니다.
+
+### 아직 기능이 없는 부분 (UI 만)
+
+| 항목 | 현재 상태 |
+| --- | --- |
+| 지원하기 / 온라인으로 지원하기 | 구직신청 라우트 `/apply?jobId=...` 로 이동만 합니다. 해당 화면은 아직 PlaceholderPage 입니다. |
+| 관심공고 | 기존 `ScrapButton` 재사용. 저장 API 가 없어 화면 상태만 토글되고 새로고침하면 사라집니다. |
+| 전화 지원 | `job.managerPhone` 이 있는 공고(job-201)에만 `tel:` 링크로 노출됩니다. |
+
+### `Job` 타입에 없어 표시하지 않은 항목
+
+모집인원 · 학력 · 경력조건은 `Job` 타입에 필드가 없어 근무조건에서 제외했습니다.
+필요하면 타입에 optional 필드를 추가하고 mock 데이터를 채우는 작업이 먼저입니다.
 
 ## 알려진 제약
 

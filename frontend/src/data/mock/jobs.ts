@@ -32,6 +32,12 @@ export const JOBS: Job[] = [
         { kind: 'pay', label: '급여 조건 충족', matched: false, detail: '시급 13,500원' },
       ],
     },
+    description:
+      '어르신들이 편안하게 생활하실 수 있도록 함께해 주실 요양보호사님을 모십니다.\n' +
+      '입사 후 2주간 선배 요양보호사와 함께 근무하며 업무를 익히실 수 있습니다.',
+    requirements: ['요양보호사 자격증 소지자', '경력 무관 (신입 지원 가능)'],
+    preferences: ['요양원 근무 경험자', '치매전문교육 이수자'],
+    benefits: ['4대보험', '중식 제공', '명절 상여금', '연차 사용 보장'],
   },
   {
     id: 'job-102',
@@ -57,6 +63,12 @@ export const JOBS: Job[] = [
         { kind: 'region', label: '지역 일치', matched: false, detail: '서울 강남구' },
       ],
     },
+    description:
+      '강남사랑요양센터에서 함께 일할 요양보호사님을 찾습니다.\n' +
+      '입소 어르신의 일상생활을 지원하는 업무입니다.',
+    requirements: ['요양보호사 자격증 소지자', '주 5일 근무 가능하신 분'],
+    preferences: ['센터 인근 거주자', '장기 근무 가능하신 분'],
+    benefits: ['4대보험', '중식 제공', '퇴직금'],
   },
   {
     id: 'job-103',
@@ -83,6 +95,12 @@ export const JOBS: Job[] = [
         { kind: 'category', label: '희망 직종 일치', matched: false, detail: '간병인' },
       ],
     },
+    description:
+      '재가 어르신 댁을 방문해 일상생활을 지원하는 간병 업무입니다.\n' +
+      '담당 어르신은 배정 전 사전 상담을 통해 안내해 드립니다.',
+    requirements: ['요양보호사 또는 간병 관련 자격증 소지자', '오전 시간대 근무 가능하신 분'],
+    preferences: ['재가 방문 경력자'],
+    benefits: ['4대보험', '교통비 지원'],
   },
   {
     id: 'job-104',
@@ -108,6 +126,10 @@ export const JOBS: Job[] = [
         { kind: 'region', label: '지역 일치', matched: false, detail: '서울 강서구' },
       ],
     },
+    description: '주야간보호센터에서 어르신 프로그램 진행과 일상생활을 지원할 요양보호사님을 모집합니다.',
+    requirements: ['요양보호사 자격증 소지자'],
+    preferences: ['주야간보호센터 근무 경험자', '레크리에이션 지도 가능하신 분'],
+    benefits: ['4대보험', '중식 제공', '주차 가능'],
   },
 
   // ---------------- 스페셜 채용정보 (3열) ----------------
@@ -142,6 +164,12 @@ export const JOBS: Job[] = [
       cognition: '정상',
       careTasks: ['세면', '식사준비', '청소', '말벗', '산책'],
     },
+    description:
+      '따뜻한 마음으로 어르신을 돌봐주실 요양보호사님을 모십니다.\n' +
+      '담당 어르신 한 분을 전담하며, 오전 4시간 근무로 부담이 크지 않습니다.',
+    requirements: ['요양보호사 자격증 소지자', '주 5일(월~금) 근무 가능하신 분'],
+    preferences: ['센터 인근 거주자', '치매전문교육 이수자'],
+    benefits: ['4대보험', '교통비 지원', '명절 상여금'],
   },
   {
     id: 'job-202',
@@ -170,6 +198,12 @@ export const JOBS: Job[] = [
       cognition: '경증 치매',
       careTasks: ['체위변경', '배설', '식사보조'],
     },
+    description:
+      '가족처럼 어르신을 돌봐주실 간병인님을 기다립니다.\n' +
+      '체위 변경과 식사 보조가 주된 업무입니다.',
+    requirements: ['간병 또는 요양보호 관련 자격증 소지자', '오전 시간대 근무 가능하신 분'],
+    preferences: ['거동이 불편한 어르신 케어 경험자'],
+    benefits: ['4대보험', '교통비 지원', '경력에 따른 급여 협의'],
   },
   {
     id: 'job-203',
@@ -190,6 +224,10 @@ export const JOBS: Job[] = [
     catchphrase: '즐거운 근무환경, 함께 만들어가요.',
     viewCount: 604,
     applicantCount: 8,
+    description: '즐겁게 근무할 수 있는 환경을 함께 만들어갈 요양보호사님을 모집합니다.',
+    requirements: ['요양보호사 자격증 소지자', '주 5일(월~금) 근무 가능하신 분'],
+    preferences: ['주야간보호센터 근무 경험자'],
+    benefits: ['4대보험', '중식 제공', '연차 사용 보장'],
   },
 
   // ---------------- 최신 구인공고 TABLE ----------------
@@ -779,4 +817,33 @@ export const LATEST_JOBS = pick([
 
 export function getJobById(id: string) {
   return byId.get(id)
+}
+
+/**
+ * 비슷한 구인공고 — 추천 모델이 아니라 mock 데이터 위의 단순 유사도다.
+ * 같은 직종 > 같은 시·도 > 같은 시설유형 순으로 점수를 주고, 동점이면 최신순으로 채운다.
+ */
+export function getRelatedJobs(jobId: string, limit = 3) {
+  const target = byId.get(jobId)
+  if (!target) return []
+
+  const sido = (job: Job) => job.region.split(' ')[0]
+
+  return JOBS.filter((job) => job.id !== target.id)
+    .map((job) => ({
+      job,
+      score:
+        (job.category === target.category ? 4 : 0) +
+        (sido(job) === sido(target) ? 2 : 0) +
+        (job.facilityType === target.facilityType ? 1 : 0),
+    }))
+    .filter((item) => item.score > 0)
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        b.job.postedAt.localeCompare(a.job.postedAt) ||
+        a.job.id.localeCompare(b.job.id),
+    )
+    .slice(0, limit)
+    .map((item) => item.job)
 }
