@@ -101,7 +101,7 @@ src/
 │   ├── job/         # JobCard, SpecialJobCard, JobTable, JobListItem,
 │   │                # JobBadge, FacilityBadge, JobFilterPanel,
 │   │                # JobDetailHeader, JobApplyPanel, ElderlyInfoCard
-│   ├── talent/      # TalentCard, TalentListCard,
+│   ├── talent/      # TalentCard, TalentListCard, TalentDetailHeader,
 │   │                # TalentSearchBar, TalentFilterPanel
 │   └── matching/    # MatchingScore
 ├── data/
@@ -110,7 +110,7 @@ src/
 ├── hooks/           # use-app(세션·글자크기), use-click-outside, use-dismissable
 ├── lib/             # cn, 포맷터(급여·날짜·마스킹), nav, site(고객센터 정보),
 │                    # job-filters / talent-filters(목록 검색·필터·정렬 규칙)
-├── pages/           # Home/, JobList/, JobDetail/, TalentList/ ...
+├── pages/           # Home/, JobList/, JobDetail/, TalentList/, TalentDetail/ ...
 ├── router/
 └── types/           # Job, Talent, Matching, ElderlyInfo, Notice
 ```
@@ -153,8 +153,8 @@ pill 형태는 §8(과도한 pill 금지)의 명시적 예외입니다.
 - [x] **구인공고 목록** — 검색·필터·정렬·페이지네이션 (mock 데이터 기준)
 - [x] **구인공고 상세** — 화면 구현 완료 (지원·관심공고는 UI 만, API 미연결)
 - [x] **인재정보 목록** — 검색·필터·정렬·페이지네이션 (mock 데이터 기준)
+- [x] **인재정보 상세** — 화면 구현 완료 (연락처 열람은 API 연동 단계)
 - [ ] 구인공고 등록
-- [ ] 인재정보 상세
 - [ ] 구직신청서
 - [ ] 로그인 / 회원가입
 
@@ -278,6 +278,34 @@ Breadcrumb → 페이지 타이틀 → 검색 → 결과 요약 + 정렬
 `TALENTS` 를 4명 → **24명**으로 확장했습니다. 지역 7개 시·도, 직종 5종, 근무형태 5종,
 경력 0~15년, 자격증 7종, 20~60대, 남녀가 고르게 분포하도록 구성했습니다.
 `LATEST_TALENTS = TALENTS.slice(0, 4)` 는 그대로라 메인 4열은 기존과 동일합니다.
+
+## 인재정보 상세 구현 메모
+
+라우트는 `/talents/:talentId` 이며 구인공고 상세와 같은 레이아웃 언어를 씁니다.
+
+```
+Breadcrumb(홈 > 인재정보 > 인재 상세) → 프로필 핵심 영역
+→ 본문 1fr (희망 근무조건 · 경력 및 자격사항 · 자기소개) + 우측 340px 이용 안내
+→ 다른 인재정보 3열
+```
+
+- **우측은 액션 패널이 아니라 안내 영역입니다.** 프론트 mock `Talent` 에 전화번호 필드가 없고
+  연락처 열람(`POST /api/jobseekers/{id}/contact/unlock`)은 백엔드에만 있어,
+  동작하지 않는 CTA(연락하기·채용 제안·연락처 열람)를 만들지 않았습니다.
+  `ScrapButton` 도 저장 기능이 연결되어 있지 않아 이 화면에서는 쓰지 않습니다.
+- **경력은 연차(`careerLabel`)만 표시합니다.** mock 에 회사·기간 이력이 없어 상세 이력을 만들지 않았습니다.
+- 이름은 기존 `maskName()` 정책 그대로입니다. (`김정회 → 김정○`)
+- 프로필 사진은 `photoUrl` 이 없으면 96px 원형 placeholder 로 영역 크기를 유지합니다. (§32)
+- 하단 "다른 인재정보"는 추천 모델이 아니라 **같은 희망직종 우선 + 최근 수정순**의 단순 선별이고,
+  본인은 제외합니다. "AI 추천" 같은 표현은 쓰지 않습니다.
+- `DetailRow` 가 값이 없으면 `null` 을 반환하므로, 데이터가 없는 항목은 행 자체가 사라집니다.
+
+### 백엔드 API 와의 관계
+
+`GET /api/jobseekers/{profileId}` 가 이미 있지만 프론트에는 아직 API 계층이 없어
+이번 화면도 `getTalentById()` mock 기반입니다. API 응답에만 있는 필드
+(phone, residence, education, availableTasks, desiredWorkDays, introduction 등)는
+mock 에 임의로 추가하지 않았습니다.
 
 ## 알려진 제약
 
