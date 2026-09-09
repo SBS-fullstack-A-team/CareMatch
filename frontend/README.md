@@ -101,15 +101,16 @@ src/
 │   ├── job/         # JobCard, SpecialJobCard, JobTable, JobListItem,
 │   │                # JobBadge, FacilityBadge, JobFilterPanel,
 │   │                # JobDetailHeader, JobApplyPanel, ElderlyInfoCard
-│   ├── talent/      # TalentCard
+│   ├── talent/      # TalentCard, TalentListCard,
+│   │                # TalentSearchBar, TalentFilterPanel
 │   └── matching/    # MatchingScore
 ├── data/
 │   ├── mock/        # jobs.ts, talents.ts, notices.ts  (API 연동 시 교체)
 │   └── filters.ts   # 시·도, 구·군, 직종, 시설유형, 지역 바로가기
 ├── hooks/           # use-app(세션·글자크기), use-click-outside, use-dismissable
 ├── lib/             # cn, 포맷터(급여·날짜·마스킹), nav, site(고객센터 정보),
-│                    # job-filters(목록 검색·필터·정렬 규칙)
-├── pages/           # Home/, JobList/, JobDetail/ ...
+│                    # job-filters / talent-filters(목록 검색·필터·정렬 규칙)
+├── pages/           # Home/, JobList/, JobDetail/, TalentList/ ...
 ├── router/
 └── types/           # Job, Talent, Matching, ElderlyInfo, Notice
 ```
@@ -151,8 +152,9 @@ pill 형태는 §8(과도한 pill 금지)의 명시적 예외입니다.
 - [x] **메인** — `capture/메인.png` 반영 완료
 - [x] **구인공고 목록** — 검색·필터·정렬·페이지네이션 (mock 데이터 기준)
 - [x] **구인공고 상세** — 화면 구현 완료 (지원·관심공고는 UI 만, API 미연결)
+- [x] **인재정보 목록** — 검색·필터·정렬·페이지네이션 (mock 데이터 기준)
 - [ ] 구인공고 등록
-- [ ] 인재정보 목록 / 상세
+- [ ] 인재정보 상세
 - [ ] 구직신청서
 - [ ] 로그인 / 회원가입
 
@@ -238,6 +240,44 @@ Breadcrumb → 공고 핵심 정보 → 근무조건 → 모집내용 → 어르
 
 모집인원 · 학력 · 경력조건은 `Job` 타입에 필드가 없어 근무조건에서 제외했습니다.
 필요하면 타입에 optional 필드를 추가하고 mock 데이터를 채우는 작업이 먼저입니다.
+
+## 인재정보 목록 구현 메모
+
+라우트는 `/talents` 이며 구조는 구인공고 목록과 같은 탐색 언어를 씁니다.
+
+```
+Breadcrumb → 페이지 타이틀 → 검색 → 결과 요약 + 정렬
+→ 좌 필터(248px) / 우 카드 3열(283px) → 페이지네이션(12명/페이지)
+```
+
+- **메인의 `TalentCard` 는 건드리지 않았습니다.** 메인 카드는 요약·홍보 목적이고(DESIGN_SYSTEM.md §21)
+  목록은 비교·탐색 목적이라 근무형태·경력이 더 필요해 `TalentListCard` 를 따로 두었습니다.
+  카드 스타일(border 기반 white surface / radius 10 / 64px 원형 프로필)은 그대로 계승합니다.
+- `JobSearchBar` 는 네 번째 필드가 시설유형으로 고정되어 있어 재사용하지 않고
+  `TalentSearchBar`(지역·구·군·희망직종·근무형태·키워드)를 만들었습니다. 마크업과 스타일은 동일합니다.
+- 이름은 기존 `maskName()` 정책 그대로입니다. (`정미숙 → 정미○`)
+  실명은 화면에 노출되지 않으므로 **키워드 검색 대상에서도 제외**했습니다.
+- 필터 인원수는 구인공고와 같은 방식으로 자기 그룹의 선택을 제외하고 셉니다.
+  지역·자격증은 한 사람이 여러 값을 가질 수 있어 값마다 한 번씩 셉니다.
+- 상태 배지는 `availableNow` 하나만 "즉시 근무 가능"(Badge `normal`)으로 씁니다.
+  구인공고의 스페셜/프리미엄 배지는 인재정보에 쓰지 않습니다.
+
+### `Talent` 타입 확장
+
+`workType?: string` 하나를 추가했습니다. 검색·필터의 근무형태 기준값(주간/오전/오후/야간/교대)이며
+`Job.workType` 과 같은 값 체계입니다. 기존 `preferredHours` 는 화면에 보여 주는
+구체적 희망 시간대(자유 텍스트)로 역할을 분리해 그대로 두었습니다.
+
+### 정렬 3종
+
+`Talent` 에 `createdAt` 이 없어 "최신 등록순"은 만들지 않았습니다.
+실제 데이터로 계산 가능한 **최근 수정순(`updatedAt`) / 경력 높은순 / 경력 낮은순**만 제공합니다.
+
+### mock 데이터
+
+`TALENTS` 를 4명 → **24명**으로 확장했습니다. 지역 7개 시·도, 직종 5종, 근무형태 5종,
+경력 0~15년, 자격증 7종, 20~60대, 남녀가 고르게 분포하도록 구성했습니다.
+`LATEST_TALENTS = TALENTS.slice(0, 4)` 는 그대로라 메인 4열은 기존과 동일합니다.
 
 ## 알려진 제약
 

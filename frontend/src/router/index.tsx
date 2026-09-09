@@ -4,6 +4,7 @@ import { SiteLayout } from '@/components/layout/site-layout'
 import { HomePage } from '@/pages/Home'
 import { JobDetailPage } from '@/pages/JobDetail'
 import { JobListPage } from '@/pages/JobList'
+import { TalentListPage } from '@/pages/TalentList'
 
 export const router = createBrowserRouter([
   {
@@ -12,10 +13,7 @@ export const router = createBrowserRouter([
       { path: '/', element: <HomePage /> },
       { path: '/jobs', element: <JobListPage /> },
       { path: '/jobs/:jobId', element: <JobDetailPage /> },
-      {
-        path: '/talents',
-        element: <PlaceholderPage title="인재정보" description="인재정보 목록 화면을 준비 중입니다." />,
-      },
+      { path: '/talents', element: <TalentListPage /> },
       {
         path: '/talents/:talentId',
         element: <PlaceholderPage title="인재 상세" description="인재정보 상세 화면을 준비 중입니다." />,

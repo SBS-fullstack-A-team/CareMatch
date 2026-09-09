@@ -142,3 +142,37 @@ export const PAY_TYPE_OPTIONS: SelectOption[] = [
   { value: 'daily', label: '일급' },
   { value: 'monthly', label: '월급' },
 ]
+
+/* ---------------------------------------------------------------------------
+   인재정보 목록
+   --------------------------------------------------------------------------- */
+
+/**
+ * 인재정보 정렬.
+ * Talent 에는 createdAt 이 없고 updatedAt 만 있어 "최신 등록순" 대신 "최근 수정순"을 쓴다.
+ * 나머지는 careerYears 로 계산 가능한 2종만 제공한다.
+ */
+export const TALENT_SORT_OPTIONS: SelectOption[] = [
+  { value: 'updated', label: '최근 수정순' },
+  { value: 'careerDesc', label: '경력 높은순' },
+  { value: 'careerAsc', label: '경력 낮은순' },
+]
+
+/** 경력 구간 — Talent.careerYears 를 나누는 기준 (value 가 곧 구간 키) */
+export const CAREER_OPTIONS: SelectOption[] = [
+  { value: 'entry', label: '신입' },
+  { value: '1-3', label: '1~3년' },
+  { value: '3-5', label: '3~5년' },
+  { value: '5+', label: '5년 이상' },
+]
+
+/** 자격증 — Talent.certificates 에 실제로 들어 있는 값들 */
+export const CERTIFICATE_OPTIONS: SelectOption[] = [
+  { value: '요양보호사 1급', label: '요양보호사 1급' },
+  { value: '요양보호사 2급', label: '요양보호사 2급' },
+  { value: '간호조무사', label: '간호조무사' },
+  { value: '사회복지사 2급', label: '사회복지사 2급' },
+  { value: '간병사', label: '간병사' },
+  { value: '치매전문교육 이수', label: '치매전문교육 이수' },
+  { value: '운전면허 2종', label: '운전면허 2종' },
+]
