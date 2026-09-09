@@ -48,11 +48,9 @@ cd backend
 
 `web-application-type=none` 이라 컨텍스트 기동 직후 non-zero 로 종료되는데 정상이다. 스크립트는 그 전에 `build/schema-postgres.sql` 로 기록된다. 헤더를 붙여 `docs/schema/schema-postgresql.sql` 로 갱신한다.
 
-## 알려진 이슈 (prod PostgreSQL 전환 전 해결 필요)
+## 알려진 이슈
 
-- **`@Lob String` → `oid` 매핑**: `Faq.answer`, `Inquiry.content`, `InquiryReply.content`, `Notice.content`, `Terms.content` 5개 필드가 `@Lob` 이라, Hibernate 6 + PostgreSQL 조합에서 `text` 가 아닌 `oid`(large object 포인터) 컬럼으로 생성된다. 이 상태로는 일반 문자열 insert/조회가 깨진다.
-  - 해결: `@Lob` 을 떼고 `@Column(columnDefinition = "TEXT")` 로 교체(코드베이스의 `JobPosting.description` 등과 동일 컨벤션). 또는 `@JdbcTypeCode(SqlTypes.LONGVARCHAR)` 부여.
-  - H2(`local`)에서는 문제가 안 드러나므로 놓치기 쉽다.
+- ~~**`@Lob String` → `oid` 매핑**~~ **(해결됨)**: `Faq.answer`, `Inquiry.content`, `InquiryReply.content`, `Notice.content`, `Terms.content` 5개 필드가 `@Lob` 이라 Hibernate 6 + PostgreSQL 에서 `text` 가 아닌 `oid`(large object 포인터) 컬럼으로 생성되던 문제. `@Lob` 을 떼고 `@Column(columnDefinition = "TEXT")` 로 교체(코드베이스의 `JobPosting.description` 컨벤션과 동일). `docs/schema/schema-postgresql.sql` 의 해당 5개 컬럼도 `oid` → `text` 로 반영. H2(`local`)에서는 문제가 안 드러나므로 놓치기 쉬웠음.
 - 생성된 스냅샷의 FK 제약 이름이 Hibernate 자동 해시(`FKtik35v4...`)다. 운영에서 이름을 관리하려면 명시 지정 필요.
 
 ## 후속 과제 — Flyway 도입
