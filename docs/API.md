@@ -44,6 +44,8 @@ POST /api/verifications/verify
 | POST | `/api/members/jobseekers` | 공개 | 구직자 회원가입 |
 | POST | `/api/members/facilities` | 공개 | 시설 회원가입(PENDING 생성) |
 | GET | `/api/members/me` | 인증 | 마이페이지 요약(포인트/유형) |
+| GET | `/api/members/me/display-preference` | 인증 | 내 화면 표시 설정 (쉬운 화면 모드 / 글자 크기) |
+| PUT | `/api/members/me/display-preference` | 인증 | 화면 표시 설정 변경 |
 
 ```http
 GET /api/members/exists?loginId=hong123&email=hong@example.com
@@ -99,6 +101,26 @@ GET /api/members/me     (Authorization: Bearer ...)
   "role": "FACILITY", "membershipType": "BASIC", "point": 9999,
   "employmentStatus": null, "facilityApprovalStatus": "PENDING"
 }
+```
+
+### 화면 표시 설정 (`/api/members/me/display-preference`)
+
+고연령 사용자 대응 — 쉬운 화면 모드 / 글자 크기. 기기 localStorage 에도 저장하지만, 로그인 회원은
+서버에도 저장해 다른 기기에서도 같은 설정이 유지되도록 한다. 역할 무관(GUEST 포함) 로그인만 필요.
+
+- `easyMode` (`boolean`): 쉬운 화면 모드 on/off
+- `fontScale` (`NORMAL` | `LARGE` | `XLARGE`): 글자 크기. 프론트 [기본]/[크게]/[더크게] 와 1:1
+- 설정한 적 없으면 기본값 `{ easyMode: false, fontScale: "NORMAL" }`
+- `PUT` 은 두 값 모두 필수(전체 교체). 잘못된 enum 값이면 `400`.
+
+```http
+GET /api/members/me/display-preference   (Authorization: Bearer ...)
+200 { "easyMode": false, "fontScale": "NORMAL" }
+```
+```http
+PUT /api/members/me/display-preference    (Authorization: Bearer ...)
+{ "easyMode": true, "fontScale": "XLARGE" }
+200 { "easyMode": true, "fontScale": "XLARGE" }
 ```
 
 ## 3. 로그인 / 토큰
