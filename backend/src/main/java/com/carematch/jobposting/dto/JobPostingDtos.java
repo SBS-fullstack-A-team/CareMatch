@@ -338,6 +338,17 @@ public final class JobPostingDtos {
     ) {
     }
 
+    /**
+     * 지도 뷰포트("지도로 보기") 안의 공고 — 마커 좌표 + 목록 카드.
+     * {@code SummaryResponse} 에는 위경도가 없어 마커 배치용으로 좌표를 따로 실어 준다.
+     */
+    public record MapResult(
+            SummaryResponse posting,
+            double latitude,
+            double longitude
+    ) {
+    }
+
     // =====================================================================
     // 계산 helper
     // =====================================================================

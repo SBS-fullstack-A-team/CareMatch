@@ -386,6 +386,7 @@ POST /api/admin/facilities/13/approve     (Authorization: Bearer <ADMIN>)
 | GET | `/api/job-postings` | 공개 | 모집중(OPEN) 목록/검색. 필터·정렬 아래 참고 |
 | GET | `/api/job-postings/featured` | 공개 | "소페셜 채용정보" — 만료 안 된 SPECIAL 공고 상위 3 |
 | GET | `/api/job-postings/nearby` | 공개 | "내 주변 일자리" — 반경 내 OPEN 공고, 가까운 순 (`List<NearbyResult>`) |
+| GET | `/api/job-postings/in-bounds` | 공개 | "지도로 보기" — 지도 뷰포트 내 OPEN 공고 마커 (`List<MapResult>`) |
 | POST | `/api/job-postings/{id}/scrap` | 인증 | 찜 추가 (멱등, 204) |
 | DELETE | `/api/job-postings/{id}/scrap` | 인증 | 찜 취소 (멱등, 204) |
 | GET | `/api/members/me/scraps` | 인증 | 내 찜 목록 (최신순, `PageResponse<SummaryResponse>`) |
@@ -482,6 +483,27 @@ GET /api/job-postings/nearby?lat=37.5665&lng=126.9780&radiusKm=3
 
 - 위경도가 없는 공고(`latitude`/`longitude` null)는 제외.
 - 로그인 회원이면 `posting.scrapped` / `posting.matchScore` 채워짐 (목록 검색과 동일).
+
+### 지도로 보기 (`GET /api/job-postings/in-bounds`)
+
+지도 뷰포트(남서·북동 모서리) 안의 OPEN 공고를 마커용으로. 비로그인 공개.
+`nearby` 와 달리 원형 반경이 아니라 사각 영역이고, 거리 계산·정렬이 없어 더 가볍다.
+`SummaryResponse` 에 위경도가 없어 마커 배치용으로 `latitude`/`longitude` 를 따로 실어 준다.
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `swLat` / `swLng` | double | **필수**. 뷰포트 남서(좌하) 모서리 |
+| `neLat` / `neLng` | double | **필수**. 뷰포트 북동(우상) 모서리 |
+
+```http
+GET /api/job-postings/in-bounds?swLat=37.48&swLng=126.90&neLat=37.60&neLng=127.05
+200 [ { "posting": { ...SummaryResponse... }, "latitude": 37.5665, "longitude": 126.9780 }, ... ]
+```
+
+- 모서리 좌표가 뒤바뀌어 와도 서버가 min/max 로 보정한다.
+- 위경도 없는 공고 제외. 로그인 회원이면 `posting.scrapped` / `posting.matchScore` 채워짐.
+- 결과 상한 **200(최신순)**. 초과 시 잘리므로 프론트는 "확대해서 보세요" 안내를 띄운다.
+- (경도 ±180 을 넘는 뷰포트는 미지원 — 국내 서비스라 해당 없음.)
 
 ### 임시저장 (`/api/job-posting-drafts`)
 
