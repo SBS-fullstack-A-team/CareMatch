@@ -40,3 +40,6 @@ target/
 # OS files
 .DS_Store
 Thumbs.db
+
+# 로컬 전용 시드 (관리자 해시 포함, 커밋 금지)
+docs/schema/seed-prod.local.sql
