@@ -39,6 +39,9 @@ docker run -p 8080:8080 --env-file .env carematch-api
 | `local` | H2 인메모리 | `create-drop` | 개발. 시드 데이터 생성 |
 | `prod` | 환경변수(`DB_URL` 등) | `validate` | 배포. **DB 벤더 미확정 → 플레이스홀더** |
 
+> `prod` 는 `validate` 라 엔티티에 컬럼/테이블이 추가되면 배포 전 운영 DB에 DDL을 직접 반영해야 한다.
+> 스키마 스냅샷·마이그레이션 절차·Flyway 도입 계획은 [`MIGRATION.md`](MIGRATION.md) 참고.
+
 ## 아키텍처 / 패키지
 
 ```

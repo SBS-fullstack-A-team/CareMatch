@@ -124,9 +124,10 @@ public class JobPostingService {
     /**
      * 다중조건 검색 (상태 OPEN 고정). 로그인 회원이면 각 결과에 찜 여부(scrapped)·매칭점수를 채운다.
      *
-     * <p><b>RECOMMENDED + 로그인 구직자</b>: SQL 은 노출등급→최신 순으로 뽑되, 그 <i>페이지 안에서만</i>
-     * 매칭점수 우선으로 재정렬한다. 매칭점수는 조회 시점 Java 계산이라 전역 SQL 정렬이 불가 —
-     * 페이지 경계를 넘는 순서는 근사치다 (부채 C2).
+     * <p><b>RECOMMENDED + 로그인 구직자</b>: SQL 은 노출등급→최신 순으로 뽑고, 그 페이지 안에서
+     * <i>같은 노출등급끼리만</i> 매칭점수 우선으로 재정렬한다. 유료 상단노출(노출등급)은 매칭점수로
+     * 뒤집히지 않는다. 매칭점수는 조회 시점 Java 계산이라 같은 등급 내 순서는 페이지 경계에서
+     * 근사치다 (부채 C2).
      */
     public PageResponse<SummaryResponse> search(SearchCondition cond, int page, int size, Long viewerMemberId) {
         int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
@@ -142,8 +143,12 @@ public class JobPostingService {
 
         List<JobPosting> content = pageResult.getContent();
         if ("RECOMMENDED".equals(sortKey) && viewer != null) {
-            content = content.stream().sorted(byMatchThenExposure(
-                    jp -> scores.get(jp.getId()) == null ? Integer.MIN_VALUE : scores.get(jp.getId()))).toList();
+            content = content.stream()
+                    .sorted(byExposureThenMatch(jp -> {
+                        Integer s = scores.get(jp.getId());
+                        return s == null ? Integer.MIN_VALUE : s;
+                    }))
+                    .toList();
         }
 
         List<SummaryResponse> mapped = content.stream()
@@ -154,10 +159,13 @@ public class JobPostingService {
                 pageResult.getTotalElements(), pageResult.getTotalPages());
     }
 
-    /** 매칭점수 desc(미채점은 뒤) → 노출등급 desc → 최신 desc. */
-    static Comparator<JobPosting> byMatchThenExposure(java.util.function.ToIntFunction<JobPosting> scoreOf) {
-        return Comparator.comparingInt(scoreOf).reversed()
-                .thenComparing(Comparator.comparingInt(JobPosting::getExposurePriority).reversed())
+    /**
+     * 노출등급 desc → 매칭점수 desc(미채점은 뒤) → 최신 desc.
+     * 노출등급이 1순위이므로 유료 상단노출 공고가 매칭점수 때문에 일반 공고 아래로 내려가지 않는다.
+     */
+    static Comparator<JobPosting> byExposureThenMatch(java.util.function.ToIntFunction<JobPosting> scoreOf) {
+        return Comparator.comparingInt(JobPosting::getExposurePriority).reversed()
+                .thenComparing(Comparator.comparingInt(scoreOf).reversed())
                 .thenComparing(JobPosting::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder()));
     }
 

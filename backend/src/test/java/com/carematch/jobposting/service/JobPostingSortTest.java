@@ -36,27 +36,28 @@ class JobPostingSortTest {
     }
 
     @Test
-    void 매칭점수_우선_동점이면_노출등급() {
+    void 노출등급_우선_같은등급이면_매칭점수() {
         JobPosting a = posting("A special, score 50", ExposureType.SPECIAL);
         JobPosting b = posting("B normal, score 90", ExposureType.NORMAL);
         JobPosting c = posting("C special, score 90", ExposureType.SPECIAL);
         Map<JobPosting, Integer> score = Map.of(a, 50, b, 90, c, 90);
 
         List<JobPosting> sorted = List.of(a, b, c).stream()
-                .sorted(JobPostingService.byMatchThenExposure(jp -> score.get(jp)))
+                .sorted(JobPostingService.byExposureThenMatch(jp -> score.get(jp)))
                 .toList();
 
+        // 유료 노출(SPECIAL)이 먼저, 그 안에서 매칭점수 순. NORMAL 은 점수 90 이어도 맨 뒤.
         assertThat(sorted).extracting(JobPosting::getTitle)
-                .containsExactly("C special, score 90", "B normal, score 90", "A special, score 50");
+                .containsExactly("C special, score 90", "A special, score 50", "B normal, score 90");
     }
 
     @Test
-    void 미채점은_맨_뒤() {
+    void 같은등급_내에서_미채점은_맨_뒤() {
         JobPosting scored = posting("scored", ExposureType.NORMAL);
-        JobPosting unscored = posting("unscored", ExposureType.SPECIAL);
+        JobPosting unscored = posting("unscored", ExposureType.NORMAL);
 
         List<JobPosting> sorted = List.of(unscored, scored).stream()
-                .sorted(JobPostingService.byMatchThenExposure(
+                .sorted(JobPostingService.byExposureThenMatch(
                         jp -> jp == scored ? 10 : Integer.MIN_VALUE))
                 .toList();
 
