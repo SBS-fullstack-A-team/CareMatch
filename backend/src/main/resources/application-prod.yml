@@ -19,10 +19,19 @@ spring:
     hikari:
       maximum-pool-size: ${DB_POOL_SIZE:5}
 
+  # DB 마이그레이션: Flyway 가 담당. classpath:db/migration/V*.sql
+  # - baseline-on-migrate: 이미 스키마가 있는 기존 Neon DB 에 최초 도입 → flyway_schema_history 가
+  #   없으면 baseline-version(=1) 을 "적용됨"으로 기록만 하고 V1 은 실행하지 않는다. 이후 V2+ 만 실행.
+  # - 빈 DB(신규 환경)에서는 V1 부터 순서대로 실행된다.
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 1
+
   jpa:
     database-platform: ${DB_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
     hibernate:
-      # 운영은 스키마 자동변경 금지. 마이그레이션 도구(Flyway 등)는 추후 도입.
+      # 스키마는 Flyway 가 관리. Hibernate 는 검증만 (엔티티 ↔ 실제 테이블 불일치 시 기동 실패).
       ddl-auto: validate
     properties:
       hibernate:

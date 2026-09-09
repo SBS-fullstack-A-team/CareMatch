@@ -16,6 +16,11 @@ spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:local}
 
+  # DB 마이그레이션(Flyway)은 기본 비활성. prod 프로필에서만 켠다.
+  # local 은 H2 + ddl-auto=create-drop, test 도 H2 라 Flyway 불필요.
+  flyway:
+    enabled: false
+
   jpa:
     open-in-view: false
     hibernate:
