@@ -7,6 +7,7 @@ import com.carematch.jobposting.domain.JobPosting;
 import com.carematch.jobposting.domain.JobPostingStatus;
 import com.carematch.jobposting.dto.JobPostingDtos.CreateRequest;
 import com.carematch.jobposting.dto.JobPostingDtos.DetailResponse;
+import com.carematch.jobposting.dto.JobPostingDtos.MapResult;
 import com.carematch.jobposting.dto.JobPostingDtos.NearbyResult;
 import com.carematch.jobposting.dto.JobPostingDtos.PageResponse;
 import com.carematch.jobposting.dto.JobPostingDtos.SearchCondition;
@@ -248,6 +249,8 @@ public class JobPostingService {
     private static final int MAX_NEARBY_LIMIT = 100;
     /** 바운딩 박스 1차 후보 상한 — 밀집 지역 + 넓은 반경에서 메모리 폭주 방지. */
     private static final int NEARBY_CANDIDATE_CAP = 500;
+    /** 지도 뷰포트 결과 상한 — 넓게 축소했을 때 마커 폭주 방지. 넘치면 최신순으로 잘린다. */
+    private static final int MAX_MAP_RESULTS = 200;
 
     /**
      * "내 주변 일자리" — 기준 좌표 반경 내 OPEN 공고를 가까운 순으로.
@@ -282,6 +285,32 @@ public class JobPostingService {
                                 scrappedFlag(viewerMemberId, scrappedIds, s.posting().getId()),
                                 matchScore(viewer, s.posting())),
                         Math.round(s.km() * 10.0) / 10.0))
+                .toList();
+    }
+
+    /**
+     * "지도로 보기" — 지도 뷰포트(남서·북동 모서리) 안의 OPEN 공고를 마커용으로.
+     * nearby 와 달리 원형 반경이 아니라 사각형 영역이며, 거리 계산·정렬이 없어 더 가볍다.
+     * 모서리 좌표는 순서가 뒤바뀌어 와도(min/max) 보정한다. 결과가 {@link #MAX_MAP_RESULTS} 를
+     * 넘으면 최신순으로 잘리므로, 프론트는 "확대해서 보세요" 안내를 띄우면 된다.
+     */
+    public List<MapResult> mapView(double swLat, double swLng, double neLat, double neLng, Long viewerMemberId) {
+        double minLat = Math.min(swLat, neLat);
+        double maxLat = Math.max(swLat, neLat);
+        double minLng = Math.min(swLng, neLng);
+        double maxLng = Math.max(swLng, neLng);
+
+        List<JobPosting> postings = jobPostingRepository.findOpenWithinBoundingBox(
+                minLat, maxLat, minLng, maxLng, PageRequest.of(0, MAX_MAP_RESULTS));
+
+        Set<Long> scrappedIds = scrappedIdsAmong(viewerMemberId, postings);
+        JobSeekerProfile viewer = viewerProfile(viewerMemberId);
+        return postings.stream()
+                .map(jp -> new MapResult(
+                        SummaryResponse.from(jp,
+                                scrappedFlag(viewerMemberId, scrappedIds, jp.getId()),
+                                matchScore(viewer, jp)),
+                        jp.getLatitude(), jp.getLongitude()))
                 .toList();
     }
 
