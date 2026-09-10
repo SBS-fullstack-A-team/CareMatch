@@ -11,6 +11,7 @@ import com.carematch.member.domain.CareTask;
 import com.carematch.member.domain.Gender;
 import com.carematch.member.dto.JobSeekerProfileResponse;
 import com.carematch.member.dto.JobSeekerProfileUpdateRequest;
+import com.carematch.member.dto.TalentSearchDtos.CareerBucket;
 import com.carematch.member.dto.TalentSearchDtos.SearchCondition;
 import com.carematch.member.dto.TalentSearchDtos.TalentSummary;
 import com.carematch.member.service.JobSeekerProfileQueryService;
@@ -61,7 +62,8 @@ public class JobSeekerController {
 
     /**
      * 인재 검색 목록 (승인 시설회원 / 관리자). 필터·정렬은 쿼리 파라미터.
-     * 지역/직종/근무형태/급여는 구직자 희망조건 기준. 정렬은 최근 갱신순 고정.
+     * 지역/직종/근무형태/급여/자격증은 구직자 희망·보유 값 기준. 다중값은 반복 파라미터.
+     * 정렬 sort: LATEST(기본)/CAREER_DESC/CAREER_ASC.
      * 시설회원이면 각 카드에 "그 시설 OPEN 공고 중 최고 매칭 점수"(matchingScore)가 채워진다.
      */
     @GetMapping
@@ -72,12 +74,13 @@ public class JobSeekerController {
             @RequestParam(required = false) WorkType desiredWorkType,
             @RequestParam(required = false) String sido,
             @RequestParam(required = false) String sigungu,
-            @RequestParam(required = false) PayType payType,
+            @RequestParam(required = false) java.util.List<PayType> payTypes,
             @RequestParam(required = false) Integer payMax,
             @RequestParam(required = false) Gender gender,
-            @RequestParam(required = false) Integer minCareerYears,
+            @RequestParam(required = false) java.util.List<CareerBucket> careerBuckets,
             @RequestParam(required = false) java.util.List<CareTask> availableTasks,
             @RequestParam(required = false) java.util.List<EmploymentType> desiredEmploymentTypes,
+            @RequestParam(required = false) java.util.List<String> certificateNames,
             @RequestParam(required = false) Boolean seekingOnly,
             @RequestParam(required = false) Integer updatedWithinDays,
             @RequestParam(required = false) String sort,
@@ -86,8 +89,8 @@ public class JobSeekerController {
         boolean isFacility = principal.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_FACILITY"));
         SearchCondition cond = new SearchCondition(
-                desiredJobType, desiredWorkType, sido, sigungu, payType, payMax,
-                gender, minCareerYears, availableTasks, desiredEmploymentTypes,
+                desiredJobType, desiredWorkType, sido, sigungu, payTypes, payMax,
+                gender, careerBuckets, availableTasks, desiredEmploymentTypes, certificateNames,
                 seekingOnly, updatedWithinDays, sort);
         return talentSearchService.search(cond, page, size, principal.getMemberId(), isFacility);
     }
