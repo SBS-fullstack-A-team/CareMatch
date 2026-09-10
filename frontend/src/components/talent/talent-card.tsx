@@ -1,5 +1,6 @@
 import { UserRound } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { jobCategoryLabel } from '@/data/labels'
 import { cn, formatDotDate, maskName } from '@/lib/utils'
 import type { Talent } from '@/types'
 
@@ -44,7 +45,7 @@ export function TalentCard({ talent, className }: { talent: Talent; className?: 
         </h3>
 
         <p className="mt-1 text-base text-fg">
-          <span className="font-bold">{talent.category}</span>
+          <span className="font-bold">{jobCategoryLabel(talent.category)}</span>
           <span className="ml-1 text-fg-muted">희망</span>
         </p>
 

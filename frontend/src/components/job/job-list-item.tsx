@@ -5,6 +5,7 @@ import { JobBadge } from '@/components/job/job-badge'
 import { MatchingReasonChips, MatchingScoreBadge } from '@/components/matching/matching-score'
 import { ScrapButton } from '@/components/common/scrap-button'
 import { Tag } from '@/components/ui/tag'
+import { jobCategoryLabel } from '@/data/labels'
 import { cn, formatDotDate, formatNumber, formatPay } from '@/lib/utils'
 import type { Job } from '@/types'
 
@@ -50,7 +51,7 @@ export function JobListItem({
           </h3>
 
           <p className="mt-1 flex flex-wrap items-center gap-x-2 text-base">
-            <span className="font-semibold text-primary-deep">{job.category}</span>
+            <span className="font-semibold text-primary-deep">{jobCategoryLabel(job.category)}</span>
             <span aria-hidden className="text-border-strong">
               |
             </span>

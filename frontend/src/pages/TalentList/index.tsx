@@ -9,7 +9,7 @@ import { TalentSearchBar } from '@/components/talent/talent-search-bar'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { Tag } from '@/components/ui/tag'
-import { CAREER_OPTIONS, TALENT_SORT_OPTIONS } from '@/data/filters'
+import { CAREER_OPTIONS, CATEGORY_OPTIONS, TALENT_SORT_OPTIONS } from '@/data/filters'
 import { TALENTS } from '@/data/mock/talents'
 import {
   applyFilters,
@@ -36,9 +36,9 @@ const SEARCH_FIELD_LABEL: Record<keyof TalentSearchQuery, string> = {
   keyword: '키워드',
 }
 
-/** 경력 필터만 값('1-3')과 라벨('1~3년')이 다르므로 칩 표기용 라벨을 만들어 둔다 */
-const CAREER_LABEL = Object.fromEntries(
-  CAREER_OPTIONS.map((option) => [option.value, option.label]),
+/** 값('1-3', 'CAREGIVER')과 표기 라벨('1~3년', '요양보호사')이 다른 필터의 칩 표기용 라벨 */
+const FILTER_VALUE_LABEL = Object.fromEntries(
+  [...CAREER_OPTIONS, ...CATEGORY_OPTIONS].map((option) => [option.value, option.label]),
 ) as Record<string, string>
 
 /** 검색 조건은 URL 로 공유할 수 있게 쿼리스트링과 주고받는다 */
@@ -184,14 +184,14 @@ export function TalentListPage() {
             .filter((field) => search[field])
             .map((field) => (
               <Tag key={field} onRemove={() => removeSearchField(field)}>
-                {SEARCH_FIELD_LABEL[field]} {search[field]}
+                {SEARCH_FIELD_LABEL[field]} {FILTER_VALUE_LABEL[search[field]] ?? search[field]}
               </Tag>
             ))}
 
           {(Object.keys(filters) as TalentFilterGroup[]).flatMap((group) =>
             filters[group].map((value) => (
               <Tag key={`${group}-${value}`} onRemove={() => removeFilterValue(group, value)}>
-                {CAREER_LABEL[value] ?? value}
+                {FILTER_VALUE_LABEL[value] ?? value}
               </Tag>
             )),
           )}

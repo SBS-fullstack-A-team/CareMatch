@@ -1,3 +1,4 @@
+import { jobCategoryLabel } from '@/data/labels'
 import { toRegionLabel } from '@/lib/job-filters'
 import type { Talent } from '@/types'
 
@@ -92,7 +93,7 @@ export function matchesSearch(talent: Talent, query: TalentSearchQuery) {
     const keyword = query.keyword.trim().toLowerCase()
     // 실명은 마스킹해서 노출하므로 검색 대상에 넣지 않는다 (DESIGN_SYSTEM.md §21)
     const haystack = [
-      talent.category,
+      jobCategoryLabel(talent.category),
       talent.workType,
       talent.careerLabel,
       talent.preferredHours,

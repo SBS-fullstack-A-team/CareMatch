@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
 import { Tag } from '@/components/ui/tag'
+import { jobCategoryLabel } from '@/data/labels'
 import { cn, formatDotDate, maskName } from '@/lib/utils'
 import type { Talent } from '@/types'
 
@@ -57,7 +58,7 @@ export function TalentListCard({ talent, className }: { talent: Talent; classNam
 
       {/* 희망 조건 */}
       <p className="mt-4 text-base">
-        <span className="font-bold text-primary-deep">{talent.category}</span>
+        <span className="font-bold text-primary-deep">{jobCategoryLabel(talent.category)}</span>
         <span className="ml-1 text-fg-muted">희망</span>
       </p>
 

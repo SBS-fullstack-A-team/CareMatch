@@ -21,6 +21,7 @@ import { SectionHeader } from '@/components/common/section-header'
 import { MatchingScore } from '@/components/matching/matching-score'
 import { Tag } from '@/components/ui/tag'
 import { buttonVariants } from '@/components/ui/button'
+import { jobCategoryLabel } from '@/data/labels'
 import { getJobById, getRelatedJobs } from '@/data/mock/jobs'
 import { JOB_APPLY_NOTICES } from '@/lib/site'
 import { cn, formatDotDate, formatPay } from '@/lib/utils'
@@ -158,7 +159,7 @@ function RecruitmentSection({ job }: { job: Job }) {
     <DetailSection title="모집내용" icon={FileText}>
       <div className="space-y-6">
         <SubBlock title="모집직종">
-          <p className="text-base text-fg">{job.category}</p>
+          <p className="text-base text-fg">{jobCategoryLabel(job.category)}</p>
         </SubBlock>
 
         {job.description && (
