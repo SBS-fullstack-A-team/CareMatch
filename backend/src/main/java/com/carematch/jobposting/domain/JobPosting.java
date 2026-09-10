@@ -74,6 +74,11 @@ public class JobPosting extends BaseTimeEntity {
     @Column(name = "work_type", nullable = false, length = 20)
     private WorkType workType;
 
+    /** 근무 시간대(주간/오전/오후/야간/교대). 입주형은 시간대 개념이 없어 null 허용. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "work_schedule", length = 20)
+    private WorkSchedule workSchedule;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "employment_type", nullable = false, length = 20)
     private EmploymentType employmentType;
@@ -189,7 +194,8 @@ public class JobPosting extends BaseTimeEntity {
     @Builder
     private JobPosting(FacilityProfile facilityProfile, String title, JobType jobType, String description,
                        String preferredNote, String thumbnailUrl,
-                       WorkType workType, EmploymentType employmentType, String employmentTypeNote,
+                       WorkType workType, WorkSchedule workSchedule,
+                       EmploymentType employmentType, String employmentTypeNote,
                        String workDays, LocalTime workStartTime, LocalTime workEndTime,
                        PayType payType, Integer payAmount, Integer recruitCount, LocalDate deadline,
                        String sido, String sigungu, String addressDetail, Double latitude, Double longitude,
@@ -204,6 +210,7 @@ public class JobPosting extends BaseTimeEntity {
         this.preferredNote = preferredNote;
         this.thumbnailUrl = thumbnailUrl;
         this.workType = workType;
+        this.workSchedule = workSchedule;
         this.employmentType = employmentType;
         this.employmentTypeNote = employmentTypeNote;
         this.workDays = workDays;
@@ -236,7 +243,8 @@ public class JobPosting extends BaseTimeEntity {
     /** 공고 수정 폼. 노출옵션/상태/조회수는 이 경로로 바꾸지 않는다. */
     public record UpdateForm(
             String title, JobType jobType, String description, String preferredNote, String thumbnailUrl,
-            WorkType workType, EmploymentType employmentType, String employmentTypeNote,
+            WorkType workType, WorkSchedule workSchedule,
+            EmploymentType employmentType, String employmentTypeNote,
             String workDays, LocalTime workStartTime, LocalTime workEndTime,
             PayType payType, Integer payAmount, Integer recruitCount, LocalDate deadline,
             String sido, String sigungu, String addressDetail, Double latitude, Double longitude,
@@ -254,6 +262,7 @@ public class JobPosting extends BaseTimeEntity {
         this.preferredNote = f.preferredNote();
         this.thumbnailUrl = f.thumbnailUrl();
         this.workType = f.workType();
+        this.workSchedule = f.workSchedule();
         this.employmentType = f.employmentType();
         this.employmentTypeNote = f.employmentTypeNote();
         this.workDays = f.workDays();

@@ -39,6 +39,7 @@ public final class JobPostingSpecs {
             }
             addIn(ps, root.get("jobType"), c.jobTypes());
             addIn(ps, root.get("workType"), c.workTypes());
+            addIn(ps, root.get("workSchedule"), c.workSchedules());
             addIn(ps, root.get("employmentType"), c.employmentTypes());
             addIn(ps, root.get("careGrade"), c.careGrades());
             addIn(ps, root.get("mobilityStatus"), c.mobilityStatuses());

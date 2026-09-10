@@ -90,14 +90,14 @@
 - `WorkType` = `LIVE_IN`(입주형)은 24h라 스케줄 무의미 → `WorkSchedule` **nullable**.
 - `WorkType`(출퇴근/입주)은 프론트가 나중에 별도 필터로 채택 (COMPONENT_RULES §17 에 자리 있음).
 
-### 작업 (백엔드)
+### 작업 (백엔드) — 구현: `feature/be-workschedule`
 
-- [ ] `WorkSchedule` enum 신설
-- [ ] `JobPosting` 에 `workSchedule` 컬럼 + V3 마이그레이션(컬럼 + `CHECK`)
-- [ ] `CreateRequest` / `UpdateRequest` / `DetailResponse` / `SummaryResponse` 에 필드 추가
-- [ ] `SearchCondition` + `JobPostingSpecs` 에 `workSchedules` **다중** 필터 추가
-- [ ] (후속 PR 분리 가능) `JobSeekerProfile.desiredWorkSchedule` + `MatchScoreCalculator`
-      W_WORK_TYPE(20) 를 `WorkSchedule` 기준으로 이전/병행
+- [x] `WorkSchedule` enum 신설 (DAY/MORNING/AFTERNOON/NIGHT/SHIFT)
+- [x] `JobPosting.workSchedule` 컬럼(nullable) + `V4__jobposting_work_schedule.sql`
+- [x] `CreateRequest` / `UpdateRequest` / `DetailResponse` / `SummaryResponse` 필드 추가
+- [x] `SearchCondition` + `JobPostingSpecs` 에 `workSchedules` 다중 필터
+- [ ] (후속 PR) `JobSeekerProfile.desiredWorkSchedule` + `MatchScoreCalculator`
+      W_WORK_TYPE(20) 를 `WorkSchedule` 기준으로 이전/병행 — 매칭 로직은 별도
 
 ### 작업 (프론트)
 

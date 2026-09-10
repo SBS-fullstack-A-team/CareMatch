@@ -437,6 +437,8 @@ POST /api/admin/facilities/13/approve     (Authorization: Bearer <ADMIN>)
 | DELETE | `/api/job-posting-drafts/{id}` | 본인 | 임시저장 삭제 (204) |
 
 - 카테고리성 필드는 전부 enum 문자열. 잘못된 값 → 400 `COMMON_001`.
+- `workType`(출퇴근/입주 축)과 `workSchedule`(시간대 축: `DAY/MORNING/AFTERNOON/NIGHT/SHIFT`)은 별개.
+  `workSchedule` 은 **선택** — 입주형(`workType=LIVE_IN`)은 생략, 그 외에는 넣는다. 목록·상세 응답에 포함.
 - `duties` / `requiredDocuments` 는 문자열 배열 (표시용).
 - `thumbnailUrl`(선택): 대표 이미지 URL. `http(s)://` 만 허용, 최대 500자. 목록 카드·상세에 내려줌.
   프론트는 `POST /api/files/upload-url`(`purpose=JOB_POSTING_IMAGE`)로 업로드 후 최종 URL 을 여기에 담는다.
@@ -460,7 +462,7 @@ POST /api/job-postings   (Authorization: Bearer <FACILITY>)
 {
   "title": "방문요양 요양보호사 모집 (4등급 여자 어르신)",
   "jobType": "CAREGIVER", "description": "...",
-  "workType": "COMMUTE", "employmentType": "CONTRACT",
+  "workType": "COMMUTE", "workSchedule": "MORNING", "employmentType": "CONTRACT",
   "employmentTypeNote": "3개월 후 정규직 전환 가능",
   "workDays": "월~금 (주 5일)", "workStartTime": "09:00", "workEndTime": "12:00",
   "payType": "HOURLY", "payAmount": 13500, "recruitCount": 1, "deadline": "2026-12-31",
@@ -489,6 +491,7 @@ GET /api/job-postings?page=0&size=20
 |---|---|---|
 | `sido` / `sigungu` | string | 지역(정확히 일치) |
 | `jobTypes` | enum[] | 직종(`JobType`) 다중 (`?jobTypes=CAREGIVER&jobTypes=HOUSEKEEPER`). 값 목록은 [`ENUM_MAPPING.md`](./ENUM_MAPPING.md) §1 |
+| `workSchedules` | enum[] | 근무 시간대 다중(OR). `DAY/MORNING/AFTERNOON/NIGHT/SHIFT` (주간/오전/오후/야간/교대). [`ENUM_MAPPING.md`](./ENUM_MAPPING.md) §2 |
 | `workTypes` / `employmentTypes` / `careGrades` / `mobilityStatuses` | enum[] | 각 다중 |
 | `payTypes` | enum[] | 급여 형태 다중(OR). HOURLY/DAILY/MONTHLY |
 | `payMin` / `payMax` | int | 급여 범위. payTypes 없이 쓰면 시급·월급이 섞이니 함께 지정 권장 |
