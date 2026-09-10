@@ -3,6 +3,7 @@ package com.carematch.member.dto;
 import com.carematch.jobposting.domain.EmploymentType;
 import com.carematch.jobposting.domain.JobType;
 import com.carematch.jobposting.domain.PayType;
+import com.carematch.jobposting.domain.WorkSchedule;
 import com.carematch.jobposting.domain.WorkType;
 import com.carematch.member.domain.CareTask;
 import com.carematch.member.domain.Gender;
@@ -28,6 +29,8 @@ public final class TalentSearchDtos {
     public record SearchCondition(
             JobType desiredJobType,
             WorkType desiredWorkType,
+            /** 희망 근무 시간대 다중(OR). 미설정(null desiredWorkSchedule) 구직자는 제외. docs/ENUM_MAPPING.md §2 */
+            List<WorkSchedule> desiredWorkSchedules,
             String sido,
             String sigungu,
             /** 희망 급여유형 다중(OR). */

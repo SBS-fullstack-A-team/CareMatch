@@ -234,7 +234,8 @@ GET /api/terms
 
 | 파라미터 | 타입 | 설명 |
 |---|---|---|
-| `desiredJobType` / `desiredWorkType` | enum | 희망 직종 / 희망 근무형태(출퇴근·입주). 희망 근무 시간대(`WorkSchedule`) 필터는 후속 |
+| `desiredJobType` / `desiredWorkType` | enum | 희망 직종 / 희망 근무형태(출퇴근·입주) |
+| `desiredWorkSchedules` | enum[] | 희망 근무 시간대 다중(OR). `DAY/MORNING/AFTERNOON/NIGHT/SHIFT`. 시간대 미설정 구직자는 제외 ([`ENUM_MAPPING.md`](./ENUM_MAPPING.md) §2) |
 | `sido` / `sigungu` | string | 희망 근무지역(정확히 일치) |
 | `payTypes` | enum[] | 희망 급여유형 다중(OR). `HOURLY/DAILY/MONTHLY` |
 | `payMax` | int | 희망 최소급여가 이 값 이하인 인재만 |

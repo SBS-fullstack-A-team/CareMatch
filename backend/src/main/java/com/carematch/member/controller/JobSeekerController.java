@@ -5,6 +5,7 @@ import com.carematch.contact.service.ContactUnlockService;
 import com.carematch.jobposting.domain.EmploymentType;
 import com.carematch.jobposting.domain.JobType;
 import com.carematch.jobposting.domain.PayType;
+import com.carematch.jobposting.domain.WorkSchedule;
 import com.carematch.jobposting.domain.WorkType;
 import com.carematch.jobposting.dto.JobPostingDtos.PageResponse;
 import com.carematch.member.domain.CareTask;
@@ -72,6 +73,7 @@ public class JobSeekerController {
             @AuthenticationPrincipal CustomUserDetails principal,
             @RequestParam(required = false) JobType desiredJobType,
             @RequestParam(required = false) WorkType desiredWorkType,
+            @RequestParam(required = false) java.util.List<WorkSchedule> desiredWorkSchedules,
             @RequestParam(required = false) String sido,
             @RequestParam(required = false) String sigungu,
             @RequestParam(required = false) java.util.List<PayType> payTypes,
@@ -89,7 +91,7 @@ public class JobSeekerController {
         boolean isFacility = principal.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_FACILITY"));
         SearchCondition cond = new SearchCondition(
-                desiredJobType, desiredWorkType, sido, sigungu, payTypes, payMax,
+                desiredJobType, desiredWorkType, desiredWorkSchedules, sido, sigungu, payTypes, payMax,
                 gender, careerBuckets, availableTasks, desiredEmploymentTypes, certificateNames,
                 seekingOnly, updatedWithinDays, sort);
         return talentSearchService.search(cond, page, size, principal.getMemberId(), isFacility);

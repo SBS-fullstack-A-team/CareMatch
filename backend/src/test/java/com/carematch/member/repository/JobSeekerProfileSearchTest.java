@@ -4,6 +4,7 @@ import com.carematch.certificate.domain.Certificate;
 import com.carematch.jobposting.domain.EmploymentType;
 import com.carematch.jobposting.domain.JobType;
 import com.carematch.jobposting.domain.PayType;
+import com.carematch.jobposting.domain.WorkSchedule;
 import com.carematch.jobposting.domain.WorkType;
 import com.carematch.member.domain.CareTask;
 import com.carematch.member.domain.EmploymentStatus;
@@ -56,6 +57,13 @@ class JobSeekerProfileSearchTest {
         return p;
     }
 
+    private JobSeekerProfile seekerWithSchedule(WorkSchedule schedule) {
+        JobSeekerProfile p = persist(EmploymentStatus.SEEKING);
+        p.updateDesiredConditions(new JobSeekerProfile.DesiredConditions(
+                null, null, schedule, null, null, null, null));
+        return p;
+    }
+
     private void details(JobSeekerProfile p, Gender gender, Integer careerYears,
                          Set<CareTask> tasks, Set<EmploymentType> empTypes) {
         p.updateDetails(new JobSeekerProfile.ProfileDetails(
@@ -74,15 +82,21 @@ class JobSeekerProfileSearchTest {
                 PageRequest.of(0, 50, Sort.by(Sort.Direction.DESC, "updatedAt"))).getContent();
     }
 
-    /** 필요한 필터만 지정하는 헬퍼 (나머지는 null). */
+    /** 필요한 필터만 지정하는 헬퍼 (나머지는 null). desiredWorkSchedules 는 {@link #condWs} 사용. */
     private static SearchCondition cond(JobType jt, WorkType wt, String sido, String sigungu,
                                         List<PayType> payTypes, Integer payMax, Gender gender,
                                         List<CareerBucket> careerBuckets,
                                         List<CareTask> tasks, List<EmploymentType> empTypes,
                                         List<String> certificateNames,
                                         Boolean seekingOnly, Integer withinDays) {
-        return new SearchCondition(jt, wt, sido, sigungu, payTypes, payMax, gender, careerBuckets,
+        return new SearchCondition(jt, wt, null, sido, sigungu, payTypes, payMax, gender, careerBuckets,
                 tasks, empTypes, certificateNames, seekingOnly, withinDays, null);
+    }
+
+    /** 희망 근무 시간대 필터만 지정하는 헬퍼. */
+    private static SearchCondition condWs(List<WorkSchedule> workSchedules) {
+        return new SearchCondition(null, null, workSchedules, null, null, null, null, null, null,
+                null, null, null, null, null, null);
     }
 
     private static SearchCondition none() {
@@ -111,6 +125,18 @@ class JobSeekerProfileSearchTest {
                 .hasSize(1);
         assertThat(search(cond(null, null, null, "강남구", null, null, null, null, null, null, null, null, null)))
                 .hasSize(2);
+    }
+
+    @Test
+    void 희망_근무시간대_다중_필터() {
+        seekerWithSchedule(WorkSchedule.DAY);
+        seekerWithSchedule(WorkSchedule.NIGHT);
+        seekerWithSchedule(WorkSchedule.MORNING);
+        seeker(EmploymentStatus.SEEKING, JobType.CAREGIVER, null, null, null, null, null); // 시간대 미설정 → 제외
+        em.flush();
+
+        assertThat(search(condWs(List.of(WorkSchedule.DAY, WorkSchedule.NIGHT)))).hasSize(2);
+        assertThat(search(condWs(List.of(WorkSchedule.MORNING)))).hasSize(1);
     }
 
     @Test
