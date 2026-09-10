@@ -1,6 +1,7 @@
 import { Building2, Clock, MapPin } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { JobBadge } from '@/components/job/job-badge'
+import { workScheduleLabel } from '@/data/labels'
 import { cn, formatPay } from '@/lib/utils'
 import type { Job } from '@/types'
 
@@ -43,7 +44,7 @@ export function SpecialJobCard({ job, className }: { job: Job; className?: strin
             <dt className="sr-only">근무 형태와 급여</dt>
             <Clock className="size-[18px] shrink-0 text-fg-subtle" aria-hidden />
             <dd className="flex flex-wrap items-center gap-x-2">
-              <span className="whitespace-nowrap">{job.workType}</span>
+              <span className="whitespace-nowrap">{workScheduleLabel(job.workSchedule)}</span>
               <span aria-hidden className="text-border-strong">
                 |
               </span>

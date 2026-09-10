@@ -1,6 +1,7 @@
 import { Phone } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { buttonVariants } from '@/components/ui/button'
+import { workScheduleLabel } from '@/data/labels'
 import { cn, formatPay } from '@/lib/utils'
 import type { Job } from '@/types'
 
@@ -24,7 +25,8 @@ export function JobApplyPanel({ job, className }: { job: Job; className?: string
         <div className="flex gap-3">
           <dt className="w-16 shrink-0 text-fg-muted">근무</dt>
           <dd className="min-w-0 flex-1 text-fg tabular">
-            {job.workType} · {job.workHours}
+            {job.workSchedule ? `${workScheduleLabel(job.workSchedule)} · ` : ''}
+            {job.workHours}
           </dd>
         </div>
         <div className="flex gap-3">

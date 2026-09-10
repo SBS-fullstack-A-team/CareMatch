@@ -8,7 +8,7 @@ import {
   FACILITY_TYPE_OPTIONS,
   PAY_TYPE_OPTIONS,
   REGION_SHORTCUTS,
-  WORK_TYPE_OPTIONS,
+  WORK_SCHEDULE_OPTIONS,
 } from '@/data/filters'
 import { countByOption, type JobFilterGroup, type JobFilterState } from '@/lib/job-filters'
 import { cn, formatNumber } from '@/lib/utils'
@@ -41,7 +41,7 @@ export function JobFilterPanel({ value, onChange, jobs, onReset, className }: Jo
       regions: countByOption(jobs, value, 'regions'),
       categories: countByOption(jobs, value, 'categories'),
       facilityTypes: countByOption(jobs, value, 'facilityTypes'),
-      workTypes: countByOption(jobs, value, 'workTypes'),
+      workSchedules: countByOption(jobs, value, 'workSchedules'),
       payTypes: countByOption(jobs, value, 'payTypes'),
     }),
     [jobs, value],
@@ -125,13 +125,13 @@ export function JobFilterPanel({ value, onChange, jobs, onReset, className }: Jo
       </FilterGroup>
 
       <FilterGroup title="근무형태">
-        {WORK_TYPE_OPTIONS.map((option) => (
+        {WORK_SCHEDULE_OPTIONS.map((option) => (
           <FilterCheckbox
             key={option.value}
             option={option}
-            group="workTypes"
+            group="workSchedules"
             value={value}
-            counts={counts.workTypes}
+            counts={counts.workSchedules}
             onToggle={toggle}
           />
         ))}

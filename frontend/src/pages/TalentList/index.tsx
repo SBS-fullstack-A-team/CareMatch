@@ -9,7 +9,12 @@ import { TalentSearchBar } from '@/components/talent/talent-search-bar'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { Tag } from '@/components/ui/tag'
-import { CAREER_OPTIONS, CATEGORY_OPTIONS, TALENT_SORT_OPTIONS } from '@/data/filters'
+import {
+  CAREER_OPTIONS,
+  CATEGORY_OPTIONS,
+  TALENT_SORT_OPTIONS,
+  WORK_SCHEDULE_OPTIONS,
+} from '@/data/filters'
 import { TALENTS } from '@/data/mock/talents'
 import {
   applyFilters,
@@ -32,13 +37,16 @@ const SEARCH_FIELD_LABEL: Record<keyof TalentSearchQuery, string> = {
   sido: '지역',
   district: '구·군',
   category: '희망직종',
-  workType: '근무형태',
+  workSchedule: '근무형태',
   keyword: '키워드',
 }
 
-/** 값('1-3', 'CAREGIVER')과 표기 라벨('1~3년', '요양보호사')이 다른 필터의 칩 표기용 라벨 */
+/** 값('1-3', 'CAREGIVER', 'DAY')과 표기 라벨('1~3년', '요양보호사', '주간')이 다른 필터의 칩 표기용 라벨 */
 const FILTER_VALUE_LABEL = Object.fromEntries(
-  [...CAREER_OPTIONS, ...CATEGORY_OPTIONS].map((option) => [option.value, option.label]),
+  [...CAREER_OPTIONS, ...CATEGORY_OPTIONS, ...WORK_SCHEDULE_OPTIONS].map((option) => [
+    option.value,
+    option.label,
+  ]),
 ) as Record<string, string>
 
 /** 검색 조건은 URL 로 공유할 수 있게 쿼리스트링과 주고받는다 */
@@ -47,7 +55,7 @@ function readSearch(params: URLSearchParams): TalentSearchQuery {
     sido: params.get('sido') ?? '',
     district: params.get('district') ?? '',
     category: params.get('category') ?? '',
-    workType: params.get('workType') ?? '',
+    workSchedule: params.get('workSchedule') ?? '',
     keyword: params.get('keyword') ?? '',
   }
 }

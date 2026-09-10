@@ -12,6 +12,12 @@ export type JobCategory =
   | 'HOUSEKEEPER' // 가사도우미
   | 'ETC' // 기타
 
+/**
+ * 근무 시간대. 값은 API enum name (docs/ENUM_MAPPING.md §2). 한글 라벨은 WORK_SCHEDULE_LABELS.
+ * "어디서 자느냐"(출퇴근/입주 = 백엔드 WorkType)와 다른 축인 "언제 일하느냐".
+ */
+export type WorkSchedule = 'DAY' | 'MORNING' | 'AFTERNOON' | 'NIGHT' | 'SHIFT'
+
 /** 시설 유형 */
 export type FacilityType =
   | '방문요양센터'
@@ -87,8 +93,8 @@ export interface Job {
   district?: string
   category: JobCategory
   employmentType: EmploymentType
-  /** 근무 형태 ex) "주간", "오전", "야간" */
-  workType: string
+  /** 근무 시간대. 입주형 등 미지정이면 null (시각만 노출) */
+  workSchedule: WorkSchedule | null
   /** 근무 시간 ex) "09:00~13:00" */
   workHours: string
   /** 근무 요일 ex) "주 5일 (월~금)" — 상세 화면용 */
@@ -143,10 +149,10 @@ export interface Talent {
   careerLabel?: string
   careerYears?: number
   /**
-   * 희망 근무형태 ex) "주간", "오전". Job.workType 과 같은 값 체계를 쓴다.
+   * 희망 근무 시간대. Job.workSchedule 과 같은 값 체계(WorkSchedule).
    * preferredHours 는 구체적인 희망 시간대 자유 텍스트라 검색·필터 기준으로는 쓰지 않는다.
    */
-  workType?: string
+  workSchedule?: WorkSchedule
   /** 구체적인 희망 시간대 ex) "평일 오전 (09:00 ~ 13:00)" */
   preferredHours?: string
   payType?: PayType

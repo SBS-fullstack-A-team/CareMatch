@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { JobBadge } from '@/components/job/job-badge'
-import { jobCategoryLabel } from '@/data/labels'
+import { jobCategoryLabel, workScheduleLabel } from '@/data/labels'
 import { formatDotDate, formatPay } from '@/lib/utils'
 import type { Job } from '@/types'
 
@@ -56,7 +56,7 @@ export function JobTable({ jobs, className }: { jobs: Job[]; className?: string 
               <td className="px-4 py-4 text-base text-fg-muted">{jobCategoryLabel(job.category)}</td>
               <td className="px-4 py-4 text-base text-fg-muted">{job.region}</td>
               <td className="px-4 py-4 text-base text-fg-muted tabular">
-                {job.workType} ({job.workHours})
+                {job.workSchedule ? `${workScheduleLabel(job.workSchedule)} ` : ''}({job.workHours})
               </td>
               <td className="px-4 py-4 text-base font-semibold text-fg tabular">
                 {formatPay(job.payType, job.payAmount)}
@@ -82,7 +82,7 @@ export function JobTable({ jobs, className }: { jobs: Job[]; className?: string 
                 {jobCategoryLabel(job.category)} · {job.region}
               </p>
               <p className="mt-1 text-base text-fg-muted tabular">
-                {job.workType} ({job.workHours})
+                {job.workSchedule ? `${workScheduleLabel(job.workSchedule)} ` : ''}({job.workHours})
               </p>
               <p className="mt-2 flex items-center justify-between gap-2">
                 <span className="text-base font-bold text-fg tabular">

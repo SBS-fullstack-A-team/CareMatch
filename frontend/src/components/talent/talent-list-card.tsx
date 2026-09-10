@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
 import { Tag } from '@/components/ui/tag'
-import { jobCategoryLabel } from '@/data/labels'
+import { jobCategoryLabel, workScheduleLabel } from '@/data/labels'
 import { cn, formatDotDate, maskName } from '@/lib/utils'
 import type { Talent } from '@/types'
 
@@ -69,12 +69,12 @@ export function TalentListCard({ talent, className }: { talent: Talent; classNam
           <dd className="min-w-0">{talent.regions.join(' · ')}</dd>
         </div>
 
-        {talent.workType && (
+        {talent.workSchedule && (
           <div className="flex items-start gap-1.5">
-            <dt className="sr-only">희망 근무형태</dt>
+            <dt className="sr-only">희망 근무 시간대</dt>
             <Clock className="mt-[3px] size-[18px] shrink-0 text-fg-subtle" aria-hidden />
             <dd className="min-w-0">
-              <span className="text-fg">{talent.workType} 근무 희망</span>
+              <span className="text-fg">{workScheduleLabel(talent.workSchedule)} 근무 희망</span>
               {talent.preferredHours && (
                 <span className="block text-sm text-fg-subtle">{talent.preferredHours}</span>
               )}

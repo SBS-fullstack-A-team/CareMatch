@@ -1,5 +1,5 @@
 import { REGION_SHORTCUTS } from '@/data/filters'
-import { jobCategoryLabel } from '@/data/labels'
+import { jobCategoryLabel, workScheduleLabel } from '@/data/labels'
 import type { Job } from '@/types'
 
 /* =========================================================================
@@ -30,7 +30,8 @@ export interface JobFilterState {
   regions: string[]
   categories: string[]
   facilityTypes: string[]
-  workTypes: string[]
+  /** Job.workSchedule (WorkSchedule enum name) */
+  workSchedules: string[]
   /** Job.payType */
   payTypes: string[]
 }
@@ -41,7 +42,7 @@ export const EMPTY_JOB_FILTERS: JobFilterState = {
   regions: [],
   categories: [],
   facilityTypes: [],
-  workTypes: [],
+  workSchedules: [],
   payTypes: [],
 }
 
@@ -67,7 +68,7 @@ const GROUP_VALUE: Record<JobFilterGroup, (job: Job) => string> = {
   regions: regionLabelOf,
   categories: (job) => job.category,
   facilityTypes: (job) => job.facilityType,
-  workTypes: (job) => job.workType,
+  workSchedules: (job) => job.workSchedule ?? '',
   payTypes: (job) => job.payType,
 }
 
@@ -89,7 +90,7 @@ export function matchesSearch(job: Job, query: JobSearchQuery) {
       jobCategoryLabel(job.category),
       job.region,
       job.district,
-      job.workType,
+      workScheduleLabel(job.workSchedule),
       job.employmentType,
       ...(job.tags ?? []),
     ]

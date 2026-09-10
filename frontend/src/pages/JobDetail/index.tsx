@@ -21,7 +21,7 @@ import { SectionHeader } from '@/components/common/section-header'
 import { MatchingScore } from '@/components/matching/matching-score'
 import { Tag } from '@/components/ui/tag'
 import { buttonVariants } from '@/components/ui/button'
-import { jobCategoryLabel } from '@/data/labels'
+import { jobCategoryLabel, workScheduleLabel } from '@/data/labels'
 import { getJobById, getRelatedJobs } from '@/data/mock/jobs'
 import { JOB_APPLY_NOTICES } from '@/lib/site'
 import { cn, formatDotDate, formatPay } from '@/lib/utils'
@@ -123,7 +123,7 @@ function WorkConditionSection({ job }: { job: Job }) {
           {job.region}
           {job.district && ` ${job.district}`}
         </DetailRow>
-        <DetailRow label="근무형태">{job.workType}</DetailRow>
+        <DetailRow label="근무형태">{workScheduleLabel(job.workSchedule) || '-'}</DetailRow>
         <DetailRow label="근무시간">
           <span className="tabular">{job.workHours}</span>
         </DetailRow>

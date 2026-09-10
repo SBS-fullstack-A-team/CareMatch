@@ -20,7 +20,7 @@ import {
   DISTRICT_OPTIONS,
   PAY_TYPE_OPTIONS,
   SIDO_OPTIONS,
-  WORK_TYPE_OPTIONS,
+  WORK_SCHEDULE_OPTIONS,
 } from '@/data/filters'
 import { useApp } from '@/hooks/use-app'
 import { cn, formatPay, type PayType } from '@/lib/utils'
@@ -94,7 +94,7 @@ export function JobApplyPage() {
 
   /** 미리보기 — 카드가 채워질 만큼 입력됐을 때만 만든다 (빈 값을 임의로 채우지 않는다) */
   const previewTalent = useMemo<Talent | null>(() => {
-    if (!draft.category || !draft.sido || !draft.workType) return null
+    if (!draft.category || !draft.sido || !draft.workSchedule) return null
     if (!draft.gender || !draft.age) return null
 
     const region = draft.district ? `${shortSido(draft.sido)} ${draft.district}` : shortSido(draft.sido)
@@ -110,7 +110,7 @@ export function JobApplyPage() {
       updatedAt: new Date().toISOString().slice(0, 10),
       careerLabel: careerLabelOf(draft),
       careerYears: draft.hasCareer === 'yes' ? Number(draft.careerYears || 0) : 0,
-      workType: draft.workType,
+      workSchedule: draft.workSchedule as Talent['workSchedule'],
       preferredHours: draft.preferredHours || undefined,
       payType: (draft.payType || undefined) as PayType | undefined,
       payAmount: draft.payAmount ? Number(draft.payAmount) : undefined,
@@ -253,14 +253,14 @@ export function JobApplyPage() {
                 </div>
               </Field>
 
-              <Field label="근무 형태" required error={errors.workType}>
+              <Field label="근무 형태" required error={errors.workSchedule}>
                 <SegmentedControl
-                  items={WORK_TYPE_OPTIONS.map((option) => ({
+                  items={WORK_SCHEDULE_OPTIONS.map((option) => ({
                     value: option.value,
                     label: option.label,
                   }))}
-                  value={draft.workType}
-                  onChange={(value) => update({ workType: value })}
+                  value={draft.workSchedule}
+                  onChange={(value) => update({ workSchedule: value })}
                 />
               </Field>
 
@@ -393,7 +393,7 @@ export function JobApplyPage() {
             <dl className="mt-4 space-y-0.5">
               <StatusRow label="희망 직종" filled={Boolean(draft.category)} required />
               <StatusRow label="희망 지역" filled={Boolean(draft.sido)} required />
-              <StatusRow label="근무 형태" filled={Boolean(draft.workType)} required />
+              <StatusRow label="근무 형태" filled={Boolean(draft.workSchedule)} required />
               <StatusRow label="기본 정보" filled={Boolean(draft.gender && draft.age)} />
               <StatusRow label="경력 및 자격" filled={Boolean(draft.hasCareer)} />
               <StatusRow label="자기소개" filled={Boolean(draft.summary)} />
