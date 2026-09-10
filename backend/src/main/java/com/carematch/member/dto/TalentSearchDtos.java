@@ -30,23 +30,53 @@ public final class TalentSearchDtos {
             WorkType desiredWorkType,
             String sido,
             String sigungu,
-            PayType payType,
+            /** 희망 급여유형 다중(OR). */
+            List<PayType> payTypes,
             /** 구직자 희망 최소급여가 이 값 이하인 인재만. */
             Integer payMax,
             Gender gender,
-            /** 경력 연수가 이 값 이상인 인재만 (0/1/3 …). */
-            Integer minCareerYears,
+            /** 경력 구간 다중(OR). 프론트 신입/1~3/3~5/5년+ 체크박스와 1:1. */
+            List<CareerBucket> careerBuckets,
             /** 이 업무들 중 하나라도 가능한 인재. */
             List<CareTask> availableTasks,
             /** 이 고용형태들 중 하나라도 희망하는 인재. */
             List<EmploymentType> desiredEmploymentTypes,
+            /** 이 자격증명 중 하나라도 보유한 인재 (certificate_name 정확 일치, 상태 무관). */
+            List<String> certificateNames,
             /** null 또는 true 면 구직중(SEEKING)만. false 면 취업완료 포함. */
             Boolean seekingOnly,
             /** 최근 N일 이내에 프로필이 갱신된 인재만. */
             Integer updatedWithinDays,
-            /** LATEST(기본, 최근 갱신순). */
+            /** LATEST(기본, 최근 갱신순) / CAREER_DESC / CAREER_ASC. */
             String sort
     ) {
+    }
+
+    /**
+     * 경력 구간. 프론트 CAREER_OPTIONS(신입 / 1~3년 / 3~5년 / 5년 이상)와 1:1.
+     * {@code [minInclusive, maxExclusive)} 연차 범위. maxExclusive 가 null 이면 상한 없음.
+     */
+    public enum CareerBucket {
+        ENTRY(0, 1),
+        Y1_3(1, 3),
+        Y3_5(3, 5),
+        Y5_PLUS(5, null);
+
+        private final int minInclusive;
+        private final Integer maxExclusive;
+
+        CareerBucket(int minInclusive, Integer maxExclusive) {
+            this.minInclusive = minInclusive;
+            this.maxExclusive = maxExclusive;
+        }
+
+        public int minInclusive() {
+            return minInclusive;
+        }
+
+        public Integer maxExclusive() {
+            return maxExclusive;
+        }
     }
 
     /** 인재 목록 카드. */

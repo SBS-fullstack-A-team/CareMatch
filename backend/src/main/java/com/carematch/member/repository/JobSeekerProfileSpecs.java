@@ -1,10 +1,14 @@
 package com.carematch.member.repository;
 
+import com.carematch.certificate.domain.Certificate;
 import com.carematch.member.domain.EmploymentStatus;
 import com.carematch.member.domain.JobSeekerProfile;
+import com.carematch.member.dto.TalentSearchDtos.CareerBucket;
 import com.carematch.member.dto.TalentSearchDtos.SearchCondition;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -47,8 +51,8 @@ public final class JobSeekerProfileSpecs {
             if (StringUtils.hasText(c.sigungu())) {
                 ps.add(cb.equal(root.get("desiredSigungu"), c.sigungu()));
             }
-            if (c.payType() != null) {
-                ps.add(cb.equal(root.get("desiredPayType"), c.payType()));
+            if (!CollectionUtils.isEmpty(c.payTypes())) {
+                ps.add(root.get("desiredPayType").in(c.payTypes()));
             }
             if (c.payMax() != null) {
                 ps.add(cb.lessThanOrEqualTo(root.get("desiredMinPay"), c.payMax()));
@@ -56,8 +60,22 @@ public final class JobSeekerProfileSpecs {
             if (c.gender() != null) {
                 ps.add(cb.equal(root.get("gender"), c.gender()));
             }
-            if (c.minCareerYears() != null && c.minCareerYears() > 0) {
-                ps.add(cb.greaterThanOrEqualTo(root.get("careerYears"), c.minCareerYears()));
+            if (!CollectionUtils.isEmpty(c.careerBuckets())) {
+                List<Predicate> ranges = new ArrayList<>();
+                for (CareerBucket bucket : c.careerBuckets()) {
+                    Predicate min = cb.greaterThanOrEqualTo(root.get("careerYears"), bucket.minInclusive());
+                    ranges.add(bucket.maxExclusive() == null ? min
+                            : cb.and(min, cb.lessThan(root.get("careerYears"), bucket.maxExclusive())));
+                }
+                ps.add(cb.or(ranges.toArray(Predicate[]::new)));
+            }
+            if (!CollectionUtils.isEmpty(c.certificateNames())) {
+                Subquery<Long> sub = query.subquery(Long.class);
+                Root<Certificate> cert = sub.from(Certificate.class);
+                sub.select(cert.get("id")).where(
+                        cb.equal(cert.get("jobSeekerProfile"), root),
+                        cert.get("certificateName").in(c.certificateNames()));
+                ps.add(cb.exists(sub));
             }
             if (c.updatedWithinDays() != null) {
                 ps.add(cb.greaterThanOrEqualTo(root.get("updatedAt"),

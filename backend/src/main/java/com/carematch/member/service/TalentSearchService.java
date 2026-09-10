@@ -23,8 +23,10 @@ import java.util.stream.Collectors;
 /**
  * 인재정보 검색. 승인된 시설회원 / 관리자만.
  *
- * 정렬은 최근 갱신순(updatedAt desc) 고정. 매칭 점수 정렬(추천순)은 조회 시점 Java 계산이라
- * SQL 정렬이 불가 — 후속 과제(구인공고 RECOMMENDED 와 동일 제약).
+ * 정렬: LATEST(기본, updatedAt desc) / CAREER_DESC / CAREER_ASC. 경력 정렬 시 careerYears 가
+ * null 인 프로필은 뒤로 보내고 updatedAt desc 를 2차 기준으로 쓴다.
+ * 매칭 점수 정렬(추천순)은 조회 시점 Java 계산이라 SQL 정렬이 불가 — 후속 과제
+ * (구인공고 RECOMMENDED 와 동일 제약).
  */
 @Service
 @RequiredArgsConstructor
@@ -40,8 +42,7 @@ public class TalentSearchService {
     public PageResponse<TalentSummary> search(SearchCondition cond, int page, int size,
                                               Long viewerMemberId, boolean viewerIsFacility) {
         int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
-        PageRequest pageable = PageRequest.of(Math.max(page, 0), safeSize,
-                Sort.by(Sort.Direction.DESC, "updatedAt"));
+        PageRequest pageable = PageRequest.of(Math.max(page, 0), safeSize, resolveSort(cond.sort()));
 
         Page<JobSeekerProfile> result =
                 jobSeekerProfileRepository.findAll(JobSeekerProfileSpecs.from(cond), pageable);
@@ -55,6 +56,17 @@ public class TalentSearchService {
                 p,
                 certNames.getOrDefault(p.getId(), List.of()),
                 talentMatcher.bestScore(p, myPostings)));
+    }
+
+    static Sort resolveSort(String sort) {
+        String key = sort == null ? "LATEST" : sort.toUpperCase();
+        return switch (key) {
+            case "CAREER_DESC" -> Sort.by(
+                    Sort.Order.desc("careerYears").nullsLast(), Sort.Order.desc("updatedAt"));
+            case "CAREER_ASC" -> Sort.by(
+                    Sort.Order.asc("careerYears").nullsLast(), Sort.Order.desc("updatedAt"));
+            default -> Sort.by(Sort.Direction.DESC, "updatedAt");
+        };
     }
 
     private Map<Long, List<String>> certificateNames(List<JobSeekerProfile> profiles) {

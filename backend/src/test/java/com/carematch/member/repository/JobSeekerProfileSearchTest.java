@@ -1,5 +1,6 @@
 package com.carematch.member.repository;
 
+import com.carematch.certificate.domain.Certificate;
 import com.carematch.jobposting.domain.EmploymentType;
 import com.carematch.jobposting.domain.JobType;
 import com.carematch.jobposting.domain.PayType;
@@ -10,6 +11,7 @@ import com.carematch.member.domain.Gender;
 import com.carematch.member.domain.JobSeekerProfile;
 import com.carematch.member.domain.Member;
 import com.carematch.member.domain.Role;
+import com.carematch.member.dto.TalentSearchDtos.CareerBucket;
 import com.carematch.member.dto.TalentSearchDtos.SearchCondition;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
@@ -61,6 +63,12 @@ class JobSeekerProfileSearchTest {
                 null, (LocalTime) null, (LocalTime) null));
     }
 
+    private void certificate(JobSeekerProfile p, String name) {
+        em.persist(Certificate.builder()
+                .jobSeekerProfile(p).certificateName(name).certificateNumber("n").fileKey("k")
+                .build());
+    }
+
     private List<JobSeekerProfile> search(SearchCondition c) {
         return repository.findAll(JobSeekerProfileSpecs.from(c),
                 PageRequest.of(0, 50, Sort.by(Sort.Direction.DESC, "updatedAt"))).getContent();
@@ -68,15 +76,17 @@ class JobSeekerProfileSearchTest {
 
     /** 필요한 필터만 지정하는 헬퍼 (나머지는 null). */
     private static SearchCondition cond(JobType jt, WorkType wt, String sido, String sigungu,
-                                        PayType pt, Integer payMax, Gender gender, Integer minCareerYears,
+                                        List<PayType> payTypes, Integer payMax, Gender gender,
+                                        List<CareerBucket> careerBuckets,
                                         List<CareTask> tasks, List<EmploymentType> empTypes,
+                                        List<String> certificateNames,
                                         Boolean seekingOnly, Integer withinDays) {
-        return new SearchCondition(jt, wt, sido, sigungu, pt, payMax, gender, minCareerYears,
-                tasks, empTypes, seekingOnly, withinDays, null);
+        return new SearchCondition(jt, wt, sido, sigungu, payTypes, payMax, gender, careerBuckets,
+                tasks, empTypes, certificateNames, seekingOnly, withinDays, null);
     }
 
     private static SearchCondition none() {
-        return cond(null, null, null, null, null, null, null, null, null, null, null, null);
+        return cond(null, null, null, null, null, null, null, null, null, null, null, null, null);
     }
 
     @Test
@@ -85,7 +95,8 @@ class JobSeekerProfileSearchTest {
         seeker(EmploymentStatus.EMPLOYED, JobType.CAREGIVER, null, null, null, null, null);
 
         assertThat(search(none())).hasSize(1);
-        assertThat(search(cond(null, null, null, null, null, null, null, null, null, null, false, null))).hasSize(2);
+        assertThat(search(cond(null, null, null, null, null, null, null, null, null, null, null, false, null)))
+                .hasSize(2);
     }
 
     @Test
@@ -94,9 +105,12 @@ class JobSeekerProfileSearchTest {
         seeker(EmploymentStatus.SEEKING, JobType.HOUSEKEEPER, null, "서울특별시", "강남구", null, null);
         seeker(EmploymentStatus.SEEKING, JobType.CAREGIVER, null, "부산광역시", "해운대구", null, null);
 
-        assertThat(search(cond(JobType.CAREGIVER, null, null, null, null, null, null, null, null, null, null, null))).hasSize(2);
-        assertThat(search(cond(JobType.CAREGIVER, null, "서울특별시", "강남구", null, null, null, null, null, null, null, null))).hasSize(1);
-        assertThat(search(cond(null, null, null, "강남구", null, null, null, null, null, null, null, null))).hasSize(2);
+        assertThat(search(cond(JobType.CAREGIVER, null, null, null, null, null, null, null, null, null, null, null, null)))
+                .hasSize(2);
+        assertThat(search(cond(JobType.CAREGIVER, null, "서울특별시", "강남구", null, null, null, null, null, null, null, null, null)))
+                .hasSize(1);
+        assertThat(search(cond(null, null, null, "강남구", null, null, null, null, null, null, null, null, null)))
+                .hasSize(2);
     }
 
     @Test
@@ -105,7 +119,19 @@ class JobSeekerProfileSearchTest {
         seeker(EmploymentStatus.SEEKING, null, null, null, null, PayType.HOURLY, 15_000);
         seeker(EmploymentStatus.SEEKING, null, null, null, null, PayType.MONTHLY, 2_500_000);
 
-        assertThat(search(cond(null, null, null, null, PayType.HOURLY, 13_500, null, null, null, null, null, null))).hasSize(1);
+        assertThat(search(cond(null, null, null, null, List.of(PayType.HOURLY), 13_500, null, null, null, null, null, null, null)))
+                .hasSize(1);
+    }
+
+    @Test
+    void 희망급여유형_다중_필터() {
+        seeker(EmploymentStatus.SEEKING, null, null, null, null, PayType.HOURLY, 12_000);
+        seeker(EmploymentStatus.SEEKING, null, null, null, null, PayType.DAILY, 120_000);
+        seeker(EmploymentStatus.SEEKING, null, null, null, null, PayType.MONTHLY, 2_500_000);
+        em.flush();
+
+        assertThat(search(cond(null, null, null, null, List.of(PayType.HOURLY, PayType.MONTHLY),
+                null, null, null, null, null, null, null, null))).hasSize(2);
     }
 
     @Test
@@ -119,19 +145,64 @@ class JobSeekerProfileSearchTest {
                 .executeUpdate();
         em.clear();
 
-        assertThat(search(cond(null, null, null, null, null, null, null, null, null, null, null, 30))).hasSize(1);
+        assertThat(search(cond(null, null, null, null, null, null, null, null, null, null, null, null, 30)))
+                .hasSize(1);
     }
 
     @Test
-    void 성별_경력_필터() {
+    void 성별_필터() {
         details(persist(EmploymentStatus.SEEKING), Gender.FEMALE, 5, null, null);
         details(persist(EmploymentStatus.SEEKING), Gender.MALE, 1, null, null);
         details(persist(EmploymentStatus.SEEKING), Gender.FEMALE, 0, null, null);
         em.flush();
 
-        assertThat(search(cond(null, null, null, null, null, null, Gender.FEMALE, null, null, null, null, null))).hasSize(2);
-        assertThat(search(cond(null, null, null, null, null, null, null, 3, null, null, null, null))).hasSize(1);
-        assertThat(search(cond(null, null, null, null, null, null, Gender.FEMALE, 3, null, null, null, null))).hasSize(1);
+        assertThat(search(cond(null, null, null, null, null, null, Gender.FEMALE, null, null, null, null, null, null)))
+                .hasSize(2);
+    }
+
+    @Test
+    void 경력구간_다중_필터() {
+        details(persist(EmploymentStatus.SEEKING), null, 0, null, null);   // 신입
+        details(persist(EmploymentStatus.SEEKING), null, 2, null, null);   // 1~3
+        details(persist(EmploymentStatus.SEEKING), null, 4, null, null);   // 3~5
+        details(persist(EmploymentStatus.SEEKING), null, 8, null, null);   // 5+
+        details(persist(EmploymentStatus.SEEKING), null, null, null, null); // 경력 미입력
+        em.flush();
+
+        assertThat(career(CareerBucket.ENTRY)).hasSize(1);
+        assertThat(career(CareerBucket.Y1_3)).hasSize(1);
+        assertThat(career(CareerBucket.Y3_5)).hasSize(1);
+        assertThat(career(CareerBucket.Y5_PLUS)).hasSize(1);
+        // 3~5년 + 5년 이상 → 경력 4, 8 두 명
+        assertThat(career(CareerBucket.Y3_5, CareerBucket.Y5_PLUS)).hasSize(2);
+        // 경력 미입력 프로필은 어떤 구간에도 안 걸린다
+        assertThat(career(CareerBucket.ENTRY, CareerBucket.Y1_3, CareerBucket.Y3_5, CareerBucket.Y5_PLUS))
+                .hasSize(4);
+    }
+
+    private List<JobSeekerProfile> career(CareerBucket... buckets) {
+        return search(cond(null, null, null, null, null, null, null, List.of(buckets),
+                null, null, null, null, null));
+    }
+
+    @Test
+    void 자격증_다중_필터_보유하면_매칭() {
+        JobSeekerProfile a = persist(EmploymentStatus.SEEKING);
+        certificate(a, "요양보호사 1급");
+        certificate(a, "치매전문교육 이수");
+        JobSeekerProfile b = persist(EmploymentStatus.SEEKING);
+        certificate(b, "간호조무사");
+        persist(EmploymentStatus.SEEKING); // 자격증 없음
+        em.flush();
+        em.clear();
+
+        assertThat(search(cond(null, null, null, null, null, null, null, null, null, null,
+                List.of("요양보호사 1급"), null, null))).hasSize(1);
+        // 하나라도 보유하면 매칭
+        assertThat(search(cond(null, null, null, null, null, null, null, null, null, null,
+                List.of("요양보호사 1급", "간호조무사"), null, null))).hasSize(2);
+        assertThat(search(cond(null, null, null, null, null, null, null, null, null, null,
+                List.of("사회복지사 2급"), null, null))).isEmpty();
     }
 
     @Test
@@ -145,12 +216,12 @@ class JobSeekerProfileSearchTest {
 
         // MEAL_SUPPORT 또는 MOBILITY_SUPPORT 가능 → 둘 다
         assertThat(search(cond(null, null, null, null, null, null, null, null,
-                List.of(CareTask.MEAL_SUPPORT, CareTask.MOBILITY_SUPPORT), null, null, null))).hasSize(2);
+                List.of(CareTask.MEAL_SUPPORT, CareTask.MOBILITY_SUPPORT), null, null, null, null))).hasSize(2);
         // BATH_SUPPORT 가능 → 1명
         assertThat(search(cond(null, null, null, null, null, null, null, null,
-                List.of(CareTask.BATH_SUPPORT), null, null, null))).hasSize(1);
+                List.of(CareTask.BATH_SUPPORT), null, null, null, null))).hasSize(1);
         // PART_TIME 희망 → 1명
         assertThat(search(cond(null, null, null, null, null, null, null, null, null,
-                List.of(EmploymentType.PART_TIME), null, null))).hasSize(1);
+                List.of(EmploymentType.PART_TIME), null, null, null))).hasSize(1);
     }
 }
