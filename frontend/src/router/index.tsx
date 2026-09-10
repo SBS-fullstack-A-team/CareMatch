@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router-dom'
 import { PlaceholderPage } from '@/components/common/placeholder-page'
 import { SiteLayout } from '@/components/layout/site-layout'
 import { HomePage } from '@/pages/Home'
+import { JobApplyPage } from '@/pages/JobApply'
 import { JobDetailPage } from '@/pages/JobDetail'
 import { JobListPage } from '@/pages/JobList'
 import { TalentDetailPage } from '@/pages/TalentDetail'
@@ -22,10 +23,7 @@ export const router = createBrowserRouter([
         path: '/nearby',
         element: <PlaceholderPage title="내 주변 일자리" />,
       },
-      {
-        path: '/apply',
-        element: <PlaceholderPage title="구직신청" description="구직신청서 작성 화면을 준비 중입니다." />,
-      },
+      { path: '/apply', element: <JobApplyPage /> },
       {
         path: '/support/*',
         element: <PlaceholderPage title="고객센터" />,
