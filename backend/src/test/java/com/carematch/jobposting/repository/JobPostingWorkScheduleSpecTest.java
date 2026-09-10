@@ -71,8 +71,8 @@ class JobPostingWorkScheduleSpecTest {
     }
 
     private SearchCondition workSchedules(List<WorkSchedule> schedules) {
-        return new SearchCondition(null, null, null, null, schedules, null, null, null,
-                null, null, null, null);
+        return new SearchCondition(null, null, null, null, null, schedules, null, null,
+                null, null, null, null, null);
     }
 
     @Test

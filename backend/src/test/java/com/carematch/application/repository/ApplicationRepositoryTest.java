@@ -119,6 +119,23 @@ class ApplicationRepositoryTest {
     }
 
     @Test
+    void 공고별_지원자수_취소_제외() {
+        apply(seekerA);
+        Application b = apply(seekerB);
+        b.cancel();
+        em.flush();
+        em.clear();
+
+        var counts = repository.countByJobPostingIdIn(java.util.List.of(posting.getId()));
+        assertThat(counts).hasSize(1);
+        assertThat(counts.get(0).getPostingId()).isEqualTo(posting.getId());
+        assertThat(counts.get(0).getCount()).isEqualTo(1L); // seekerB 는 취소라 제외
+
+        // 지원자 없는 공고 id 는 결과에 안 나온다
+        assertThat(repository.countByJobPostingIdIn(java.util.List.of(-1L))).isEmpty();
+    }
+
+    @Test
     void 내_지원목록_member_기준() {
         apply(seekerA);
         em.flush();

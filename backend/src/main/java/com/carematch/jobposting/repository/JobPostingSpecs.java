@@ -38,6 +38,9 @@ public final class JobPostingSpecs {
                 ps.add(cb.equal(root.get("sigungu"), c.sigungu()));
             }
             addIn(ps, root.get("jobType"), c.jobTypes());
+            if (c.facilityTypes() != null && !c.facilityTypes().isEmpty()) {
+                ps.add(root.join("facilityProfile", JoinType.INNER).get("facilityType").in(c.facilityTypes()));
+            }
             addIn(ps, root.get("workType"), c.workTypes());
             addIn(ps, root.get("workSchedule"), c.workSchedules());
             addIn(ps, root.get("employmentType"), c.employmentTypes());

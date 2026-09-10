@@ -1,5 +1,6 @@
 package com.carematch.member.dto;
 
+import com.carematch.member.domain.FacilityType;
 import com.carematch.member.domain.Role;
 import jakarta.validation.constraints.NotNull;
 
@@ -16,6 +17,7 @@ public record SocialRoleSelectionRequest(
 
         // 시설 선택 시(필수)
         String facilityName,
+        FacilityType facilityType,
         String businessRegistrationNumber,
         String businessLicenseFileKey
 ) {

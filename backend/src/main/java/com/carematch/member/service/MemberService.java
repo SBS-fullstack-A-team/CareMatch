@@ -122,6 +122,7 @@ public class MemberService {
         facilityProfileRepository.save(FacilityProfile.builder()
                 .member(member)
                 .facilityName(req.facilityName())
+                .facilityType(req.facilityType())
                 .businessRegistrationNumber(bizNo)
                 .businessLicenseFileKey(req.businessLicenseFileKey())
                 .build());
@@ -153,9 +154,11 @@ public class MemberService {
                     .residence(req.residence())
                     .build());
         } else {
-            if (isBlank(req.facilityName()) || isBlank(req.businessRegistrationNumber())
+            if (isBlank(req.facilityName()) || req.facilityType() == null
+                    || isBlank(req.businessRegistrationNumber())
                     || isBlank(req.businessLicenseFileKey())) {
-                throw new BusinessException(ErrorCode.INVALID_INPUT, "시설 유형은 사업자 정보가 필수입니다.");
+                throw new BusinessException(ErrorCode.INVALID_INPUT,
+                        "시설 유형 선택 시 시설명·시설유형·사업자 정보가 필수입니다.");
             }
             String bizNo = normalizeBusinessNumber(req.businessRegistrationNumber());
             if (facilityProfileRepository.existsByBusinessRegistrationNumber(bizNo)) {
@@ -164,6 +167,7 @@ public class MemberService {
             facilityProfileRepository.save(FacilityProfile.builder()
                     .member(member)
                     .facilityName(req.facilityName())
+                    .facilityType(req.facilityType())
                     .businessRegistrationNumber(bizNo)
                     .businessLicenseFileKey(req.businessLicenseFileKey())
                     .build());
