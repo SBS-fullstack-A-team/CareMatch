@@ -1,5 +1,5 @@
 import { REGION_SHORTCUTS } from '@/data/filters'
-import { employmentTypeLabel, jobCategoryLabel, workScheduleLabel } from '@/data/labels'
+import { employmentTypeLabel, facilityTypeLabel, jobCategoryLabel, workScheduleLabel } from '@/data/labels'
 import type { Job } from '@/types'
 
 /* =========================================================================
@@ -86,7 +86,7 @@ export function matchesSearch(job: Job, query: JobSearchQuery) {
     const haystack = [
       job.title,
       job.facilityName,
-      job.facilityType,
+      facilityTypeLabel(job.facilityType),
       jobCategoryLabel(job.category),
       job.region,
       job.district,

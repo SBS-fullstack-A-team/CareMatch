@@ -2,7 +2,7 @@ import { Building2, Clock, MapPin } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { isPromoted, JobBadge } from '@/components/job/job-badge'
 import { MatchingReasonChips, MatchingScoreBadge } from '@/components/matching/matching-score'
-import { jobCategoryLabel, workScheduleLabel } from '@/data/labels'
+import { facilityTypeLabel, jobCategoryLabel, workScheduleLabel } from '@/data/labels'
 import { cn, formatDotDate, formatPay } from '@/lib/utils'
 import type { Job } from '@/types'
 
@@ -43,7 +43,7 @@ export function JobCard({ job, className }: { job: Job; className?: string }) {
 
         <div className="min-w-0">
           <p className="truncate text-sm text-fg-muted">{job.facilityName}</p>
-          <p className="truncate text-sm text-fg-subtle">{job.facilityType}</p>
+          <p className="truncate text-sm text-fg-subtle">{facilityTypeLabel(job.facilityType)}</p>
           <h3 className="mt-1 text-lg font-bold text-fg">
             <Link to={`/jobs/${job.id}`} className="after:absolute after:inset-0">
               {jobCategoryLabel(job.category)}

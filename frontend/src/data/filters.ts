@@ -92,12 +92,13 @@ export const CATEGORY_OPTIONS: SelectOption[] = [
   { value: 'HOUSEKEEPER', label: '가사도우미' },
 ]
 
+/** 시설유형 — value 는 API enum name, label 은 한글 (docs/ENUM_MAPPING.md §4) */
 export const FACILITY_TYPE_OPTIONS: SelectOption[] = [
-  { value: '방문요양센터', label: '방문요양센터' },
-  { value: '요양원', label: '요양원' },
-  { value: '주야간보호센터', label: '주야간보호센터' },
-  { value: '재가복지센터', label: '재가복지센터' },
-  { value: '요양병원', label: '요양병원' },
+  { value: 'VISITING_CARE', label: '방문요양센터' },
+  { value: 'NURSING_HOME', label: '요양원' },
+  { value: 'DAY_NIGHT_CARE', label: '주야간보호센터' },
+  { value: 'COMMUNITY_CARE', label: '재가복지센터' },
+  { value: 'NURSING_HOSPITAL', label: '요양병원' },
 ]
 
 /** 고용형태 — value 는 API enum name, label 은 한글 (docs/ENUM_MAPPING.md §3) */
