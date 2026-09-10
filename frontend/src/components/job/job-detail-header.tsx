@@ -11,7 +11,7 @@ import type { Job } from '@/types'
 /**
  * 공고 핵심 정보 (COMPONENT_RULES.md §22 Job Header)
  *
- * 시각적 우선순위: 공고 제목 > 시설명 > 급여 > 지역·근무형태 > 등록일
+ * 시각적 우선순위: 공고 제목 > 시설명 > 급여 > 지역·근무 시간대 > 등록일
  * 시설명이 제목보다 커지지 않도록 시설명은 제목 위 보조 라인으로 둔다.
  * 상태 배지는 목록과 동일하게 5종을 모두 노출한다.
  */
@@ -39,7 +39,7 @@ export function JobDetailHeader({ job, className }: { job: Job; className?: stri
               </dd>
             </div>
             <div className="flex items-center gap-1.5">
-              <dt className="sr-only">근무형태와 근무시간</dt>
+              <dt className="sr-only">근무 시간대와 근무시간</dt>
               <Clock className="size-[18px] shrink-0 text-fg-subtle" aria-hidden />
               <dd className="tabular">
                 {job.workSchedule ? `${workScheduleLabel(job.workSchedule)} · ` : ''}

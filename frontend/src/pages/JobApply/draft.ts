@@ -100,6 +100,6 @@ export function validateDraft(draft: JobApplyDraft) {
   const errors: Partial<Record<RequiredField, string>> = {}
   if (!draft.category) errors.category = '희망 직종을 선택해 주세요.'
   if (!draft.sido) errors.sido = '희망 지역을 선택해 주세요.'
-  if (!draft.workSchedule) errors.workSchedule = '근무 형태를 선택해 주세요.'
+  if (!draft.workSchedule) errors.workSchedule = '근무 시간대를 선택해 주세요.'
   return errors
 }

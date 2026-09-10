@@ -123,7 +123,7 @@ function WorkConditionSection({ job }: { job: Job }) {
           {job.region}
           {job.district && ` ${job.district}`}
         </DetailRow>
-        <DetailRow label="근무형태">{workScheduleLabel(job.workSchedule) || '-'}</DetailRow>
+        <DetailRow label="근무 시간대">{workScheduleLabel(job.workSchedule) || '-'}</DetailRow>
         <DetailRow label="근무시간">
           <span className="tabular">{job.workHours}</span>
         </DetailRow>

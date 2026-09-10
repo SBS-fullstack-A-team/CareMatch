@@ -7,7 +7,7 @@ import type { Job } from '@/types'
 
 /**
  * 스페셜 채용정보 카드 (DESIGN_SYSTEM.md §19)
- * 좌측: 상태 배지 / 시설명 / 공고 제목 / 지역 / 근무형태·급여
+ * 좌측: 상태 배지 / 시설명 / 공고 제목 / 지역 / 근무 시간대·급여
  * 우측: 시설 사진(90×70) + 짧은 홍보 문구
  *
  * 실제 사진이 없어도 동일한 크기의 영역을 유지한다. (§32)
@@ -41,7 +41,7 @@ export function SpecialJobCard({ job, className }: { job: Job; className?: strin
             </dd>
           </div>
           <div className="flex items-center gap-1.5">
-            <dt className="sr-only">근무 형태와 급여</dt>
+            <dt className="sr-only">근무 시간대와 급여</dt>
             <Clock className="size-[18px] shrink-0 text-fg-subtle" aria-hidden />
             <dd className="flex flex-wrap items-center gap-x-2">
               <span className="whitespace-nowrap">{workScheduleLabel(job.workSchedule)}</span>

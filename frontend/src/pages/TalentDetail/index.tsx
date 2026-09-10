@@ -65,7 +65,7 @@ export function TalentDetailPage() {
             <dl>
               <DetailRow label="희망 지역">{talent.regions.join(' · ')}</DetailRow>
               <DetailRow label="희망 직종">{jobCategoryLabel(talent.category)}</DetailRow>
-              <DetailRow label="근무 형태">{workScheduleLabel(talent.workSchedule) || '-'}</DetailRow>
+              <DetailRow label="근무 시간대">{workScheduleLabel(talent.workSchedule) || '-'}</DetailRow>
               <DetailRow label="희망 근무시간">{talent.preferredHours}</DetailRow>
               <DetailRow label="희망 급여">
                 {talent.payType && (

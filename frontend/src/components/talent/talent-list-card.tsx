@@ -11,7 +11,7 @@ import type { Talent } from '@/types'
  * 인재정보 목록 카드.
  *
  * 메인의 TalentCard 는 요약·홍보 목적이라 정보가 고정되어 있고(DESIGN_SYSTEM.md §21),
- * 목록은 여러 인재를 비교·탐색하는 화면이라 근무형태·경력이 더 필요해 별도 컴포넌트로 둔다.
+ * 목록은 여러 인재를 비교·탐색하는 화면이라 근무 시간대·경력이 더 필요해 별도 컴포넌트로 둔다.
  * 카드 스타일(border 기반 white surface / radius 10 / 64px 원형 프로필)은 그대로 계승한다.
  *
  * 이름은 maskName() 으로 마스킹한다. (DESIGN_SYSTEM.md §21)
