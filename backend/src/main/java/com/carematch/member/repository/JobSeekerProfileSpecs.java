@@ -45,6 +45,9 @@ public final class JobSeekerProfileSpecs {
             if (c.desiredWorkType() != null) {
                 ps.add(cb.equal(root.get("desiredWorkType"), c.desiredWorkType()));
             }
+            if (!CollectionUtils.isEmpty(c.desiredWorkSchedules())) {
+                ps.add(root.get("desiredWorkSchedule").in(c.desiredWorkSchedules()));
+            }
             if (StringUtils.hasText(c.sido())) {
                 ps.add(cb.equal(root.get("desiredSido"), c.sido()));
             }
