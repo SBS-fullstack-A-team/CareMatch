@@ -5,6 +5,7 @@ import com.carematch.jobposting.domain.JobType;
 import com.carematch.jobposting.domain.PayType;
 import com.carematch.jobposting.domain.WorkSchedule;
 import com.carematch.jobposting.domain.WorkType;
+import com.carematch.jobposting.dto.JobPostingDtos.MatchReason;
 import com.carematch.member.domain.DesiredRegion;
 import com.carematch.member.domain.EmploymentStatus;
 import com.carematch.member.domain.JobSeekerProfile;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 class MatchScoreCalculatorTest {
 
@@ -160,29 +162,34 @@ class MatchScoreCalculatorTest {
     }
 
     @Test
-    void 일치한_항목만_사유에_담긴다() {
-        // 직종·근무형태·근무 시간대 일치, 지역은 시/도만 일치, 급여 미달
+    void 사유는_지정한_축마다_충족여부와_함께_담긴다() {
+        // 직종·시간대 일치, 지역은 시/도만 일치(미충족), 급여 미달(미충족). 근무형태 축은 사유 없음.
         JobSeekerProfile s = seeker(JobType.CAREGIVER, WorkType.COMMUTE, WorkSchedule.DAY, "서울특별시", "강남구", PayType.MONTHLY, 3_000_000);
         JobPosting p = posting(JobType.CAREGIVER, WorkType.COMMUTE, WorkSchedule.DAY, "서울특별시", "송파구", PayType.MONTHLY, 2_400_000);
         MatchScoreCalculator.MatchResult r = calculator.evaluate(s, p);
-        assertThat(r.reasons()).containsExactly(
-                "희망하는 직종과 일치해요",
-                "희망하는 시·도와 일치해요",
-                "희망하는 근무형태와 일치해요",
-                "희망하는 근무 시간대와 일치해요");
+        assertThat(r.reasons())
+                .extracting(MatchReason::kind, MatchReason::matched)
+                .containsExactly(
+                        tuple("category", true),
+                        tuple("region", false),
+                        tuple("schedule", true),
+                        tuple("pay", false));
+        assertThat(r.reasons()).filteredOn(mr -> mr.kind().equals("region"))
+                .singleElement().extracting(MatchReason::detail).isEqualTo("서울특별시 송파구");
     }
 
     @Test
-    void 근무지_완전일치면_급여충족_사유_포함() {
+    void 모두_충족이면_사유도_모두_matched() {
         JobSeekerProfile s = seeker(JobType.CAREGIVER, WorkType.COMMUTE, WorkSchedule.DAY, "서울특별시", "강남구", PayType.MONTHLY, 2_500_000);
         JobPosting p = posting(JobType.CAREGIVER, WorkType.COMMUTE, WorkSchedule.DAY, "서울특별시", "강남구", PayType.MONTHLY, 3_000_000);
         MatchScoreCalculator.MatchResult r = calculator.evaluate(s, p);
         assertThat(r.score()).isEqualTo(100);
-        assertThat(r.reasons()).containsExactly(
-                "희망하는 직종과 일치해요",
-                "희망하는 근무지와 일치해요",
-                "희망하는 근무형태와 일치해요",
-                "희망하는 근무 시간대와 일치해요",
-                "희망하는 급여 조건을 충족해요");
+        assertThat(r.reasons())
+                .extracting(MatchReason::kind, MatchReason::matched)
+                .containsExactly(
+                        tuple("category", true),
+                        tuple("region", true),
+                        tuple("schedule", true),
+                        tuple("pay", true));
     }
 }

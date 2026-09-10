@@ -67,7 +67,8 @@
 - [x] **요건/우대사항/복리후생** — `requirements`/`preferences`/`benefits` 상세 응답 배열. `preferredNote` 폐기. feature/be-jobposting-fields (V8)
 - [x] **경력무관 / minCareerYears** — `minCareerYears` 목록·상세 응답. 나머지 카드 태그는 프론트 파생. feature/be-jobposting-fields
 - [x] **스페셜 카드 문구(`catchphrase`)** — 목록·상세 응답. feature/be-jobposting-fields (V8)
-- [ ] **매칭 사유 구조화** — 프론트 `MatchingReason { kind, label, matched, detail }`, 백엔드 `matchingReasons: List<String>`(문구만). 홈 매칭칩에 구조체 필요. `JOBPOSTING_FIELDS.md §4` — 별도 PR
+- [x] **매칭 사유 구조화** — `matchingReasons: List<MatchReason{kind,label,matched,detail}>` (category/region/schedule/pay, 충족·미충족 모두). 상세 응답 전용. feature/be-match-reasons-structured
+  - [ ] 프론트: 문자열 변환 로직 제거하고 응답 구조체 직접 매핑
 - [ ] **페이지 크기** — 프론트가 목록 쿼리에 `?size=10` 명시 (백엔드 변경 없음). feature/fe-*
 
 ### 인재정보

@@ -2,6 +2,7 @@ package com.carematch.jobposting.service;
 
 import com.carematch.jobposting.domain.JobPosting;
 import com.carematch.jobposting.domain.WorkType;
+import com.carematch.jobposting.dto.JobPostingDtos.MatchReason;
 import com.carematch.member.domain.DesiredRegion;
 import com.carematch.member.domain.JobSeekerProfile;
 import org.springframework.stereotype.Component;
@@ -34,9 +35,10 @@ public class MatchScoreCalculator {
 
     /**
      * 매칭 결과. 채점 불가면 {@code score == null} 이고 {@code reasons} 는 빈 리스트.
-     * {@code reasons} 는 실제로 일치한 항목만 담는다(상세 화면 "이래서 잘 맞아요" 문구용).
+     * {@code reasons} 는 구직자가 지정한 희망조건 축마다 하나씩(충족/미충족 모두). 상세 화면 "매칭 사유"용.
+     * 근무형태(WorkType) 축은 점수엔 반영하되 별도 사유 칩은 만들지 않는다(프론트 kind 없음).
      */
-    public record MatchResult(Integer score, List<String> reasons) {
+    public record MatchResult(Integer score, List<MatchReason> reasons) {
         static final MatchResult NONE = new MatchResult(null, List.of());
     }
 
@@ -53,50 +55,46 @@ public class MatchScoreCalculator {
 
         double earned = 0;
         int total = 0;
-        List<String> reasons = new ArrayList<>();
+        List<MatchReason> reasons = new ArrayList<>();
 
         if (seeker.getDesiredJobType() != null) {
             total += W_JOB_TYPE;
-            if (seeker.getDesiredJobType() == posting.getJobType()) {
+            boolean matched = seeker.getDesiredJobType() == posting.getJobType();
+            if (matched) {
                 earned += W_JOB_TYPE;
-                reasons.add("희망하는 직종과 일치해요");
             }
+            reasons.add(new MatchReason("category", "직종 일치", matched, posting.getJobType().name()));
         }
 
         if (!seeker.getDesiredRegions().isEmpty()) {
             total += W_REGION;
             double ratio = bestRegionRatio(seeker, posting);
             earned += W_REGION * ratio;
-            if (ratio >= 1.0) {
-                reasons.add("희망하는 근무지와 일치해요");
-            } else if (ratio > 0) {
-                reasons.add("희망하는 시·도와 일치해요");
-            }
+            reasons.add(new MatchReason("region", "지역 일치", ratio >= 1.0,
+                    posting.getSido() + " " + posting.getSigungu()));
         }
 
         if (seeker.getDesiredWorkType() != null) {
             total += W_WORK_TYPE;
             if (workTypeMatches(seeker.getDesiredWorkType(), posting.getWorkType())) {
                 earned += W_WORK_TYPE;
-                reasons.add("희망하는 근무형태와 일치해요");
             }
         }
 
         if (seeker.getDesiredWorkSchedule() != null && posting.getWorkSchedule() != null) {
             total += W_WORK_SCHEDULE;
-            if (seeker.getDesiredWorkSchedule() == posting.getWorkSchedule()) {
+            boolean matched = seeker.getDesiredWorkSchedule() == posting.getWorkSchedule();
+            if (matched) {
                 earned += W_WORK_SCHEDULE;
-                reasons.add("희망하는 근무 시간대와 일치해요");
             }
+            reasons.add(new MatchReason("schedule", "근무 시간대 일치", matched, posting.getWorkSchedule().name()));
         }
 
         if (seeker.getDesiredPayType() != null && seeker.getDesiredMinPay() != null) {
             total += W_PAY;
             double ratio = payRatio(seeker, posting);
             earned += W_PAY * ratio;
-            if (ratio >= 1.0) {
-                reasons.add("희망하는 급여 조건을 충족해요");
-            }
+            reasons.add(new MatchReason("pay", "급여 조건 충족", ratio >= 1.0, null));
         }
 
         if (total == 0) {
