@@ -1,5 +1,6 @@
 package com.carematch.member.dto;
 
+import com.carematch.common.masking.MaskingUtil;
 import com.carematch.jobposting.domain.EmploymentType;
 import com.carematch.jobposting.domain.JobType;
 import com.carematch.jobposting.domain.PayType;
@@ -82,10 +83,11 @@ public final class TalentSearchDtos {
         }
     }
 
-    /** 인재 목록 카드. */
+    /** 인재 목록 카드. 승인 시설회원 / 관리자만 조회. */
     public record TalentSummary(
             Long profileId,
             Long memberId,
+            /** 마스킹된 이름(홍*동). 목록에는 실명을 싣지 않는다 — 상세에서 연락처 열람 시 언마스크. */
             String name,
             String employmentStatus,
             String gender,
@@ -112,7 +114,7 @@ public final class TalentSearchDtos {
         public static TalentSummary from(JobSeekerProfile p, List<String> certificateNames, Integer matchingScore) {
             Integer age = p.getBirthYear() == null ? null : Year.now().getValue() - p.getBirthYear();
             return new TalentSummary(
-                    p.getId(), p.getMember().getId(), p.getMember().getName(),
+                    p.getId(), p.getMember().getId(), MaskingUtil.maskName(p.getMember().getName()),
                     p.getEmploymentStatus().name(),
                     name(p.getGender()), age, p.getPhotoUrl(), p.getCareerYears(), name(p.getEducation()),
                     name(p.getDesiredJobType()), name(p.getDesiredWorkType()),

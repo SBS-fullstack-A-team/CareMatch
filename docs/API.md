@@ -221,10 +221,12 @@ GET /api/terms
 | GET | `/api/jobseekers` | FACILITY(승인)·ADMIN | 인재 검색 목록 (`PageResponse<TalentSummary>`) |
 | GET | `/api/jobseekers/me` | JOBSEEKER | 내 프로필(전체 공개) + 자격증 서명 URL |
 | PUT | `/api/jobseekers/me` | JOBSEEKER | 내 프로필 수정(인적사항·표시필드·희망 근무조건 전체 덮어쓰기) |
-| GET | `/api/jobseekers/{profileId}` | FACILITY(승인)·ADMIN | 인재 상세(연락처/거주지 마스킹) |
+| GET | `/api/jobseekers/{profileId}` | FACILITY(승인)·ADMIN | 인재 상세(이름/연락처/거주지 마스킹) |
 | POST | `/api/jobseekers/{profileId}/contact/unlock` | FACILITY(승인) | 연락처 열람하기 |
 
+- **인재 정보는 비공개.** `/api/jobseekers`(목록·상세)는 승인 시설회원·관리자 전용 — 비로그인/구직자/미승인 시설은 접근 불가. 프론트 `/talents`·`/talents/:id` 도 동일 게이트를 둔다(공개 노출 안 함).
 - 미승인(PENDING/REJECTED) 시설회원이 `/api/jobseekers/**` 접근 → `403 FACILITY_NOT_APPROVED`
+- **이름 마스킹**: 목록(`TalentSummary.name`)은 항상 마스킹(`홍*동`). 상세는 마스킹하되 그 인재의 연락처를 열람(unlock)했으면 실명. 본인(`/me`)은 항상 실명. (연락처·거주지와 동일 규칙)
 - 희망 근무조건(`desired*`)은 전부 선택. 매칭 스코어 계산 근거이며, 미설정 시 응답에서 `null`.
 
 ### 인재 검색 (`GET /api/jobseekers`)
@@ -260,7 +262,7 @@ enum `JobType` = `CAREGIVER/CARE_ATTENDANT/NURSE_AIDE/SOCIAL_WORKER/LIFE_SUPPORT
 
 ```http
 GET /api/jobseekers?desiredJobType=CAREGIVER&sido=서울특별시&sigungu=강남구&gender=FEMALE&careerBuckets=Y3_5&careerBuckets=Y5_PLUS&sort=CAREER_DESC     (Authorization: Bearer <FACILITY>)
-200 { "content": [ { "profileId": 42, "name": "김미영", "employmentStatus": "SEEKING",
+200 { "content": [ { "profileId": 42, "name": "김*영", "employmentStatus": "SEEKING",   // 목록은 이름 항상 마스킹
         "gender": "FEMALE", "age": 52, "photoUrl": "https://...", "careerYears": 3, "education": "HIGH_SCHOOL",
         "desiredJobType": "CAREGIVER", "desiredSido": "서울특별시", "desiredSigungu": "강남구",
         "desiredPayType": "HOURLY", "desiredMinPay": 13000,
@@ -311,7 +313,7 @@ PUT /api/jobseekers/me        (Authorization: Bearer <JOBSEEKER>)
 ```http
 GET /api/jobseekers/42        (Authorization: Bearer <FACILITY>)
 200 {
-  "profileId": 42, "memberId": 12, "name": "홍길동",
+  "profileId": 42, "memberId": 12, "name": "홍*동",   // 마스킹 (unlock 시 "홍길동")
   "employmentStatus": "SEEKING",
   "phone": "010-****-5678",              // 마스킹
   "residence": "서울특별시 강남구",       // 마스킹
@@ -591,7 +593,7 @@ DELETE /api/job-posting-drafts/7     → 204
 | PATCH | `/api/applications/{id}/status` | 공고 작성 시설 | 수락/반려 (`{"status":"ACCEPTED"\|"REJECTED"}`, APPLIED 에서만, 204) |
 
 - 상태: `APPLIED`(지원 완료) → 지원자 `CANCELED` / 시설 `ACCEPTED`·`REJECTED`. `CANCELED` 후 재지원 시 같은 행이 `APPLIED` 로 되살아남.
-- **지원 시 그 시설에 연락처 무료 열람 권한이 자동 부여된다** (0P 이력 저장). 이후 시설이 그 지원자 상세를 보면 연락처·거주지가 언마스크됨 (`POST .../contact/unlock` 안 해도 됨).
+- **지원 시 그 시설에 연락처 무료 열람 권한이 자동 부여된다** (0P 이력 저장). 이후 시설이 그 지원자 상세를 보면 이름·연락처·거주지가 언마스크됨 (`POST .../contact/unlock` 안 해도 됨).
 - `ApplicantResponse`: `applicationId, status, appliedAt, processedAt, message, profileId, memberId, applicantName, employmentStatus, desiredJobType, certificateNames[], matchingScore` — `matchingScore` 는 이 공고 ↔ 지원자 희망조건.
 - `MyApplicationResponse`: `applicationId, status, appliedAt, processedAt, message, jobPostingId, title, facilityName, sido, sigungu, deadline, dDay, postingStatus`.
 - 에러: 이미 지원 409 `APPLICATION_002` / 마감 공고 지원 409 `APPLICATION_003` / 잘못된 상태 전이(APPLIED 아닌데 취소·결정) 409 `APPLICATION_004` / decision 값이 ACCEPTED·REJECTED 아님 → 400 `COMMON_001` / 남의 지원 접근·없는 id → 404 `APPLICATION_001` / 타 시설이 지원자목록 조회 → 403 `JOBPOSTING_002`.
