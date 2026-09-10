@@ -241,7 +241,8 @@ GET /api/terms
 | `sort` | string | `LATEST`(기본, 최근 갱신순) — 매칭점수 정렬은 SQL 불가로 미지원(구인공고 RECOMMENDED 와 동일 제약) |
 | `page` / `size` | int | 기본 0 / 20. size 상한 100 |
 
-enum: `CareTask` = `DAILY_LIFE_SUPPORT/MEAL_SUPPORT/BATH_SUPPORT/MOBILITY_SUPPORT/COGNITIVE_ACTIVITY/PERSONAL_HYGIENE/HOUSEWORK/HOSPITAL_ESCORT`,
+enum: `JobType` = `CAREGIVER/CARE_ATTENDANT/NURSE_AIDE/SOCIAL_WORKER/LIFE_SUPPORT/HOUSEKEEPER/ETC` (한글 라벨·정의는 [`ENUM_MAPPING.md`](./ENUM_MAPPING.md) §1),
+`CareTask` = `DAILY_LIFE_SUPPORT/MEAL_SUPPORT/BATH_SUPPORT/MOBILITY_SUPPORT/COGNITIVE_ACTIVITY/PERSONAL_HYGIENE/HOUSEWORK/HOSPITAL_ESCORT`,
 `EmploymentType` = `FULL_TIME/CONTRACT/TEMPORARY/PART_TIME`, `Gender` = `MALE/FEMALE`, `EducationLevel` = `MIDDLE_SCHOOL/HIGH_SCHOOL/ASSOCIATE/BACHELOR/GRADUATE`.
 
 - `TalentSummary`: `profileId, memberId, name, employmentStatus, gender, age, photoUrl, careerYears, education, desired*, desiredWorkDays, desiredWorkStartTime, desiredWorkEndTime, certificateNames[], updatedAt, matchingScore`
@@ -484,7 +485,7 @@ GET /api/job-postings?page=0&size=20
 | 파라미터 | 타입 | 설명 |
 |---|---|---|
 | `sido` / `sigungu` | string | 지역(정확히 일치) |
-| `jobTypes` | enum[] | 직종 다중 (`?jobTypes=CAREGIVER&jobTypes=HOUSEKEEPER`) |
+| `jobTypes` | enum[] | 직종(`JobType`) 다중 (`?jobTypes=CAREGIVER&jobTypes=HOUSEKEEPER`). 값 목록은 [`ENUM_MAPPING.md`](./ENUM_MAPPING.md) §1 |
 | `workTypes` / `employmentTypes` / `careGrades` / `mobilityStatuses` | enum[] | 각 다중 |
 | `payType` | enum | HOURLY/DAILY/MONTHLY |
 | `payMin` / `payMax` | int | 급여 범위. payType 없이 쓰면 시급·월급이 섞이니 함께 지정 권장 |

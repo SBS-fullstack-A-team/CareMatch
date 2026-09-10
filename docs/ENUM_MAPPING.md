@@ -40,16 +40,15 @@
 - 현재 enum name 은 "간호조무사"인데 주석·데이터 의미는 "간병인" → 방치 시 프론트가 오해.
 - `NURSING_ASSISTANT` 이름은 완전히 버리고, 간병인은 `CARE_ATTENDANT`, 간호조무사는 `NURSE_AIDE` 로 분리.
 
-### 작업 (백엔드)
+### 작업 (백엔드) — 구현: `feature/be-jobtype-enum`
 
-- [ ] `JobType` enum 값 교체
-- [ ] V3 마이그레이션
+- [x] `JobType` enum 값 교체
+- [x] V3 마이그레이션 (`V3__jobtype_redefine.sql`)
   - `job_posting.job_type`, `jobseeker_profile.desired_job_type` 의 `CHECK` 제약 drop → 신규 값으로 재생성
-  - `UPDATE job_posting SET job_type = 'CARE_ATTENDANT' WHERE job_type = 'NURSING_ASSISTANT'`
-  - `jobseeker_profile.desired_job_type` 동일 처리
-  - 인덱스 `(status, sigungu, job_type)` 재생성 확인
-- [ ] 시드(`config/LocalDataInitializer`) 갱신
-- [ ] 영향 지점 확인: `MatchScoreCalculator`(equality 비교), `TalentMatcher`, `JobSeekerProfileSpecs`, `ApplicationDtos`
+  - `UPDATE ... SET job_type = 'CARE_ATTENDANT' WHERE job_type = 'NURSING_ASSISTANT'` (두 테이블)
+  - 인덱스 `(status, sigungu, job_type)` — 값 변경만이라 재생성 불필요 (확인 완료)
+- [x] 시드 — `LocalDataInitializer` 는 공고/구직 시드 없음(약관·관리자·공지만) → 변경 불필요
+- [x] 영향 지점: `MatchScoreCalculator`(값 무관 equality), `TalentMatcher`·`ApplicationDtos`(`.name()` 문자열), `JobSeekerProfileSpecs`(값 무관) — 코드 변경 없음. 기존 테스트는 `NURSING_ASSISTANT` 미사용
 
 ### 작업 (프론트)
 
