@@ -156,8 +156,8 @@ pill 형태는 §8(과도한 pill 금지)의 명시적 예외입니다.
 - [x] **인재정보 목록** — 검색·필터·정렬·페이지네이션 (mock 데이터 기준)
 - [x] **인재정보 상세** — 화면 구현 완료 (연락처 열람은 API 연동 단계)
 - [x] **구직신청** — 구직 프로필 작성 폼 (임시저장은 localStorage, 저장 API 미연결)
+- [x] **회원가입** — 개인회원(구직자) 가입, 실제 API 연동 (시설회원 제외)
 - [ ] 구인공고 등록
-- [ ] 로그인 / 회원가입
 
 ## 메인 화면 구현 메모
 
@@ -343,6 +343,41 @@ Breadcrumb → 페이지 제목
 `PUT /api/jobseekers/me` 가 백엔드에 있지만 프론트에 jobseeker API 계층이 없어
 "구직신청 등록"은 화면상의 완료 처리까지만 합니다. 완료 안내에서 그 사실을 밝히고,
 `/talents` 와 입력한 희망조건이 반영된 `/jobs` 검색으로 이동할 수 있게 했습니다.
+
+## 회원가입 구현 메모
+
+라우트는 `/signup` 이며 **개인회원(구직자)만** 구현했습니다. mock 이 아니라 **실제 백엔드에 연결**됩니다.
+
+| 기능 | API |
+| --- | --- |
+| 아이디·이메일 중복 확인 | `GET /api/members/exists` |
+| 인증코드 발송 / 검증 | `POST /api/verifications/send` · `/verify` |
+| 약관 조회 / 본문 | `GET /api/terms` · `GET /api/terms/{type}` |
+| 가입 | `POST /api/members/jobseekers` |
+
+- 폼 상태는 Login 과 동일하게 `useState` 입니다. 공유 UI 가 `forwardRef` 가 아니라 react-hook-form 은 쓰지 않습니다.
+- **필수 약관은 서버 `TermsType` enum(SERVICE·PRIVACY)을 기준으로 판단합니다.**
+  `GET /api/terms` 의 `required` 는 DB 시드값이라 현재 SERVICE/PRIVACY 도 `false` 로 내려와 신뢰할 수 없습니다.
+  실제 강제는 `TermsService.recordSignupAgreements()` 가 enum 으로 합니다.
+- 약관 `version` 은 하드코딩하지 않고 `GET /api/terms` 응답값을 그대로 전송합니다.
+  (다르면 서버가 `TERMS_REAGREEMENT_REQUIRED` 로 거절)
+- 마케팅 미동의도 `agreed: false` 로 배열에 포함해 보냅니다 (`agreements` 는 `@NotEmpty`).
+- 서버 `fieldErrors` 를 필드별로 연결합니다. 이름이 다른 3개는 매핑합니다 —
+  `verificationChannel`/`verificationTarget` → 본인인증, `agreements` → 약관.
+- **가입 후 자동 로그인은 하지 않습니다.** 서버가 토큰을 주지 않으므로 완료 Modal → `/login` 으로 보냅니다.
+  `tokenStore.set()` 을 직접 호출하지 않습니다.
+- 시설회원 탭은 선택할 수 있지만 **가입 API 를 연결하지 않았습니다.** 사업자등록증 업로드
+  (`businessLicenseFileKey` 필수)에 필요한 파일 업로드 인프라가 프론트에 없어 안내 문구만 표시합니다.
+
+### 로컬 개발 시 CORS 주의
+
+배포 백엔드(Render)는 `CORS_ALLOWED_ORIGINS` 가 Vercel 도메인으로 설정되어 있어
+`http://localhost:5173` 요청을 **403 으로 막습니다**. 로컬에서 회원가입 API 를 실제로 호출하려면
+둘 중 하나가 필요합니다.
+
+- 백엔드를 로컬 실행 (`cd backend && ./gradlew bootRun`) 후 `.env.local` 을 `http://localhost:8080` 으로
+  (백엔드 기본 CORS 설정에 `localhost:5173` 이 포함되어 있습니다)
+- 또는 Render 환경변수 `CORS_ALLOWED_ORIGINS` 에 `http://localhost:5173` 추가
 
 ## 알려진 제약
 
