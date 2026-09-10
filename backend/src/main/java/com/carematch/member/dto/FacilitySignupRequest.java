@@ -1,5 +1,6 @@
 package com.carematch.member.dto;
 
+import com.carematch.member.domain.FacilityType;
 import com.carematch.verification.domain.VerificationChannel;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -36,6 +37,9 @@ public record FacilitySignupRequest(
 
         @NotBlank @Size(max = 100)
         String facilityName,
+
+        @NotNull
+        FacilityType facilityType,
 
         @NotBlank
         @Pattern(regexp = "^\\d{3}-?\\d{2}-?\\d{5}$", message = "사업자등록번호는 10자리 숫자여야 합니다.")

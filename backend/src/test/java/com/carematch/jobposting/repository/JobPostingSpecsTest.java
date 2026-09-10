@@ -14,6 +14,7 @@ import com.carematch.jobposting.domain.WorkSchedule;
 import com.carematch.jobposting.domain.WorkType;
 import com.carematch.jobposting.dto.JobPostingDtos.SearchCondition;
 import com.carematch.member.domain.FacilityProfile;
+import com.carematch.member.domain.FacilityType;
 import com.carematch.member.domain.Member;
 import com.carematch.member.domain.Role;
 import jakarta.persistence.EntityManager;
@@ -79,11 +80,56 @@ class JobPostingSpecsTest {
     }
 
     private SearchCondition payTypes(List<PayType> payTypes) {
-        return new SearchCondition(null, null, null, null, null, null, null, null, payTypes, null, null, null);
+        return new SearchCondition(null, null, null, null, null, null, null, null, null, payTypes, null, null, null);
+    }
+
+    private SearchCondition facilityTypes(List<FacilityType> facilityTypes) {
+        return new SearchCondition(null, null, null, facilityTypes, null, null, null, null, null, null, null, null, null);
+    }
+
+    private int fSeq = 0;
+
+    /** 지정한 시설유형의 새 시설을 만들어 그 공고를 저장한다. */
+    private void postingOfFacilityType(FacilityType type) {
+        fSeq++;
+        Member m = Member.builder()
+                .loginId("fac-ft-" + fSeq).password("x").email("ft" + fSeq + "@t.com").name("F")
+                .phone("010-1111-000" + fSeq).role(Role.FACILITY).verified(true).build();
+        em.persist(m);
+        FacilityProfile fp = FacilityProfile.builder()
+                .member(m).facilityName("C").facilityType(type)
+                .businessRegistrationNumber("111-11-1111" + fSeq).build();
+        em.persist(fp);
+        em.persist(JobPosting.builder()
+                .facilityProfile(fp)
+                .title("t").jobType(JobType.CAREGIVER)
+                .workType(WorkType.COMMUTE).employmentType(EmploymentType.CONTRACT)
+                .workDays("Mon-Fri").workStartTime(LocalTime.of(9, 0)).workEndTime(LocalTime.of(12, 0))
+                .payType(PayType.MONTHLY).payAmount(3_000_000).recruitCount(1).deadline(LocalDate.now().plusDays(30))
+                .sido("Seoul").sigungu("Gangnam")
+                .careGrade(CareGrade.GRADE_4).elderGender(ElderGender.FEMALE)
+                .mobilityStatus(MobilityStatus.INDEPENDENT).mealStatus(MealStatus.ASSIST)
+                .cognitiveStatus(CognitiveStatus.NORMAL).exposureType(ExposureType.NORMAL).build());
+    }
+
+    @Test
+    void facilityTypes_다중선택은_OR_로_필터된다() {
+        postingOfFacilityType(FacilityType.NURSING_HOME);
+        postingOfFacilityType(FacilityType.VISITING_CARE);
+        postingOfFacilityType(FacilityType.NURSING_HOSPITAL);
+        em.flush();
+        em.clear();
+
+        List<JobPosting> result = repository.findAll(
+                JobPostingSpecs.from(facilityTypes(List.of(FacilityType.NURSING_HOME, FacilityType.NURSING_HOSPITAL))),
+                Pageable.unpaged()).getContent();
+
+        assertThat(result).extracting(jp -> jp.getFacilityProfile().getFacilityType())
+                .containsExactlyInAnyOrder(FacilityType.NURSING_HOME, FacilityType.NURSING_HOSPITAL);
     }
 
     private SearchCondition workSchedules(List<WorkSchedule> workSchedules) {
-        return new SearchCondition(null, null, null, null, workSchedules, null, null, null, null, null, null, null);
+        return new SearchCondition(null, null, null, null, null, workSchedules, null, null, null, null, null, null, null);
     }
 
     @Test

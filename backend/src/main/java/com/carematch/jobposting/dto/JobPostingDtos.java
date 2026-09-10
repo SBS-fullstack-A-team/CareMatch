@@ -14,6 +14,7 @@ import com.carematch.jobposting.domain.PayType;
 import com.carematch.jobposting.domain.WorkSchedule;
 import com.carematch.jobposting.domain.WorkType;
 import com.carematch.member.domain.FacilityProfile;
+import com.carematch.member.domain.FacilityType;
 import com.carematch.member.domain.Member;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.DecimalMax;
@@ -58,6 +59,7 @@ public final class JobPostingDtos {
             String sido,
             String sigungu,
             List<JobType> jobTypes,
+            List<FacilityType> facilityTypes,
             List<WorkType> workTypes,
             /** 근무 시간대(주간/오전/오후/야간/교대) 다중(OR). */
             List<WorkSchedule> workSchedules,
@@ -231,12 +233,15 @@ public final class JobPostingDtos {
             boolean isRecommended,
 
             long viewCount,
+            /** 지원자 수 (취소 제외). */
+            long applicantCount,
             LocalDateTime createdAt,
             LocalDateTime updatedAt,
 
-            // 시설 정보 (연락처는 무료 공개). 시설유형/담당자/주소는 FacilityProfile 확장 후 채운다(TODO).
+            // 시설 정보 (연락처는 무료 공개). 담당자/전체주소는 아직 미노출(docs/JOBPOSTING_FIELDS.md §1).
             Long facilityMemberId,
             String facilityName,
+            FacilityType facilityType,
             String facilityPhone,
 
             /** 매칭 스코어(0~100). 로그인한 구직자가 희망조건을 설정한 경우만 채워지고, 그 외에는 null. */
@@ -249,15 +254,16 @@ public final class JobPostingDtos {
             Boolean scrapped
     ) {
         public static DetailResponse from(JobPosting jp, Integer matchingScore) {
-            return from(jp, matchingScore, null, null);
+            return from(jp, matchingScore, null, null, 0L);
         }
 
         public static DetailResponse from(JobPosting jp, Integer matchingScore, Boolean scrapped) {
-            return from(jp, matchingScore, null, scrapped);
+            return from(jp, matchingScore, null, scrapped, 0L);
         }
 
         public static DetailResponse from(JobPosting jp, Integer matchingScore,
-                                          List<String> matchingReasons, Boolean scrapped) {
+                                          List<String> matchingReasons, Boolean scrapped,
+                                          long applicantCount) {
             FacilityProfile fp = jp.getFacilityProfile();
             Member m = fp.getMember();
             Long dDay = jp.getDeadline() == null ? null
@@ -274,8 +280,8 @@ public final class JobPostingDtos {
                     jp.getDuties(), jp.getRequiredDocuments(),
                     jp.getStatus(), jp.getExposureType(),
                     calcNew(jp), calcClosingSoon(jp, dDay), calcRecommended(matchingScore),
-                    jp.getViewCount(), jp.getCreatedAt(), jp.getUpdatedAt(),
-                    m.getId(), fp.getFacilityName(), m.getPhone(),
+                    jp.getViewCount(), applicantCount, jp.getCreatedAt(), jp.getUpdatedAt(),
+                    m.getId(), fp.getFacilityName(), fp.getFacilityType(), m.getPhone(),
                     matchingScore, matchingReasons == null ? List.of() : matchingReasons, scrapped);
         }
     }
@@ -301,37 +307,46 @@ public final class JobPostingDtos {
             LocalDate deadline,
             Long dDay,
             long viewCount,
+            /** 지원자 수 (취소 제외). */
+            long applicantCount,
             JobPostingStatus status,
             ExposureType exposureType,
             boolean isNew,
             boolean isClosingSoon,
             boolean isRecommended,
             String facilityName,
+            FacilityType facilityType,
             Integer matchingScore,
             /** 로그인 회원의 찜 여부. 비로그인이면 null. */
             Boolean scrapped
     ) {
         public static SummaryResponse from(JobPosting jp) {
-            return from(jp, null, null);
+            return from(jp, null, null, 0L);
         }
 
         public static SummaryResponse from(JobPosting jp, Boolean scrapped) {
-            return from(jp, scrapped, null);
+            return from(jp, scrapped, null, 0L);
         }
 
         public static SummaryResponse from(JobPosting jp, Boolean scrapped, Integer matchingScore) {
+            return from(jp, scrapped, matchingScore, 0L);
+        }
+
+        public static SummaryResponse from(JobPosting jp, Boolean scrapped, Integer matchingScore,
+                                           long applicantCount) {
             Long dDay = jp.getDeadline() == null ? null
                     : ChronoUnit.DAYS.between(LocalDate.now(), jp.getDeadline());
+            FacilityProfile fp = jp.getFacilityProfile();
             return new SummaryResponse(
                     jp.getId(), jp.getTitle(), jp.getJobType(), jp.getThumbnailUrl(),
                     jp.getSido(), jp.getSigungu(), jp.getWorkSchedule(),
                     jp.getWorkDays(), jp.getWorkStartTime(), jp.getWorkEndTime(),
                     jp.getPayType(), jp.getPayAmount(),
                     jp.getCareGrade(), jp.getElderGender(), jp.getMobilityStatus(),
-                    jp.getDuties(), jp.getDeadline(), dDay, jp.getViewCount(),
+                    jp.getDuties(), jp.getDeadline(), dDay, jp.getViewCount(), applicantCount,
                     jp.getStatus(), jp.getExposureType(),
                     calcNew(jp), calcClosingSoon(jp, dDay), calcRecommended(matchingScore),
-                    jp.getFacilityProfile().getFacilityName(), matchingScore, scrapped);
+                    fp.getFacilityName(), fp.getFacilityType(), matchingScore, scrapped);
         }
     }
 

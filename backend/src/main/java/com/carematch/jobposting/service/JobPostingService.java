@@ -1,5 +1,6 @@
 package com.carematch.jobposting.service;
 
+import com.carematch.application.repository.ApplicationRepository;
 import com.carematch.common.exception.BusinessException;
 import com.carematch.common.exception.ErrorCode;
 import com.carematch.jobposting.domain.ExposureType;
@@ -45,7 +46,7 @@ import java.util.Set;
  * 목록/상세/비슷한공고/featured 응답에 채운다. 그 외(비로그인·시설회원·희망조건 미설정)는 null.
  *
  * 미구현(TODO):
- *  - 시설유형/담당자/주소: FacilityProfile 확장 후 응답에 포함
+ *  - 담당자명/전체주소: docs/JOBPOSTING_FIELDS.md §1
  */
 @Service
 @RequiredArgsConstructor
@@ -63,6 +64,7 @@ public class JobPostingService {
     private final FacilityProfileRepository facilityProfileRepository;
     private final JobSeekerProfileRepository jobSeekerProfileRepository;
     private final ScrapRepository scrapRepository;
+    private final ApplicationRepository applicationRepository;
     private final PointService pointService;
     private final MatchScoreCalculator matchScoreCalculator;
 
@@ -139,6 +141,7 @@ public class JobPostingService {
 
         JobSeekerProfile viewer = viewerProfile(viewerMemberId);
         Set<Long> scrappedIds = scrappedIdsAmong(viewerMemberId, pageResult.getContent());
+        Map<Long, Long> applicantCounts = applicantCountsAmong(pageResult.getContent());
 
         Map<Long, Integer> scores = new HashMap<>();
         pageResult.getContent().forEach(jp -> scores.put(jp.getId(), matchScore(viewer, jp)));
@@ -155,7 +158,8 @@ public class JobPostingService {
 
         List<SummaryResponse> mapped = content.stream()
                 .map(jp -> SummaryResponse.from(jp,
-                        scrappedFlag(viewerMemberId, scrappedIds, jp.getId()), scores.get(jp.getId())))
+                        scrappedFlag(viewerMemberId, scrappedIds, jp.getId()), scores.get(jp.getId()),
+                        applicantCount(applicantCounts, jp.getId())))
                 .toList();
         return new PageResponse<>(mapped, pageResult.getNumber(), pageResult.getSize(),
                 pageResult.getTotalElements(), pageResult.getTotalPages());
@@ -195,16 +199,38 @@ public class JobPostingService {
         return viewerMemberId == null ? null : scrappedIds.contains(postingId);
     }
 
+    /** 여러 공고의 지원자 수(취소 제외). 지원자 없는 공고는 map 에 없다 → 0 취급. */
+    private Map<Long, Long> applicantCountsAmong(List<JobPosting> postings) {
+        if (postings.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, Long> counts = new HashMap<>();
+        applicationRepository.countByJobPostingIdIn(postings.stream().map(JobPosting::getId).toList())
+                .forEach(r -> counts.put(r.getPostingId(), r.getCount()));
+        return counts;
+    }
+
+    private static long applicantCount(Map<Long, Long> counts, Long postingId) {
+        return counts.getOrDefault(postingId, 0L);
+    }
+
+    /** 단건 지원자 수(취소 제외). */
+    private long applicantCountOf(Long postingId) {
+        return applicationRepository.countByJobPostingIdIn(List.of(postingId)).stream()
+                .findFirst().map(ApplicationRepository.PostingApplicantCount::getCount).orElse(0L);
+    }
+
     /** "소페셜 채용정보" 상단 노출 — 만료 안 된 SPECIAL 공고 상위 3. */
     public List<SummaryResponse> featured(Long viewerMemberId) {
         List<JobPosting> postings = jobPostingRepository
                 .findTop3ByStatusAndExposureTypeAndExposureExpiredAtAfterOrderByCreatedAtDesc(
                         JobPostingStatus.OPEN, ExposureType.SPECIAL, LocalDateTime.now());
         Set<Long> scrappedIds = scrappedIdsAmong(viewerMemberId, postings);
+        Map<Long, Long> applicantCounts = applicantCountsAmong(postings);
         JobSeekerProfile viewer = viewerProfile(viewerMemberId);
         return postings.stream()
                 .map(jp -> SummaryResponse.from(jp, scrappedFlag(viewerMemberId, scrappedIds, jp.getId()),
-                        matchScore(viewer, jp)))
+                        matchScore(viewer, jp), applicantCount(applicantCounts, jp.getId())))
                 .toList();
     }
 
@@ -236,10 +262,11 @@ public class JobPostingService {
                 .findTop6ByStatusAndSigunguAndJobTypeAndIdNotOrderByExposurePriorityDescCreatedAtDesc(
                         JobPostingStatus.OPEN, base.getSigungu(), base.getJobType(), jobPostingId);
         Set<Long> scrappedIds = scrappedIdsAmong(viewerMemberId, list);
+        Map<Long, Long> applicantCounts = applicantCountsAmong(list);
         JobSeekerProfile viewer = viewerProfile(viewerMemberId);
         return list.stream()
                 .map(jp -> SummaryResponse.from(jp, scrappedFlag(viewerMemberId, scrappedIds, jp.getId()),
-                        matchScore(viewer, jp)))
+                        matchScore(viewer, jp), applicantCount(applicantCounts, jp.getId())))
                 .toList();
     }
 
@@ -280,12 +307,14 @@ public class JobPostingService {
 
         List<JobPosting> postings = within.stream().map(Scored::posting).toList();
         Set<Long> scrappedIds = scrappedIdsAmong(viewerMemberId, postings);
+        Map<Long, Long> applicantCounts = applicantCountsAmong(postings);
         JobSeekerProfile viewer = viewerProfile(viewerMemberId);
         return within.stream()
                 .map(s -> new NearbyResult(
                         SummaryResponse.from(s.posting(),
                                 scrappedFlag(viewerMemberId, scrappedIds, s.posting().getId()),
-                                matchScore(viewer, s.posting())),
+                                matchScore(viewer, s.posting()),
+                                applicantCount(applicantCounts, s.posting().getId())),
                         Math.round(s.km() * 10.0) / 10.0))
                 .toList();
     }
@@ -306,12 +335,14 @@ public class JobPostingService {
                 minLat, maxLat, minLng, maxLng, PageRequest.of(0, MAX_MAP_RESULTS));
 
         Set<Long> scrappedIds = scrappedIdsAmong(viewerMemberId, postings);
+        Map<Long, Long> applicantCounts = applicantCountsAmong(postings);
         JobSeekerProfile viewer = viewerProfile(viewerMemberId);
         return postings.stream()
                 .map(jp -> new MapResult(
                         SummaryResponse.from(jp,
                                 scrappedFlag(viewerMemberId, scrappedIds, jp.getId()),
-                                matchScore(viewer, jp)),
+                                matchScore(viewer, jp),
+                                applicantCount(applicantCounts, jp.getId())),
                         jp.getLatitude(), jp.getLongitude()))
                 .toList();
     }
@@ -335,7 +366,8 @@ public class JobPostingService {
         Boolean scrapped = viewerMemberId == null ? null
                 : scrapRepository.existsByMemberIdAndJobPostingId(viewerMemberId, jobPostingId);
         MatchScoreCalculator.MatchResult match = matchScoreCalculator.evaluate(viewerProfile(viewerMemberId), posting);
-        return DetailResponse.from(posting, match.score(), match.reasons(), scrapped);
+        return DetailResponse.from(posting, match.score(), match.reasons(), scrapped,
+                applicantCountOf(jobPostingId));
     }
 
     /** 공고 마감. 작성 시설 본인만. 이미 마감된 공고면 409. */
@@ -346,14 +378,14 @@ public class JobPostingService {
             throw new BusinessException(ErrorCode.JOB_POSTING_ALREADY_CLOSED, "id=" + jobPostingId);
         }
         posting.close();
-        return DetailResponse.from(posting, null);
+        return DetailResponse.from(posting, null, null, null, applicantCountOf(jobPostingId));
     }
 
     @Transactional
     public DetailResponse update(Long memberId, Long jobPostingId, UpdateRequest req) {
         JobPosting posting = findOwned(memberId, jobPostingId);
         posting.update(req.toUpdateForm());
-        return DetailResponse.from(posting, null);
+        return DetailResponse.from(posting, null, null, null, applicantCountOf(jobPostingId));
     }
 
     @Transactional

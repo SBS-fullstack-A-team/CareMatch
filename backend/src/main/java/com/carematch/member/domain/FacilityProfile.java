@@ -44,6 +44,11 @@ public class FacilityProfile extends BaseTimeEntity {
     @Column(name = "facility_name", nullable = false, length = 100)
     private String facilityName;
 
+    /** 시설 유형. V5 이전 가입 시설은 null (관리자가 채우거나 프로필 수정 시 입력). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "facility_type", length = 30)
+    private FacilityType facilityType;
+
     @Column(name = "business_registration_number", nullable = false, length = 20)
     private String businessRegistrationNumber;
 
@@ -65,10 +70,11 @@ public class FacilityProfile extends BaseTimeEntity {
     private String rejectReason;
 
     @Builder
-    private FacilityProfile(Member member, String facilityName, String businessRegistrationNumber,
-                            String businessLicenseFileKey) {
+    private FacilityProfile(Member member, String facilityName, FacilityType facilityType,
+                            String businessRegistrationNumber, String businessLicenseFileKey) {
         this.member = member;
         this.facilityName = facilityName;
+        this.facilityType = facilityType;
         this.businessRegistrationNumber = businessRegistrationNumber;
         this.businessLicenseFileKey = businessLicenseFileKey;
         this.approvalStatus = FacilityApprovalStatus.PENDING;

@@ -80,6 +80,7 @@ POST /api/members/facilities
   "name": "김담당",
   "phone": "010-9999-8888",
   "facilityName": "햇살요양원",
+  "facilityType": "NURSING_HOME",
   "businessRegistrationNumber": "220-81-62517",
   "businessLicenseFileKey": "business-license/2026/09/uuid.pdf",
   "verificationChannel": "PHONE",
@@ -94,6 +95,10 @@ POST /api/members/facilities
       "approvalStatus": "PENDING",
       "message": "회원가입이 접수되었습니다. 관리자 승인 후 인재 열람/공고 등록이 가능합니다." }
 ```
+
+- `facilityType`(`FacilityType`, 필수): `VISITING_CARE`(방문요양센터) / `NURSING_HOME`(요양원) / `DAY_NIGHT_CARE`(주야간보호센터) / `COMMUNITY_CARE`(재가복지센터) / `NURSING_HOSPITAL`(요양병원) / `ETC`. 한글 라벨은 프론트 소유 (직종·근무형태와 동일 규약, ENUM_MAPPING §4 예정).
+- 소셜 유형 확정(`POST /api/auth/social/select-role`)에서 `role=FACILITY` 도 `facilityType` 필수.
+
 ```http
 GET /api/members/me     (Authorization: Bearer ...)
 200 {
@@ -161,7 +166,7 @@ POST /api/auth/logout
 3. `roleSelected=false` 면 유형 선택 화면 → 아래 호출
 ```http
 POST /api/auth/social/select-role     (Authorization: Bearer <GUEST accessToken>)
-{ "role": "FACILITY", "facilityName": "햇살요양원",
+{ "role": "FACILITY", "facilityName": "햇살요양원", "facilityType": "NURSING_HOME",
   "businessRegistrationNumber": "220-81-62517",
   "businessLicenseFileKey": "business-license/2026/09/uuid.pdf" }
 200 { "accessToken": "eyJ...(FACILITY 권한)", "refreshToken": "eyJ...",
@@ -439,6 +444,8 @@ POST /api/admin/facilities/13/approve     (Authorization: Bearer <ADMIN>)
 - 카테고리성 필드는 전부 enum 문자열. 잘못된 값 → 400 `COMMON_001`.
 - `workType`(출퇴근/입주 축)과 `workSchedule`(시간대 축: `DAY/MORNING/AFTERNOON/NIGHT/SHIFT`)은 별개.
   `workSchedule` 은 **선택** — 입주형(`workType=LIVE_IN`)은 생략, 그 외에는 넣는다. 목록·상세 응답에 포함.
+- 응답의 `facilityType`(`FacilityType`, 목록·상세): 공고를 낸 시설의 유형. 시설이 V5 이전 가입이면 `null`.
+- 응답의 `applicantCount`(long, 목록·상세): 지원자 수(취소 제외). 카드 "지원 N명".
 - `duties` / `requiredDocuments` 는 문자열 배열 (표시용).
 - `thumbnailUrl`(선택): 대표 이미지 URL. `http(s)://` 만 허용, 최대 500자. 목록 카드·상세에 내려줌.
   프론트는 `POST /api/files/upload-url`(`purpose=JOB_POSTING_IMAGE`)로 업로드 후 최종 URL 을 여기에 담는다.
@@ -473,16 +480,17 @@ POST /api/job-postings   (Authorization: Bearer <FACILITY>)
   "requiredDocuments": ["요양보호사 자격증","이력서","건강검진서"],
   "exposureType": "SPECIAL"
 }
-201 { "id": 1, ...전체 필드..., "status": "OPEN", "dDay": 115, "viewCount": 0,
-      "facilityName": "강남소망재가노인복지센터", "facilityPhone": "010-1234-5678",
-      "matchingScore": null }
+201 { "id": 1, ...전체 필드..., "status": "OPEN", "dDay": 115, "viewCount": 0, "applicantCount": 0,
+      "facilityName": "강남소망재가노인복지센터", "facilityType": "COMMUNITY_CARE",
+      "facilityPhone": "010-1234-5678", "matchingScore": null }
 ```
 
 ```http
 GET /api/job-postings?page=0&size=20
 200 { "content": [ { "id": 1, "title": "...", "sigungu": "강남구",
-        "exposureType": "SPECIAL", "isNew": true, "dDay": 115,
-        "facilityName": "강남소망재가노인복지센터", "duties": ["말벗", ...] } ],
+        "exposureType": "SPECIAL", "isNew": true, "dDay": 115, "applicantCount": 3,
+        "facilityName": "강남소망재가노인복지센터", "facilityType": "COMMUNITY_CARE",
+        "duties": ["말벗", ...] } ],
       "page": 0, "size": 20, "totalElements": 1, "totalPages": 1 }
 ```
 ### 목록/검색 파라미터 (`GET /api/job-postings`)
@@ -491,6 +499,7 @@ GET /api/job-postings?page=0&size=20
 |---|---|---|
 | `sido` / `sigungu` | string | 지역(정확히 일치) |
 | `jobTypes` | enum[] | 직종(`JobType`) 다중 (`?jobTypes=CAREGIVER&jobTypes=HOUSEKEEPER`). 값 목록은 [`ENUM_MAPPING.md`](./ENUM_MAPPING.md) §1 |
+| `facilityTypes` | enum[] | 시설유형(`FacilityType`) 다중(OR). `VISITING_CARE/NURSING_HOME/DAY_NIGHT_CARE/COMMUNITY_CARE/NURSING_HOSPITAL/ETC` |
 | `workSchedules` | enum[] | 근무 시간대 다중(OR). `DAY/MORNING/AFTERNOON/NIGHT/SHIFT` (주간/오전/오후/야간/교대). [`ENUM_MAPPING.md`](./ENUM_MAPPING.md) §2 |
 | `workTypes` / `employmentTypes` / `careGrades` / `mobilityStatuses` | enum[] | 각 다중 |
 | `payTypes` | enum[] | 급여 형태 다중(OR). HOURLY/DAILY/MONTHLY |

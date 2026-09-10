@@ -16,6 +16,7 @@ import com.carematch.jobposting.dto.JobPostingDtos.SearchCondition;
 import com.carematch.jobposting.dto.JobPostingDtos.SummaryResponse;
 import com.carematch.jobposting.dto.JobPostingDtos.UpdateRequest;
 import com.carematch.jobposting.service.JobPostingService;
+import com.carematch.member.domain.FacilityType;
 import com.carematch.security.CustomUserDetails;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -67,6 +68,7 @@ public class JobPostingController {
             @RequestParam(required = false) String sido,
             @RequestParam(required = false) String sigungu,
             @RequestParam(required = false) List<JobType> jobTypes,
+            @RequestParam(required = false) List<FacilityType> facilityTypes,
             @RequestParam(required = false) List<WorkType> workTypes,
             @RequestParam(required = false) List<WorkSchedule> workSchedules,
             @RequestParam(required = false) List<EmploymentType> employmentTypes,
@@ -79,8 +81,8 @@ public class JobPostingController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         SearchCondition cond = new SearchCondition(
-                sido, sigungu, jobTypes, workTypes, workSchedules, employmentTypes, careGrades,
-                mobilityStatuses, payTypes, payMin, payMax, sort);
+                sido, sigungu, jobTypes, facilityTypes, workTypes, workSchedules, employmentTypes,
+                careGrades, mobilityStatuses, payTypes, payMin, payMax, sort);
         return jobPostingService.search(cond, page, size, memberIdOrNull(principal));
     }
 
