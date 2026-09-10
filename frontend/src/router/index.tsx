@@ -10,6 +10,7 @@ import { TalentDetailPage } from '@/pages/TalentDetail'
 import { TalentListPage } from '@/pages/TalentList'
 import { LoginPage } from '@/pages/Login'
 import { OAuthCallbackPage } from '@/pages/OAuthCallback'
+import { SignupPage } from '@/pages/Signup'
 
 export const router = createBrowserRouter([
   {
@@ -32,7 +33,7 @@ export const router = createBrowserRouter([
       },
       { path: '/login', element: <LoginPage /> },
       { path: '/oauth/callback', element: <OAuthCallbackPage /> },
-      { path: '/signup', element: <PlaceholderPage title="회원가입" /> },
+      { path: '/signup', element: <SignupPage /> },
       { path: '/notifications', element: <PlaceholderPage title="알림" /> },
       { path: '/mypage/*', element: <PlaceholderPage title="마이페이지" /> },
       { path: '/mypage', element: <PlaceholderPage title="마이페이지" /> },
