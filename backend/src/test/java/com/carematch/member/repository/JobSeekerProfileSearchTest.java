@@ -7,6 +7,7 @@ import com.carematch.jobposting.domain.PayType;
 import com.carematch.jobposting.domain.WorkSchedule;
 import com.carematch.jobposting.domain.WorkType;
 import com.carematch.member.domain.CareTask;
+import com.carematch.member.domain.DesiredRegion;
 import com.carematch.member.domain.EmploymentStatus;
 import com.carematch.member.domain.Gender;
 import com.carematch.member.domain.JobSeekerProfile;
@@ -52,15 +53,23 @@ class JobSeekerProfileSearchTest {
     private JobSeekerProfile seeker(EmploymentStatus status, JobType jobType, WorkType workType,
                                     String sido, String sigungu, PayType payType, Integer minPay) {
         JobSeekerProfile p = persist(status);
+        List<DesiredRegion> regions = sido == null ? List.of() : List.of(new DesiredRegion(sido, sigungu));
         p.updateDesiredConditions(new JobSeekerProfile.DesiredConditions(
-                jobType, workType, null, sido, sigungu, payType, minPay));
+                jobType, workType, null, regions, payType, minPay));
         return p;
     }
 
     private JobSeekerProfile seekerWithSchedule(WorkSchedule schedule) {
         JobSeekerProfile p = persist(EmploymentStatus.SEEKING);
         p.updateDesiredConditions(new JobSeekerProfile.DesiredConditions(
-                null, null, schedule, null, null, null, null));
+                null, null, schedule, List.of(), null, null));
+        return p;
+    }
+
+    private JobSeekerProfile seekerWithRegions(DesiredRegion... regions) {
+        JobSeekerProfile p = persist(EmploymentStatus.SEEKING);
+        p.updateDesiredConditions(new JobSeekerProfile.DesiredConditions(
+                null, null, null, List.of(regions), null, null));
         return p;
     }
 
@@ -125,6 +134,25 @@ class JobSeekerProfileSearchTest {
                 .hasSize(1);
         assertThat(search(cond(null, null, null, "강남구", null, null, null, null, null, null, null, null, null)))
                 .hasSize(2);
+    }
+
+    @Test
+    void 희망지역_다중_필터() {
+        seekerWithRegions(new DesiredRegion("서울특별시", "강남구"), new DesiredRegion("경기도", "성남시 분당구"));
+        seekerWithRegions(new DesiredRegion("서울특별시", "송파구"));
+        seekerWithRegions(new DesiredRegion("서울특별시", null)); // 시/도 전체
+        seekerWithRegions(new DesiredRegion("부산광역시", "해운대구"));
+        em.flush();
+
+        // 희망지역에 "서울특별시" 를 포함한 인재 = 3
+        assertThat(search(cond(null, null, "서울특별시", null, null, null, null, null, null, null, null, null, null)))
+                .hasSize(3);
+        // "서울특별시 강남구" 를 정확히 포함한 인재 = 1
+        assertThat(search(cond(null, null, "서울특별시", "강남구", null, null, null, null, null, null, null, null, null)))
+                .hasSize(1);
+        // "경기도 성남시 분당구" 를 포함한 인재 = 1 (다중 희망지역 중 하나로 매칭)
+        assertThat(search(cond(null, null, "경기도", "성남시 분당구", null, null, null, null, null, null, null, null, null)))
+                .hasSize(1);
     }
 
     @Test

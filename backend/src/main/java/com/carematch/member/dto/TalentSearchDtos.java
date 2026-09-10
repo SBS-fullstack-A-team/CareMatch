@@ -98,8 +98,7 @@ public final class TalentSearchDtos {
             String desiredJobType,
             String desiredWorkType,
             String desiredWorkSchedule,
-            String desiredSido,
-            String desiredSigungu,
+            List<RegionDto> desiredRegions,
             String desiredPayType,
             Integer desiredMinPay,
             String desiredWorkDays,
@@ -119,7 +118,7 @@ public final class TalentSearchDtos {
                     name(p.getGender()), age, p.getPhotoUrl(), p.getCareerYears(), name(p.getEducation()),
                     name(p.getDesiredJobType()), name(p.getDesiredWorkType()),
                     name(p.getDesiredWorkSchedule()),
-                    p.getDesiredSido(), p.getDesiredSigungu(),
+                    p.getDesiredRegions().stream().map(RegionDto::from).toList(),
                     name(p.getDesiredPayType()), p.getDesiredMinPay(),
                     p.getDesiredWorkDays(), p.getDesiredWorkStartTime(), p.getDesiredWorkEndTime(),
                     certificateNames, p.getUpdatedAt(), matchingScore);

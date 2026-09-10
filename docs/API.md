@@ -238,7 +238,7 @@ GET /api/terms
 |---|---|---|
 | `desiredJobType` / `desiredWorkType` | enum | 희망 직종 / 희망 근무형태(출퇴근·입주) |
 | `desiredWorkSchedules` | enum[] | 희망 근무 시간대 다중(OR). `DAY/MORNING/AFTERNOON/NIGHT/SHIFT`. 시간대 미설정 구직자는 제외 ([`ENUM_MAPPING.md`](./ENUM_MAPPING.md) §2) |
-| `sido` / `sigungu` | string | 희망 근무지역(정확히 일치) |
+| `sido` / `sigungu` | string | 이 지역을 **희망지역(다중) 중 하나로** 넣은 인재. `sigungu` 만 주면 그 구, `sido` 만 주면 그 시/도 안 어디든, 둘 다 주면 정확히 그 시·군·구를 희망한 인재 |
 | `payTypes` | enum[] | 희망 급여유형 다중(OR). `HOURLY/DAILY/MONTHLY` |
 | `payMax` | int | 희망 최소급여가 이 값 이하인 인재만 |
 | `gender` | enum | `MALE` / `FEMALE` |
@@ -256,7 +256,8 @@ enum `JobType` = `CAREGIVER/CARE_ATTENDANT/NURSE_AIDE/SOCIAL_WORKER/LIFE_SUPPORT
 `EmploymentType` = `FULL_TIME/CONTRACT/TEMPORARY/PART_TIME`, `Gender` = `MALE/FEMALE`, `EducationLevel` = `MIDDLE_SCHOOL/HIGH_SCHOOL/ASSOCIATE/BACHELOR/GRADUATE`,
 `CareerBucket` = `ENTRY/Y1_3/Y5_PLUS`.
 
-- `TalentSummary`: `profileId, memberId, name, employmentStatus, gender, age, photoUrl, careerYears, education, desired*, desiredWorkDays, desiredWorkStartTime, desiredWorkEndTime, certificateNames[], updatedAt, matchingScore`
+- `TalentSummary`: `profileId, memberId, name, employmentStatus, gender, age, photoUrl, careerYears, education, desiredJobType, desiredWorkType, desiredWorkSchedule, desiredRegions[], desiredPayType, desiredMinPay, desiredWorkDays, desiredWorkStartTime, desiredWorkEndTime, certificateNames[], updatedAt, matchingScore`
+- `desiredRegions`: `[{ "sido": "...", "sigungu": "..." | null }]` — 희망 근무지역 다중(최대 3). `sigungu` 가 null 이면 그 시/도 전체. 한글 라벨 조합은 프론트 담당
 - `age` = 올해 − `birthYear` (birthYear 미설정이면 null).
 - `matchingScore`: **시설회원이 조회 시** 그 시설의 OPEN 공고들 중 최고 매칭 점수. 관리자·공고 없음·인재 희망조건 미설정이면 `null`.
 
@@ -264,7 +265,7 @@ enum `JobType` = `CAREGIVER/CARE_ATTENDANT/NURSE_AIDE/SOCIAL_WORKER/LIFE_SUPPORT
 GET /api/jobseekers?desiredJobType=CAREGIVER&sido=서울특별시&sigungu=강남구&gender=FEMALE&careerBuckets=Y3_5&careerBuckets=Y5_PLUS&sort=CAREER_DESC     (Authorization: Bearer <FACILITY>)
 200 { "content": [ { "profileId": 42, "name": "김*영", "employmentStatus": "SEEKING",   // 목록은 이름 항상 마스킹
         "gender": "FEMALE", "age": 52, "photoUrl": "https://...", "careerYears": 3, "education": "HIGH_SCHOOL",
-        "desiredJobType": "CAREGIVER", "desiredSido": "서울특별시", "desiredSigungu": "강남구",
+        "desiredJobType": "CAREGIVER", "desiredRegions": [ { "sido": "서울특별시", "sigungu": "강남구" } ],
         "desiredPayType": "HOURLY", "desiredMinPay": 13000,
         "desiredWorkDays": "월~금", "desiredWorkStartTime": "09:00:00", "desiredWorkEndTime": "16:00:00",
         "certificateNames": ["요양보호사 자격증"], "updatedAt": "...", "matchingScore": 92 } ],
@@ -293,7 +294,10 @@ PUT /api/jobseekers/me        (Authorization: Bearer <JOBSEEKER>)
   "availableTasks": ["MEAL_SUPPORT","BATH_SUPPORT"],   // CareTask[], 선택
   "desiredJobType": "CAREGIVER", "desiredWorkType": "COMMUTE",
   "desiredWorkSchedule": "DAY",             // WorkSchedule(주간/오전/오후/야간/교대), 선택. 매칭 근무 축
-  "desiredSido": "서울특별시", "desiredSigungu": "강남구",
+  "desiredRegions": [                       // 희망 근무지역 최대 3. sigungu 생략 시 시/도 전체
+    { "sido": "서울특별시", "sigungu": "강남구" },
+    { "sido": "경기도", "sigungu": "성남시 분당구" }
+  ],
   "desiredPayType": "MONTHLY", "desiredMinPay": 2500000,
   "desiredEmploymentTypes": ["FULL_TIME","CONTRACT"],  // EmploymentType[], 선택
   "desiredWorkDays": "월~금", "desiredWorkStartTime": "09:00", "desiredWorkEndTime": "16:00"
@@ -303,6 +307,7 @@ PUT /api/jobseekers/me        (Authorization: Bearer <JOBSEEKER>)
   "gender": "FEMALE", "age": 52, "photoUrl": "https://...", "careerYears": 3,
   "education": "HIGH_SCHOOL", "headline": "...", "availableTasks": ["BATH_SUPPORT","MEAL_SUPPORT"],
   "desiredJobType": "CAREGIVER", "desiredEmploymentTypes": ["CONTRACT","FULL_TIME"],
+  "desiredRegions": [ { "sido": "서울특별시", "sigungu": "강남구" }, { "sido": "경기도", "sigungu": "성남시 분당구" } ],
   "desiredWorkDays": "월~금", "desiredWorkStartTime": "09:00:00", "desiredWorkEndTime": "16:00:00",
   "matchingScore": null, "postingMatches": []
 }
@@ -326,8 +331,8 @@ GET /api/jobseekers/42        (Authorization: Bearer <FACILITY>)
       "downloadUrl": "https://files.example.invalid/_stub-download/certificate/...?expires=...&sig=..." }
   ],
   "desiredJobType": "CAREGIVER", "desiredWorkType": "COMMUTE", "desiredWorkSchedule": "DAY",
-  "desiredSido": "서울특별시", "desiredSigungu": "강남구",
-  "desiredPayType": "MONTHLY", "desiredMinPay": 2500000    // 미설정 시 각각 null
+  "desiredRegions": [ { "sido": "서울특별시", "sigungu": "강남구" } ],
+  "desiredPayType": "MONTHLY", "desiredMinPay": 2500000    // 미설정 시 각각 null / 빈 배열
 }
 ```
 ```http
@@ -457,7 +462,7 @@ POST /api/admin/facilities/13/approve     (Authorization: Bearer <ADMIN>)
 - `preferredNote`(선택, 최대 2000자): 우대사항 자유 기술 (예: "면접 후 즉시 근무 우대"). 상세 응답에만 포함.
 - 응답 계산필드: `dDay`(마감까지 일수), `isNew`(등록 3일 내), `isClosingSoon`(D-7 & OPEN), `isRecommended`(`matchingScore` ≥ 70).
 - `matchingScore`(0~100): **로그인한 구직자**가 희망조건(`desired*`, `PUT /api/jobseekers/me`)을 설정한 경우만 채워진다. 비로그인·시설회원·희망조건 미설정이면 `null`.
-  - 가중치: 직종 35 / 지역 30(시군구 일치 만점, 시도만 일치 절반) / 근무형태 10 + 근무 시간대 10 / 급여 15(희망액 충족 만점, 미달 시 비율, 급여유형 다르면 0).
+  - 가중치: 직종 35 / 지역 30(희망지역 여러 곳 중 공고 위치와 **가장 잘 맞는 한 곳** 기준 — 시군구 일치 만점, 시도만 일치 절반) / 근무형태 10 + 근무 시간대 10 / 급여 15(희망액 충족 만점, 미달 시 비율, 급여유형 다르면 0).
     - 근무 축은 둘 ([`ENUM_MAPPING.md`](./ENUM_MAPPING.md) §2): `desiredWorkType`(출퇴근/입주, 협의는 일치 처리) 10점 + `desiredWorkSchedule`(주간/오전/오후/야간/교대) 10점. 각각 구직자가 희망을 지정했을 때만 채점하며, 시간대는 공고 `workSchedule` 이 있을 때만(입주형 등 없으면 그 10점은 분모에서 제외).
   - 지정한 항목들의 가중치 합을 100점으로 환산 — 예: 직종·지역만 지정했으면 그 둘로 100점.
   - 목록 정렬(`sort=RECOMMENDED`): SQL 은 노출등급→최신 순. **로그인한 구직자**면 각 페이지 안에서 **같은 노출등급끼리만** 매칭점수 우선으로 재정렬한다

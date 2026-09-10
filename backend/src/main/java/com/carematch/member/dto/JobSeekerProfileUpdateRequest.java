@@ -9,7 +9,9 @@ import com.carematch.member.domain.CareTask;
 import com.carematch.member.domain.EducationLevel;
 import com.carematch.member.domain.EmploymentStatus;
 import com.carematch.member.domain.Gender;
+import com.carematch.member.domain.DesiredRegion;
 import com.carematch.member.domain.JobSeekerProfile;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -50,8 +52,8 @@ public record JobSeekerProfileUpdateRequest(
         JobType desiredJobType,
         WorkType desiredWorkType,
         WorkSchedule desiredWorkSchedule,
-        @Size(max = 30) String desiredSido,
-        @Size(max = 30) String desiredSigungu,
+        /** 희망 근무지역 최대 3. 안 보내면 지역 조건 없음. */
+        @Size(max = 3) @Valid List<RegionDto> desiredRegions,
         PayType desiredPayType,
         @Positive Integer desiredMinPay,
         List<EmploymentType> desiredEmploymentTypes,
@@ -60,9 +62,11 @@ public record JobSeekerProfileUpdateRequest(
         LocalTime desiredWorkEndTime
 ) {
     public JobSeekerProfile.DesiredConditions toDesiredConditions() {
+        List<DesiredRegion> regions = desiredRegions == null ? List.of()
+                : desiredRegions.stream().map(RegionDto::toDesiredRegion).distinct().toList();
         return new JobSeekerProfile.DesiredConditions(
                 desiredJobType, desiredWorkType, desiredWorkSchedule,
-                desiredSido, desiredSigungu, desiredPayType, desiredMinPay);
+                regions, desiredPayType, desiredMinPay);
     }
 
     public JobSeekerProfile.ProfileDetails toProfileDetails() {

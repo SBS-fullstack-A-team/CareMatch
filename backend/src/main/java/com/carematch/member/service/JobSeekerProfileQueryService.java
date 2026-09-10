@@ -4,10 +4,12 @@ import com.carematch.common.exception.BusinessException;
 import com.carematch.common.exception.ErrorCode;
 import com.carematch.common.masking.MaskingUtil;
 import com.carematch.contact.service.ContactUnlockService;
+import com.carematch.member.domain.DesiredRegion;
 import com.carematch.member.domain.JobSeekerProfile;
 import com.carematch.member.dto.CertificateResponse;
 import com.carematch.member.dto.JobSeekerProfileResponse;
 import com.carematch.member.dto.PostingMatchResponse;
+import com.carematch.member.dto.RegionDto;
 import com.carematch.member.repository.JobSeekerProfileRepository;
 import com.carematch.point.StubPointService;
 import com.carematch.storage.FileStorageService;
@@ -107,8 +109,7 @@ public class JobSeekerProfileQueryService {
                 name(profile.getDesiredJobType()),
                 name(profile.getDesiredWorkType()),
                 name(profile.getDesiredWorkSchedule()),
-                profile.getDesiredSido(),
-                profile.getDesiredSigungu(),
+                regions(profile.getDesiredRegions()),
                 name(profile.getDesiredPayType()),
                 profile.getDesiredMinPay(),
                 names(profile.getDesiredEmploymentTypes()),
@@ -121,6 +122,10 @@ public class JobSeekerProfileQueryService {
 
     private static String name(Enum<?> e) {
         return e == null ? null : e.name();
+    }
+
+    private static List<RegionDto> regions(Collection<DesiredRegion> rs) {
+        return rs == null ? List.of() : rs.stream().map(RegionDto::from).toList();
     }
 
     private static List<String> names(Collection<? extends Enum<?>> es) {

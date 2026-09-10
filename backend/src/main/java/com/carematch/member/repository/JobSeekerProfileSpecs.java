@@ -48,12 +48,6 @@ public final class JobSeekerProfileSpecs {
             if (!CollectionUtils.isEmpty(c.desiredWorkSchedules())) {
                 ps.add(root.get("desiredWorkSchedule").in(c.desiredWorkSchedules()));
             }
-            if (StringUtils.hasText(c.sido())) {
-                ps.add(cb.equal(root.get("desiredSido"), c.sido()));
-            }
-            if (StringUtils.hasText(c.sigungu())) {
-                ps.add(cb.equal(root.get("desiredSigungu"), c.sigungu()));
-            }
             if (!CollectionUtils.isEmpty(c.payTypes())) {
                 ps.add(root.get("desiredPayType").in(c.payTypes()));
             }
@@ -85,8 +79,21 @@ public final class JobSeekerProfileSpecs {
                         LocalDateTime.now().minusDays(c.updatedWithinDays())));
             }
 
-            // 다중값(가능 업무 / 희망 고용형태): 요청 집합과 하나라도 겹치면 매칭 → 컬렉션 조인 + distinct
+            // 다중값(희망지역 / 가능 업무 / 희망 고용형태): 컬렉션 조인 + distinct
             boolean joined = false;
+            if (StringUtils.hasText(c.sido()) || StringUtils.hasText(c.sigungu())) {
+                // 희망지역 중 (sido[, sigungu]) 를 포함한 인재 (한 region element 안에서 둘 다 일치)
+                var region = root.join("desiredRegions", JoinType.INNER);
+                List<Predicate> rp = new ArrayList<>();
+                if (StringUtils.hasText(c.sido())) {
+                    rp.add(cb.equal(region.get("sido"), c.sido()));
+                }
+                if (StringUtils.hasText(c.sigungu())) {
+                    rp.add(cb.equal(region.get("sigungu"), c.sigungu()));
+                }
+                ps.add(cb.and(rp.toArray(Predicate[]::new)));
+                joined = true;
+            }
             if (!CollectionUtils.isEmpty(c.availableTasks())) {
                 ps.add(root.join("availableTasks", JoinType.INNER).in(c.availableTasks()));
                 joined = true;

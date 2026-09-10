@@ -5,9 +5,12 @@ import com.carematch.jobposting.domain.JobType;
 import com.carematch.jobposting.domain.PayType;
 import com.carematch.jobposting.domain.WorkSchedule;
 import com.carematch.jobposting.domain.WorkType;
+import com.carematch.member.domain.DesiredRegion;
 import com.carematch.member.domain.EmploymentStatus;
 import com.carematch.member.domain.JobSeekerProfile;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -20,8 +23,9 @@ class MatchScoreCalculatorTest {
         JobSeekerProfile p = JobSeekerProfile.builder()
                 .employmentStatus(EmploymentStatus.SEEKING)
                 .build();
+        List<DesiredRegion> regions = sido == null ? List.of() : List.of(new DesiredRegion(sido, sigungu));
         p.updateDesiredConditions(new JobSeekerProfile.DesiredConditions(
-                jobType, workType, workSchedule, sido, sigungu, payType, minPay));
+                jobType, workType, workSchedule, regions, payType, minPay));
         return p;
     }
 
@@ -79,6 +83,18 @@ class MatchScoreCalculatorTest {
         JobSeekerProfile s = seeker(null, null, null, "서울특별시", "강남구", null, null);
         JobPosting p = posting(JobType.CAREGIVER, WorkType.COMMUTE, WorkSchedule.DAY, "서울특별시", "송파구", PayType.MONTHLY, 3_000_000);
         assertThat(calculator.score(s, p)).isEqualTo(50);
+    }
+
+    @Test
+    void 희망지역_여러개면_가장_잘_맞는_지역_기준() {
+        // 희망: 부산 해운대구 + 서울 송파구. 공고는 서울 송파구 → 완전 일치 1.0 → 지역 만점
+        JobSeekerProfile s = JobSeekerProfile.builder().employmentStatus(EmploymentStatus.SEEKING).build();
+        s.updateDesiredConditions(new JobSeekerProfile.DesiredConditions(
+                null, null, null,
+                List.of(new DesiredRegion("부산광역시", "해운대구"), new DesiredRegion("서울특별시", "송파구")),
+                null, null));
+        JobPosting p = posting(JobType.CAREGIVER, WorkType.COMMUTE, WorkSchedule.DAY, "서울특별시", "송파구", PayType.MONTHLY, 3_000_000);
+        assertThat(calculator.score(s, p)).isEqualTo(100);
     }
 
     @Test
