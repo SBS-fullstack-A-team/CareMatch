@@ -40,13 +40,15 @@
 - [ ] `SummaryResponse` / `DetailResponse`에 `facilityType` 노출
 - [ ] `SearchCondition` + `JobPostingSpecs`에 `facilityTypes` 다중 필터 추가
 
-### 3. 인재 목록/상세 접근 권한
+### 3. 인재 목록/상세 접근 권한 — **결정됨 (a): 비공개 유지**
 
 - 백엔드 `GET /api/jobseekers`, `GET /api/jobseekers/{id}` = `hasAnyRole('FACILITY','ADMIN')` + 승인 시설만
-- 프론트 `/talents`, `/talents/:id` = 비로그인 포함 전체 공개로 구현됨
+- 프론트 `/talents`, `/talents/:id` = 비로그인 포함 전체 공개로 구현됨 → **게이트 추가 필요**
 
-- [ ] 정책 결정: (a) 프론트가 로그인 + 시설승인 게이팅 추가 / (b) 백엔드가 공개용 인재 요약 목록 엔드포인트 별도 제공(마스킹 강화)
-- [ ] `DESIGN_SYSTEM.md §21`(이름·연락처 마스킹) 기준과 정합성 확인
+- 결정 (2026-09-10, 백엔드 경수): 인재 정보는 **승인 시설회원·관리자 전용**. 공개용 엔드포인트(b)는 안 만든다 — 집계 PII 노출 + 유료(연락처 열람) 기능 약화.
+- [x] 백엔드: 이름 마스킹 서버측 강제 (목록 항상 `홍*동`, 상세는 unlock 시 실명) — `TalentSummary` / `JobSeekerProfileQueryService`
+- [ ] **프론트 (feature/fe-*)**: `/talents`·`/talents/:id` 라우트 가드 — 비로그인 → 로그인 유도, 구직자/미승인 시설 → 접근 불가 안내. 클라이언트 `maskName()` 은 백엔드가 이미 마스킹하므로 제거
+- [x] `DESIGN_SYSTEM.md §21`(이름·연락처 마스킹) 정합성 — 백엔드 응답이 §21 기준을 만족
 
 ### 4. 지원자 수(applicantCount) 공고 응답에 추가
 

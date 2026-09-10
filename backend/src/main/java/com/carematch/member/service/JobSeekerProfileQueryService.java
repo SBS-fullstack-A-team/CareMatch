@@ -23,7 +23,7 @@ import java.util.List;
 
 /**
  * 구직자 프로필 조회.
- * - 시설회원 대상: 연락처/거주지 마스킹, 이미 열람했으면 언마스크. 자격증은 서명 URL 제공.
+ * - 시설회원 대상: 이름/연락처/거주지 마스킹, 연락처 열람(unlock) 했으면 언마스크. 자격증은 서명 URL 제공.
  * - 본인 대상: 전체 언마스크.
  */
 @Service
@@ -44,6 +44,9 @@ public class JobSeekerProfileQueryService {
         boolean unlocked = !profile.isEmployed()
                 && contactUnlockService.hasUnlocked(facilityMemberId, profileId);
 
+        String name = unlocked
+                ? profile.getMember().getName()
+                : MaskingUtil.maskName(profile.getMember().getName());
         String phone = unlocked
                 ? profile.getMember().getPhone()
                 : MaskingUtil.maskPhone(profile.getMember().getPhone());
@@ -52,7 +55,7 @@ public class JobSeekerProfileQueryService {
                 : MaskingUtil.maskResidence(profile.getResidence());
 
         List<PostingMatchResponse> matches = talentMatcher.matchesFor(profile, facilityMemberId);
-        return build(profile, phone, residence, unlocked, signedCertificates(profile),
+        return build(profile, name, phone, residence, unlocked, signedCertificates(profile),
                 talentMatcher.bestScore(matches), matches);
     }
 
@@ -61,8 +64,8 @@ public class JobSeekerProfileQueryService {
     public JobSeekerProfileResponse getMine(Long memberId) {
         JobSeekerProfile profile = jobSeekerProfileRepository.findByMemberId(memberId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "jobseeker profile of member " + memberId));
-        return build(profile, profile.getMember().getPhone(), profile.getResidence(), true, signedCertificates(profile),
-                null, List.of());
+        return build(profile, profile.getMember().getName(), profile.getMember().getPhone(), profile.getResidence(),
+                true, signedCertificates(profile), null, List.of());
     }
 
     private JobSeekerProfile load(Long profileId) {
@@ -77,7 +80,7 @@ public class JobSeekerProfileQueryService {
                 .toList();
     }
 
-    private JobSeekerProfileResponse build(JobSeekerProfile profile, String phone, String residence,
+    private JobSeekerProfileResponse build(JobSeekerProfile profile, String name, String phone, String residence,
                                            boolean unlocked, List<CertificateResponse> certs,
                                            Integer matchingScore, List<PostingMatchResponse> postingMatches) {
         Integer age = profile.getBirthYear() == null ? null
@@ -86,7 +89,7 @@ public class JobSeekerProfileQueryService {
         return new JobSeekerProfileResponse(
                 profile.getId(),
                 profile.getMember().getId(),
-                profile.getMember().getName(),
+                name,
                 profile.getEmploymentStatus().name(),
                 phone,
                 residence,
