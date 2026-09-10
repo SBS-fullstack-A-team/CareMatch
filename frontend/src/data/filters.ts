@@ -114,9 +114,65 @@ export const WORK_TIME_OPTIONS: SelectOption[] = [
   { value: 'shift', label: '교대 근무' },
 ]
 
-export const SORT_OPTIONS: SelectOption[] = [
-  { value: 'matching', label: '매칭순' },
+/**
+ * 구인공고 목록 정렬.
+ * 위치 기반 기능이 없어 거리순은 두지 않고, 실제로 계산 가능한 3종만 제공한다.
+ */
+export const JOB_SORT_OPTIONS: SelectOption[] = [
   { value: 'latest', label: '최신순' },
-  { value: 'pay', label: '급여 높은순' },
-  { value: 'deadline', label: '마감 임박순' },
+  { value: 'payDesc', label: '급여 높은순' },
+  { value: 'payAsc', label: '급여 낮은순' },
+]
+
+/**
+ * 근무형태 — Job.workType 의 실제 값과 1:1 로 대응한다.
+ * (WORK_TIME_OPTIONS 는 시간대 범위를 고르는 등록 폼용이라 용도가 다르다)
+ */
+export const WORK_TYPE_OPTIONS: SelectOption[] = [
+  { value: '주간', label: '주간' },
+  { value: '오전', label: '오전' },
+  { value: '오후', label: '오후' },
+  { value: '야간', label: '야간' },
+  { value: '교대', label: '교대' },
+]
+
+/** 급여 형태 — Job.payType 중 목록 필터에서 사용하는 3종 */
+export const PAY_TYPE_OPTIONS: SelectOption[] = [
+  { value: 'hourly', label: '시급' },
+  { value: 'daily', label: '일급' },
+  { value: 'monthly', label: '월급' },
+]
+
+/* ---------------------------------------------------------------------------
+   인재정보 목록
+   --------------------------------------------------------------------------- */
+
+/**
+ * 인재정보 정렬.
+ * Talent 에는 createdAt 이 없고 updatedAt 만 있어 "최신 등록순" 대신 "최근 수정순"을 쓴다.
+ * 나머지는 careerYears 로 계산 가능한 2종만 제공한다.
+ */
+export const TALENT_SORT_OPTIONS: SelectOption[] = [
+  { value: 'updated', label: '최근 수정순' },
+  { value: 'careerDesc', label: '경력 높은순' },
+  { value: 'careerAsc', label: '경력 낮은순' },
+]
+
+/** 경력 구간 — Talent.careerYears 를 나누는 기준 (value 가 곧 구간 키) */
+export const CAREER_OPTIONS: SelectOption[] = [
+  { value: 'entry', label: '신입' },
+  { value: '1-3', label: '1~3년' },
+  { value: '3-5', label: '3~5년' },
+  { value: '5+', label: '5년 이상' },
+]
+
+/** 자격증 — Talent.certificates 에 실제로 들어 있는 값들 */
+export const CERTIFICATE_OPTIONS: SelectOption[] = [
+  { value: '요양보호사 1급', label: '요양보호사 1급' },
+  { value: '요양보호사 2급', label: '요양보호사 2급' },
+  { value: '간호조무사', label: '간호조무사' },
+  { value: '사회복지사 2급', label: '사회복지사 2급' },
+  { value: '간병사', label: '간병사' },
+  { value: '치매전문교육 이수', label: '치매전문교육 이수' },
+  { value: '운전면허 2종', label: '운전면허 2종' },
 ]

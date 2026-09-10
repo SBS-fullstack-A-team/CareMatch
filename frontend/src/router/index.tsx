@@ -2,6 +2,9 @@ import { createBrowserRouter } from 'react-router-dom'
 import { PlaceholderPage } from '@/components/common/placeholder-page'
 import { SiteLayout } from '@/components/layout/site-layout'
 import { HomePage } from '@/pages/Home'
+import { JobDetailPage } from '@/pages/JobDetail'
+import { JobListPage } from '@/pages/JobList'
+import { TalentListPage } from '@/pages/TalentList'
 import { LoginPage } from '@/pages/Login'
 import { OAuthCallbackPage } from '@/pages/OAuthCallback'
 
@@ -10,18 +13,9 @@ export const router = createBrowserRouter([
     element: <SiteLayout />,
     children: [
       { path: '/', element: <HomePage /> },
-      {
-        path: '/jobs',
-        element: <PlaceholderPage title="구인공고" description="구인공고 목록 화면을 준비 중입니다." />,
-      },
-      {
-        path: '/jobs/:jobId',
-        element: <PlaceholderPage title="공고 상세" description="구인공고 상세 화면을 준비 중입니다." />,
-      },
-      {
-        path: '/talents',
-        element: <PlaceholderPage title="인재정보" description="인재정보 목록 화면을 준비 중입니다." />,
-      },
+      { path: '/jobs', element: <JobListPage /> },
+      { path: '/jobs/:jobId', element: <JobDetailPage /> },
+      { path: '/talents', element: <TalentListPage /> },
       {
         path: '/talents/:talentId',
         element: <PlaceholderPage title="인재 상세" description="인재정보 상세 화면을 준비 중입니다." />,

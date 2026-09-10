@@ -94,19 +94,23 @@ src/
 │   ├── ui/          # Button, Input, Textarea, Select, Checkbox, RadioGroup,
 │   │                # SegmentedControl, Badge, Tag, Modal, Drawer, Toast
 │   ├── common/      # JobSearchBar, SectionHeader, Pagination, ScrapButton,
-│   │                # EmptyState, LoadingState, PlaceholderPage
+│   │                # EmptyState, LoadingState, PlaceholderPage,
+│   │                # Breadcrumb, DetailSection
 │   ├── layout/      # Header, Footer, Section, ProfileDropdown,
 │   │                # FontSizeControl, MobileNav, SiteLayout, Logo
 │   ├── job/         # JobCard, SpecialJobCard, JobTable, JobListItem,
-│   │                # JobBadge, FacilityBadge
-│   ├── talent/      # TalentCard
+│   │                # JobBadge, FacilityBadge, JobFilterPanel,
+│   │                # JobDetailHeader, JobApplyPanel, ElderlyInfoCard
+│   ├── talent/      # TalentCard, TalentListCard,
+│   │                # TalentSearchBar, TalentFilterPanel
 │   └── matching/    # MatchingScore
 ├── data/
 │   ├── mock/        # jobs.ts, talents.ts, notices.ts  (API 연동 시 교체)
 │   └── filters.ts   # 시·도, 구·군, 직종, 시설유형, 지역 바로가기
 ├── hooks/           # use-app(세션·글자크기), use-click-outside, use-dismissable
-├── lib/             # cn, 포맷터(급여·날짜·마스킹), nav, site(고객센터 정보)
-├── pages/           # Home/ ...
+├── lib/             # cn, 포맷터(급여·날짜·마스킹), nav, site(고객센터 정보),
+│                    # job-filters / talent-filters(목록 검색·필터·정렬 규칙)
+├── pages/           # Home/, JobList/, JobDetail/, TalentList/ ...
 ├── router/
 └── types/           # Job, Talent, Matching, ElderlyInfo, Notice
 ```
@@ -146,8 +150,11 @@ pill 형태는 §8(과도한 pill 금지)의 명시적 예외입니다.
 - [x] JobCard · SpecialJobCard · JobTable · JobBadge · FacilityBadge · MatchingScore · TalentCard
 - [x] JobSearchBar · Section · SectionHeader · Pagination
 - [x] **메인** — `capture/메인.png` 반영 완료
-- [ ] 구인공고 목록 / 상세 / 등록
-- [ ] 인재정보 목록 / 상세
+- [x] **구인공고 목록** — 검색·필터·정렬·페이지네이션 (mock 데이터 기준)
+- [x] **구인공고 상세** — 화면 구현 완료 (지원·관심공고는 UI 만, API 미연결)
+- [x] **인재정보 목록** — 검색·필터·정렬·페이지네이션 (mock 데이터 기준)
+- [ ] 구인공고 등록
+- [ ] 인재정보 상세
 - [ ] 구직신청서
 - [ ] 로그인 / 회원가입
 
@@ -170,6 +177,107 @@ pill 형태는 §8(과도한 pill 금지)의 명시적 예외입니다.
 | 맞춤 공고 카드 배지 줄 | 매칭 pill + 사유 칩 2개가 한 줄 | 두 줄로 wrap | 본문 폭 1200px(§6) 기준 4열 카드는 288px 이라 한 줄에 들어가지 않음. 네 장 모두 배지 영역 높이를 고정해 본문 시작 위치를 맞춤 |
 | 최신 구인공고 TABLE | 모든 폭에서 표 | 1024px 이상에서만 표, 그 아래는 세로 목록 | 7열 표를 태블릿 폭에 넣으면 가로 스크롤이 생기고 §38(가독성 우선)에 어긋남 |
 | 인재 이름 | 실명 | 마스킹 | §21 |
+
+## 구인공고 목록 구현 메모
+
+라우트는 `/jobs` 이며 구조는 다음과 같습니다. (COMPONENT_RULES.md §17)
+
+```
+페이지 타이틀 → 검색(JobSearchBar compact) → 결과 요약 + 정렬
+→ 좌 필터(248px) / 우 목록(JobListItem) → 페이지네이션
+```
+
+- 목적성이 높은 업무형 화면이라 **Hero 배너를 두지 않습니다.** 본문 폭은 메인과 같은 1200px 입니다.
+- `JobSearchBar` 에 `variant="compact"` 를 추가했습니다. 메인의 리드 카피와 보조 버튼
+  (내 주변 일자리 / 알림받기, §16 의 메인 전용 요소)만 감추고 검색 필드는 그대로 씁니다.
+- 목록 행은 홈의 `JobCard` 를 복제하지 않고 `JobListItem` 을 사용합니다.
+  정보 우선순위는 **시설명 + 직종 > 급여 > 지역 + 근무형태 > 근무시간 > 등록일 > 상태** 이고,
+  상태 배지는 메인 TABLE 과 같이 5종을 모두 노출합니다. (§14 화면별 예외 — 목록에서는 상태가 비교 기준)
+- 검색·필터·정렬 규칙은 `src/lib/job-filters.ts` 한 곳에 모아 필터 패널의 건수 집계와
+  목록 필터링이 같은 기준을 쓰도록 했습니다.
+- 좌측 필터 항목은 **기존 데이터 구조를 그대로** 씁니다. 직종/시설유형은 `CATEGORY_OPTIONS`,
+  `FACILITY_TYPE_OPTIONS`, 지역은 `REGION_SHORTCUTS`(17개, 주요 8개 + 더보기),
+  근무형태·급여는 `Job.workType` / `Job.payType` 에 1:1 대응하는 옵션을 새로 추가했습니다.
+- 옵션 옆 건수는 **자기 그룹의 선택을 제외하고** 계산합니다. 같은 그룹에서 다른 항목을
+  추가로 켤 때 건수가 0 으로 사라지지 않게 하기 위해서입니다.
+- 정렬은 최신순 / 급여 높은순 / 급여 낮은순 3종입니다. 위치 기반 기능이 없어 거리순은 두지 않았습니다.
+  급여 정렬은 시급·일급·월급을 월 환산(209시간 / 21일)해 비교하고, 급여 협의 공고는 항상 뒤로 보냅니다.
+- 검색 조건과 정렬은 쿼리스트링에 반영되어 URL 로 공유됩니다. (`/jobs?sido=서울특별시&sort=payDesc`)
+  좌측 체크박스 필터는 아직 URL 에 넣지 않고 화면 상태로만 관리합니다.
+- 페이지당 10건이며, 백엔드 페이지네이션 전까지 mock 데이터를 클라이언트에서 자릅니다.
+- 관심공고(하트)는 기존 `ScrapButton` 을 그대로 씁니다. 아직 저장 API 가 없어 화면 상태만 토글합니다.
+
+## 구인공고 상세 구현 메모
+
+라우트는 `/jobs/:jobId` 이며 구조는 다음과 같습니다. (COMPONENT_RULES.md §21, §22)
+
+```
+Breadcrumb → 공고 핵심 정보 → 근무조건 → 모집내용 → 어르신 정보 → 시설정보
+→ 지원방법 → 유의사항 → 비슷한 구인공고
+본문 1fr + 우측 sticky 340px (top 96px = Header 72px + 여백)
+```
+
+- **데이터가 없는 항목은 행·섹션 자체를 렌더링하지 않습니다.** `DetailRow` 가 값이 없으면
+  `null` 을 반환하고, 모집내용·어르신 정보·전화 지원도 데이터가 있는 공고에서만 나타납니다.
+  없는 정보를 화면에서 만들어내지 않기 위한 규칙입니다.
+- 시각적 우선순위는 **공고 제목 > 시설명 > 급여 > 지역·근무형태 > 등록일** 입니다.
+  목록에서는 시설명이 행 제목이지만, 상세에서는 제목이 h1 이고 시설명은 그 위 보조 라인입니다.
+- 지도 API 가 없어 **지도 UI 를 만들지 않았습니다.** 주소 데이터가 있는 공고만 주소를 텍스트로 표시합니다.
+- 상태 배지는 목록과 동일하게 5종을 모두 노출합니다. (§14 화면별 예외)
+- 비슷한 구인공고는 추천 모델이 아니라 `getRelatedJobs()` 의 단순 유사도입니다.
+  같은 직종(4점) > 같은 시·도(2점) > 같은 시설유형(1점) 순으로 점수를 매겨 상위 3건을 보여줍니다.
+- 유의사항 문구는 공고 데이터가 아니라 서비스 공통 안내라 `lib/site.ts` 의 `JOB_APPLY_NOTICES` 에 두었습니다.
+
+### 아직 기능이 없는 부분 (UI 만)
+
+| 항목 | 현재 상태 |
+| --- | --- |
+| 지원하기 / 온라인으로 지원하기 | 구직신청 라우트 `/apply?jobId=...` 로 이동만 합니다. 해당 화면은 아직 PlaceholderPage 입니다. |
+| 관심공고 | 기존 `ScrapButton` 재사용. 저장 API 가 없어 화면 상태만 토글되고 새로고침하면 사라집니다. |
+| 전화 지원 | `job.managerPhone` 이 있는 공고(job-201)에만 `tel:` 링크로 노출됩니다. |
+
+### `Job` 타입에 없어 표시하지 않은 항목
+
+모집인원 · 학력 · 경력조건은 `Job` 타입에 필드가 없어 근무조건에서 제외했습니다.
+필요하면 타입에 optional 필드를 추가하고 mock 데이터를 채우는 작업이 먼저입니다.
+
+## 인재정보 목록 구현 메모
+
+라우트는 `/talents` 이며 구조는 구인공고 목록과 같은 탐색 언어를 씁니다.
+
+```
+Breadcrumb → 페이지 타이틀 → 검색 → 결과 요약 + 정렬
+→ 좌 필터(248px) / 우 카드 3열(283px) → 페이지네이션(12명/페이지)
+```
+
+- **메인의 `TalentCard` 는 건드리지 않았습니다.** 메인 카드는 요약·홍보 목적이고(DESIGN_SYSTEM.md §21)
+  목록은 비교·탐색 목적이라 근무형태·경력이 더 필요해 `TalentListCard` 를 따로 두었습니다.
+  카드 스타일(border 기반 white surface / radius 10 / 64px 원형 프로필)은 그대로 계승합니다.
+- `JobSearchBar` 는 네 번째 필드가 시설유형으로 고정되어 있어 재사용하지 않고
+  `TalentSearchBar`(지역·구·군·희망직종·근무형태·키워드)를 만들었습니다. 마크업과 스타일은 동일합니다.
+- 이름은 기존 `maskName()` 정책 그대로입니다. (`정미숙 → 정미○`)
+  실명은 화면에 노출되지 않으므로 **키워드 검색 대상에서도 제외**했습니다.
+- 필터 인원수는 구인공고와 같은 방식으로 자기 그룹의 선택을 제외하고 셉니다.
+  지역·자격증은 한 사람이 여러 값을 가질 수 있어 값마다 한 번씩 셉니다.
+- 상태 배지는 `availableNow` 하나만 "즉시 근무 가능"(Badge `normal`)으로 씁니다.
+  구인공고의 스페셜/프리미엄 배지는 인재정보에 쓰지 않습니다.
+
+### `Talent` 타입 확장
+
+`workType?: string` 하나를 추가했습니다. 검색·필터의 근무형태 기준값(주간/오전/오후/야간/교대)이며
+`Job.workType` 과 같은 값 체계입니다. 기존 `preferredHours` 는 화면에 보여 주는
+구체적 희망 시간대(자유 텍스트)로 역할을 분리해 그대로 두었습니다.
+
+### 정렬 3종
+
+`Talent` 에 `createdAt` 이 없어 "최신 등록순"은 만들지 않았습니다.
+실제 데이터로 계산 가능한 **최근 수정순(`updatedAt`) / 경력 높은순 / 경력 낮은순**만 제공합니다.
+
+### mock 데이터
+
+`TALENTS` 를 4명 → **24명**으로 확장했습니다. 지역 7개 시·도, 직종 5종, 근무형태 5종,
+경력 0~15년, 자격증 7종, 20~60대, 남녀가 고르게 분포하도록 구성했습니다.
+`LATEST_TALENTS = TALENTS.slice(0, 4)` 는 그대로라 메인 4열은 기존과 동일합니다.
 
 ## 알려진 제약
 

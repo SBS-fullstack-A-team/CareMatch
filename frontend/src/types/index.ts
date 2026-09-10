@@ -133,6 +133,12 @@ export interface Talent {
   /** ---- 아래는 인재정보 목록/상세 화면용. 메인에서는 사용하지 않는다 ---- */
   careerLabel?: string
   careerYears?: number
+  /**
+   * 희망 근무형태 ex) "주간", "오전". Job.workType 과 같은 값 체계를 쓴다.
+   * preferredHours 는 구체적인 희망 시간대 자유 텍스트라 검색·필터 기준으로는 쓰지 않는다.
+   */
+  workType?: string
+  /** 구체적인 희망 시간대 ex) "평일 오전 (09:00 ~ 13:00)" */
   preferredHours?: string
   payType?: PayType
   payAmount?: number
