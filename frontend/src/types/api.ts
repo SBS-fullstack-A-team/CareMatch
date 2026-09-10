@@ -139,3 +139,90 @@ export interface SignupResponse {
   approvalStatus: string | null
   message: string
 }
+
+/* ---------------------------------------------------------------------------
+   고객센터 (docs/API.md §8) — SupportDtos.java 기준
+   --------------------------------------------------------------------------- */
+
+/**
+ * Spring Data 의 Page 응답. 고객센터 API 는 구인공고/인재의 PageResponse 와 달리
+ * Spring 기본 Page 형태로 내려오고 number 가 0-base 다.
+ */
+export interface SpringPage<T> {
+  content: T[]
+  totalElements: number
+  totalPages: number
+  size: number
+  /** 0-base 현재 페이지 */
+  number: number
+  first: boolean
+  last: boolean
+  numberOfElements: number
+  empty: boolean
+}
+
+/** GET /api/support/notices — NoticeSummary */
+export interface NoticeSummary {
+  id: number
+  title: string
+  pinned: boolean
+  viewCount: number
+  /** LocalDateTime ex) "2026-09-09T02:25:47.632899" */
+  createdAt: string
+}
+
+/** GET /api/support/notices/{id} — NoticeDetail. 호출 시 서버에서 조회수 +1 */
+export interface NoticeDetail extends NoticeSummary {
+  content: string
+  updatedAt: string
+}
+
+/** GET /api/support/faqs — FaqResponse */
+export interface FaqResponse {
+  id: number
+  category: string
+  question: string
+  answer: string
+  sortOrder: number
+}
+
+/** GET /api/support/site-config — SiteConfigResponse (이메일 필드는 서버에 없다) */
+export interface SiteConfigResponse {
+  tel: string
+  kakaoChannelUrl: string
+  operatingHours: string
+}
+
+/** POST /api/support/inquiries — InquiryCreateRequest */
+export interface InquiryCreateRequest {
+  /** 최대 200자 */
+  title: string
+  content: string
+  /** 파일 업로드 인프라가 없어 프론트에서는 항상 null 로 보낸다 */
+  attachmentFileKey?: string | null
+}
+
+export type InquiryStatus = 'PENDING' | 'ANSWERED'
+
+/** InquiryReplyResponse */
+export interface InquiryReplyResponse {
+  id: number
+  answeredBy: number | null
+  content: string
+  createdAt: string
+}
+
+/**
+ * InquiryResponse. 목록(summary)에서는 content / attachmentFileKey 가 null,
+ * replies 가 빈 배열로 내려온다.
+ */
+export interface InquiryResponse {
+  id: number
+  memberId: number
+  title: string
+  content: string | null
+  status: InquiryStatus
+  attachmentFileKey: string | null
+  createdAt: string
+  replies: InquiryReplyResponse[]
+}
