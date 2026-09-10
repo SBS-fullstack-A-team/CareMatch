@@ -135,3 +135,10 @@ npm run dev                  # http://localhost:5173
 ### 7. Vercel 환경변수 — `VITE_` 공개 접두어 경고
 - **증상**: Vercel 이 `VITE_API_BASE_URL` 에 대해 "public prefix 는 브라우저에 노출된다, Config 로 바꿔라" 경고 표시.
 - **해결**: 무시. Vite 는 `VITE_` 접두어 변수만 클라이언트에 노출하므로 접두어가 **필수**다. 값이 공개 API URL 이라 노출돼도 안전(시크릿 아님). 시크릿은 애초에 프론트 환경변수에 두지 않는다.
+
+### 8. 로컬 프론트 → 배포 백엔드(Render) 호출 시 CORS 403
+- **증상**: 프론트를 로컬(`localhost:5173`)에서 띄우고 API base URL 을 배포된 Render 백엔드로 잡으면, 회원가입 등 API 호출이 CORS 로 막힘. 프론트 쪽 설정(`.env.local` 등)은 다 맞아도 재현됨.
+- **원인**: Render 의 `CORS_ALLOWED_ORIGINS` 환경변수가 Vercel 도메인만 화이트리스트로 등록돼 있어서(`docs/BACKEND.md` 참고 — 와일드카드 금지, 화이트리스트만 허용), `localhost` 는 배포 백엔드 기준으로 허용 origin 이 아님. 코드나 로컬 설정 문제가 아니라 **서버(Render) 쪽 화이트리스트 문제**.
+- **해결(둘 중 하나)**:
+  1. 백엔드를 로컬로 직접 실행(`cd backend && ./gradlew bootRun`) 후 프론트가 `http://localhost:8080` 을 바라보게 설정. 로컬 백엔드 기본 CORS 설정엔 `localhost:5173`/`3000` 이 이미 포함돼 있어 바로 동작.
+  2. Render 환경변수 `CORS_ALLOWED_ORIGINS` 에 `http://localhost:5173` 을 콤마로 추가(Render 대시보드 → 서비스 → Environment). 대시보드 접근 권한이 있는 사람만 가능.
