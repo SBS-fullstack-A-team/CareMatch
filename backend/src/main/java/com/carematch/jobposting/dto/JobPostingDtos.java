@@ -49,8 +49,8 @@ public final class JobPostingDtos {
 
     /**
      * 목록/검색 필터. 모든 필드 선택. 상태는 서버가 OPEN 으로 고정.
-     * 급여 범위(payMin/payMax)는 payType 을 함께 지정하지 않으면 시급·월급이 섞여 비교되니
-     * 프론트에서 payType 과 함께 보내는 것을 권장.
+     * 급여 형태(payTypes)는 다중 선택(OR). 급여 범위(payMin/payMax)는 payTypes 를 함께
+     * 지정하지 않으면 시급·월급이 섞여 비교되니 프론트에서 함께 보내는 것을 권장.
      */
     public record SearchCondition(
             String sido,
@@ -60,10 +60,10 @@ public final class JobPostingDtos {
             List<EmploymentType> employmentTypes,
             List<CareGrade> careGrades,
             List<MobilityStatus> mobilityStatuses,
-            PayType payType,
+            List<PayType> payTypes,
             Integer payMin,
             Integer payMax,
-            /** RECOMMENDED(기본) / LATEST / DEADLINE / PAY_DESC / VIEWS */
+            /** RECOMMENDED(기본) / LATEST / DEADLINE / PAY_DESC / PAY_ASC / VIEWS */
             String sort
     ) {
     }

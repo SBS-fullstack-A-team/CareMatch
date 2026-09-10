@@ -486,9 +486,9 @@ GET /api/job-postings?page=0&size=20
 | `sido` / `sigungu` | string | 지역(정확히 일치) |
 | `jobTypes` | enum[] | 직종 다중 (`?jobTypes=CAREGIVER&jobTypes=HOUSEKEEPER`) |
 | `workTypes` / `employmentTypes` / `careGrades` / `mobilityStatuses` | enum[] | 각 다중 |
-| `payType` | enum | HOURLY/DAILY/MONTHLY |
-| `payMin` / `payMax` | int | 급여 범위. payType 없이 쓰면 시급·월급이 섞이니 함께 지정 권장 |
-| `sort` | string | `RECOMMENDED`(기본: 노출등급→최신) / `LATEST` / `DEADLINE` / `PAY_DESC` / `VIEWS` |
+| `payTypes` | enum[] | 급여 형태 다중(OR). HOURLY/DAILY/MONTHLY |
+| `payMin` / `payMax` | int | 급여 범위. payTypes 없이 쓰면 시급·월급이 섞이니 함께 지정 권장 |
+| `sort` | string | `RECOMMENDED`(기본: 노출등급→최신) / `LATEST` / `DEADLINE` / `PAY_DESC` / `PAY_ASC` / `VIEWS` |
 | `page` / `size` | int | 기본 0 / 20. size 상한 100 |
 
 - 상태는 서버가 OPEN 으로 고정. 잘못된 enum 값 → 400 `COMMON_001`.
