@@ -82,12 +82,14 @@ export const REGION_SHORTCUTS = [
   { label: '제주', sido: '제주특별자치도' },
 ]
 
+/** 직종 — value 는 API enum name, label 은 한글 (docs/ENUM_MAPPING.md §1) */
 export const CATEGORY_OPTIONS: SelectOption[] = [
-  { value: '요양보호사', label: '요양보호사' },
-  { value: '간병인', label: '간병인' },
-  { value: '가사도우미', label: '가사도우미' },
-  { value: '사회복지사', label: '사회복지사' },
-  { value: '간호조무사', label: '간호조무사' },
+  { value: 'CAREGIVER', label: '요양보호사' },
+  { value: 'CARE_ATTENDANT', label: '간병인' },
+  { value: 'NURSE_AIDE', label: '간호조무사' },
+  { value: 'SOCIAL_WORKER', label: '사회복지사' },
+  { value: 'LIFE_SUPPORT', label: '생활지원사' },
+  { value: 'HOUSEKEEPER', label: '가사도우미' },
 ]
 
 export const FACILITY_TYPE_OPTIONS: SelectOption[] = [

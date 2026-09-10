@@ -1,5 +1,6 @@
 import { Award, MapPin, UserRound } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { jobCategoryLabel } from '@/data/labels'
 import { cn, formatDotDate, maskName } from '@/lib/utils'
 import type { Talent } from '@/types'
 
@@ -51,7 +52,7 @@ export function TalentDetailHeader({
           </div>
 
           <p className="mt-3 text-xl">
-            <span className="font-bold text-primary-deep">{talent.category}</span>
+            <span className="font-bold text-primary-deep">{jobCategoryLabel(talent.category)}</span>
             <span className="ml-1.5 text-fg-muted">희망</span>
           </p>
 

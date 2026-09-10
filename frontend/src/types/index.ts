@@ -1,7 +1,16 @@
 import type { PayType } from '@/lib/utils'
 
-/** 직종 */
-export type JobCategory = '요양보호사' | '간병인' | '가사도우미' | '사회복지사' | '간호조무사'
+/**
+ * 직종. 값은 API enum name (docs/ENUM_MAPPING.md §1). 한글 라벨은 JOB_CATEGORY_LABELS.
+ */
+export type JobCategory =
+  | 'CAREGIVER' // 요양보호사
+  | 'CARE_ATTENDANT' // 간병인
+  | 'NURSE_AIDE' // 간호조무사
+  | 'SOCIAL_WORKER' // 사회복지사
+  | 'LIFE_SUPPORT' // 생활지원사
+  | 'HOUSEKEEPER' // 가사도우미
+  | 'ETC' // 기타
 
 /** 시설 유형 */
 export type FacilityType =
