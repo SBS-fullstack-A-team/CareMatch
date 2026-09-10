@@ -26,8 +26,14 @@ export type FacilityType =
   | '재가복지센터'
   | '요양병원'
 
-/** 근무 형태 */
-export type EmploymentType = '정규직' | '계약직' | '시간제' | '파트타임' | '단기'
+/**
+ * 고용형태. 값은 API enum name (docs/ENUM_MAPPING.md §3). 한글 라벨은 EMPLOYMENT_TYPE_LABELS.
+ */
+export type EmploymentType =
+  | 'FULL_TIME' // 정규직
+  | 'CONTRACT' // 계약직
+  | 'TEMPORARY' // 단기
+  | 'PART_TIME' // 파트타임(시간제)
 
 /**
  * 공고 상태 배지 (DESIGN_SYSTEM.md §14)

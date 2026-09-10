@@ -100,12 +100,12 @@ export const FACILITY_TYPE_OPTIONS: SelectOption[] = [
   { value: '요양병원', label: '요양병원' },
 ]
 
+/** 고용형태 — value 는 API enum name, label 은 한글 (docs/ENUM_MAPPING.md §3) */
 export const EMPLOYMENT_TYPE_OPTIONS: SelectOption[] = [
-  { value: '정규직', label: '정규직' },
-  { value: '계약직', label: '계약직' },
-  { value: '시간제', label: '시간제' },
-  { value: '파트타임', label: '파트타임' },
-  { value: '단기', label: '단기' },
+  { value: 'FULL_TIME', label: '정규직' },
+  { value: 'CONTRACT', label: '계약직' },
+  { value: 'PART_TIME', label: '파트타임' },
+  { value: 'TEMPORARY', label: '단기' },
 ]
 
 export const WORK_TIME_OPTIONS: SelectOption[] = [

@@ -21,7 +21,7 @@ import { SectionHeader } from '@/components/common/section-header'
 import { MatchingScore } from '@/components/matching/matching-score'
 import { Tag } from '@/components/ui/tag'
 import { buttonVariants } from '@/components/ui/button'
-import { jobCategoryLabel, workScheduleLabel } from '@/data/labels'
+import { employmentTypeLabel, jobCategoryLabel, workScheduleLabel } from '@/data/labels'
 import { getJobById, getRelatedJobs } from '@/data/mock/jobs'
 import { JOB_APPLY_NOTICES } from '@/lib/site'
 import { cn, formatDotDate, formatPay } from '@/lib/utils'
@@ -131,7 +131,7 @@ function WorkConditionSection({ job }: { job: Job }) {
         <DetailRow label="급여">
           <span className="font-semibold tabular">{formatPay(job.payType, job.payAmount)}</span>
         </DetailRow>
-        <DetailRow label="고용형태">{job.employmentType}</DetailRow>
+        <DetailRow label="고용형태">{employmentTypeLabel(job.employmentType)}</DetailRow>
         <DetailRow label="모집마감">
           {job.deadline ? (
             <span className="tabular">{formatDotDate(job.deadline)}</span>

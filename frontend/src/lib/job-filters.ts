@@ -1,5 +1,5 @@
 import { REGION_SHORTCUTS } from '@/data/filters'
-import { jobCategoryLabel, workScheduleLabel } from '@/data/labels'
+import { employmentTypeLabel, jobCategoryLabel, workScheduleLabel } from '@/data/labels'
 import type { Job } from '@/types'
 
 /* =========================================================================
@@ -91,7 +91,7 @@ export function matchesSearch(job: Job, query: JobSearchQuery) {
       job.region,
       job.district,
       workScheduleLabel(job.workSchedule),
-      job.employmentType,
+      employmentTypeLabel(job.employmentType),
       ...(job.tags ?? []),
     ]
       .filter(Boolean)
