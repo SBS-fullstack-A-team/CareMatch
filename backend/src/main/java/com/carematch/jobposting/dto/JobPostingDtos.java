@@ -15,6 +15,7 @@ import com.carematch.jobposting.domain.WorkSchedule;
 import com.carematch.jobposting.domain.WorkType;
 import com.carematch.member.domain.FacilityProfile;
 import com.carematch.member.domain.Member;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.FutureOrPresent;
@@ -118,6 +119,10 @@ public final class JobPostingDtos {
             /** null 이면 NORMAL. */
             ExposureType exposureType
     ) {
+        @AssertTrue(message = "workSchedule은 입주형(LIVE_IN)이 아니면 필수입니다")
+        public boolean isWorkScheduleValid() {
+            return workType == WorkType.LIVE_IN || workSchedule != null;
+        }
     }
 
     public record UpdateRequest(
@@ -157,6 +162,11 @@ public final class JobPostingDtos {
             List<String> duties,
             List<String> requiredDocuments
     ) {
+        @AssertTrue(message = "workSchedule은 입주형(LIVE_IN)이 아니면 필수입니다")
+        public boolean isWorkScheduleValid() {
+            return workType == WorkType.LIVE_IN || workSchedule != null;
+        }
+
         public JobPosting.UpdateForm toUpdateForm() {
             return new JobPosting.UpdateForm(
                     title, jobType, description, preferredNote, thumbnailUrl,

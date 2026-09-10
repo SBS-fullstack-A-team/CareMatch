@@ -10,6 +10,7 @@ import com.carematch.jobposting.domain.JobType;
 import com.carematch.jobposting.domain.MealStatus;
 import com.carematch.jobposting.domain.MobilityStatus;
 import com.carematch.jobposting.domain.PayType;
+import com.carematch.jobposting.domain.WorkSchedule;
 import com.carematch.jobposting.domain.WorkType;
 import com.carematch.jobposting.dto.JobPostingDtos.SearchCondition;
 import com.carematch.member.domain.FacilityProfile;
@@ -52,11 +53,11 @@ class JobPostingSpecsTest {
         em.persist(facility);
     }
 
-    private JobPosting posting(PayType payType, int payAmount) {
+    private JobPosting posting(PayType payType, int payAmount, WorkSchedule workSchedule) {
         JobPosting jp = JobPosting.builder()
                 .facilityProfile(facility)
                 .title("t").jobType(JobType.CAREGIVER)
-                .workType(WorkType.COMMUTE).employmentType(EmploymentType.CONTRACT)
+                .workType(WorkType.COMMUTE).workSchedule(workSchedule).employmentType(EmploymentType.CONTRACT)
                 .workDays("Mon-Fri").workStartTime(LocalTime.of(9, 0)).workEndTime(LocalTime.of(12, 0))
                 .payType(payType).payAmount(payAmount).recruitCount(1).deadline(LocalDate.now().plusDays(30))
                 .sido("Seoul").sigungu("Gangnam")
@@ -69,8 +70,20 @@ class JobPostingSpecsTest {
         return jp;
     }
 
+    private JobPosting posting(PayType payType, int payAmount) {
+        return posting(payType, payAmount, null);
+    }
+
+    private JobPosting posting(WorkSchedule workSchedule) {
+        return posting(PayType.MONTHLY, 3_000_000, workSchedule);
+    }
+
     private SearchCondition payTypes(List<PayType> payTypes) {
         return new SearchCondition(null, null, null, null, null, null, null, null, payTypes, null, null, null);
+    }
+
+    private SearchCondition workSchedules(List<WorkSchedule> workSchedules) {
+        return new SearchCondition(null, null, null, null, workSchedules, null, null, null, null, null, null, null);
     }
 
     @Test
@@ -98,5 +111,33 @@ class JobPostingSpecsTest {
 
         assertThat(repository.findAll(JobPostingSpecs.from(payTypes(null)), Pageable.unpaged())).hasSize(2);
         assertThat(repository.findAll(JobPostingSpecs.from(payTypes(List.of())), Pageable.unpaged())).hasSize(2);
+    }
+
+    @Test
+    void workSchedules_다중선택은_OR_로_필터된다() {
+        posting(WorkSchedule.DAY);
+        posting(WorkSchedule.NIGHT);
+        posting(WorkSchedule.SHIFT);
+        posting((WorkSchedule) null); // 입주형처럼 시간대 미지정
+        em.flush();
+        em.clear();
+
+        List<JobPosting> result = repository.findAll(
+                JobPostingSpecs.from(workSchedules(List.of(WorkSchedule.DAY, WorkSchedule.SHIFT))),
+                Pageable.unpaged()).getContent();
+
+        assertThat(result).extracting(JobPosting::getWorkSchedule)
+                .containsExactlyInAnyOrder(WorkSchedule.DAY, WorkSchedule.SHIFT);
+    }
+
+    @Test
+    void workSchedules_가_비어있으면_시간대로_거르지_않는다() {
+        posting(WorkSchedule.DAY);
+        posting((WorkSchedule) null);
+        em.flush();
+        em.clear();
+
+        assertThat(repository.findAll(JobPostingSpecs.from(workSchedules(null)), Pageable.unpaged())).hasSize(2);
+        assertThat(repository.findAll(JobPostingSpecs.from(workSchedules(List.of())), Pageable.unpaged())).hasSize(2);
     }
 }
