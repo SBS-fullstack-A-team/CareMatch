@@ -62,13 +62,13 @@
 
 ### 구인공고
 
-- [ ] **급여 필터 다중선택** — 프론트는 시급/일급/월급 체크박스 다중, 백엔드 `SearchCondition.payType`은 단일값 → `List<PayType>`로 변경
-- [ ] **정렬 `PAY_ASC`(급여 낮은순) 추가** — 현재 `PAY_DESC`만 있음 (`sort` 허용값: `RECOMMENDED/LATEST/DEADLINE/PAY_DESC/VIEWS`)
-- [ ] **공고 상세 담당자명(`managerName`)** — 프론트 상세 화면 필드. 백엔드는 `facilityName`·`facilityPhone`만, 담당자명 없음 (DTO TODO)
-- [ ] **우대조건 태그(`tags: string[]`)** — 프론트는 태그 배열, 백엔드는 `preferredNote`(자유텍스트 1개)만
-- [ ] **스페셜 카드 문구(`catchphrase`)** — 백엔드에 대응 필드 없음 (우선순위 낮음)
-- [ ] **매칭 사유 구조화** — 프론트 `MatchingReason { kind, label, matched, detail }`, 백엔드 `matchingReasons: List<String>`(문구만). 홈 매칭칩("지역 일치"/"시간대 일치")에 구조체 필요
-- [ ] **페이지 크기** — 프론트 목록은 10건/page, 백엔드 기본 `size=20`. 프론트가 `size=10` 명시하거나 기본값 합의
+- [x] **급여 필터 다중선택** (`payTypes`) + **`PAY_ASC` 정렬** — #47 머지
+- [x] **공고 상세 담당자명(`managerName`)** — `DetailResponse.managerName` = 시설회원 이름 (공고별 컬럼 없음). feature/be-jobposting-fields
+- [x] **요건/우대사항/복리후생** — `requirements`/`preferences`/`benefits` 상세 응답 배열. `preferredNote` 폐기. feature/be-jobposting-fields (V8)
+- [x] **경력무관 / minCareerYears** — `minCareerYears` 목록·상세 응답. 나머지 카드 태그는 프론트 파생. feature/be-jobposting-fields
+- [x] **스페셜 카드 문구(`catchphrase`)** — 목록·상세 응답. feature/be-jobposting-fields (V8)
+- [ ] **매칭 사유 구조화** — 프론트 `MatchingReason { kind, label, matched, detail }`, 백엔드 `matchingReasons: List<String>`(문구만). 홈 매칭칩에 구조체 필요. `JOBPOSTING_FIELDS.md §4` — 별도 PR
+- [ ] **페이지 크기** — 프론트가 목록 쿼리에 `?size=10` 명시 (백엔드 변경 없음). feature/fe-*
 
 ### 인재정보
 

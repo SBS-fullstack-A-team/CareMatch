@@ -456,10 +456,13 @@ POST /api/admin/facilities/13/approve     (Authorization: Bearer <ADMIN>)
 - 응답의 `facilityType`(`FacilityType`, 목록·상세): 공고를 낸 시설의 유형. 시설이 V5 이전 가입이면 `null`.
 - 응답의 `applicantCount`(long, 목록·상세): 지원자 수(취소 제외). 카드 "지원 N명".
 - `duties` / `requiredDocuments` 는 문자열 배열 (표시용).
+- `requirements` / `preferences` / `benefits` (선택, 각 문자열 배열): 자격 요건 / 우대사항 / 복리후생 불릿. **상세 응답 전용** (`DetailResponse`), 없으면 `[]`. (`preferredNote` 자유텍스트 1개는 폐기 — `preferences` 배열로 대체)
+- `minCareerYears` (선택, int ≥ 0): 최소 요구 경력(년). `null`/`0` = 경력무관. 목록·상세 응답 포함 (프론트 "경력무관" 태그).
+- `catchphrase` (선택, ≤100자): 스페셜 카드 홍보 문구. 목록·상세 응답 포함.
 - `thumbnailUrl`(선택): 대표 이미지 URL. `http(s)://` 만 허용, 최대 500자. 목록 카드·상세에 내려줌.
   프론트는 `POST /api/files/upload-url`(`purpose=JOB_POSTING_IMAGE`)로 업로드 후 최종 URL 을 여기에 담는다.
 - `elderNote`(선택, 최대 2000자): 어르신 특이사항 자유 기술 (낙상 주의, 알레르기 등). 상세 응답에만 포함.
-- `preferredNote`(선택, 최대 2000자): 우대사항 자유 기술 (예: "면접 후 즉시 근무 우대"). 상세 응답에만 포함.
+- `managerName` (상세 응답): 채용 담당자명 = 공고를 낸 시설회원의 이름. 공고별 담당자 컬럼은 두지 않는다. 담당자 연락처는 `facilityPhone`, 전체 주소는 프론트가 `sido + sigungu + addressDetail` 조합.
 - 응답 계산필드: `dDay`(마감까지 일수), `isNew`(등록 3일 내), `isClosingSoon`(D-7 & OPEN), `isRecommended`(`matchingScore` ≥ 70).
 - `matchingScore`(0~100): **로그인한 구직자**가 희망조건(`desired*`, `PUT /api/jobseekers/me`)을 설정한 경우만 채워진다. 비로그인·시설회원·희망조건 미설정이면 `null`.
   - 가중치: 직종 35 / 지역 30(희망지역 여러 곳 중 공고 위치와 **가장 잘 맞는 한 곳** 기준 — 시군구 일치 만점, 시도만 일치 절반) / 근무형태 10 + 근무 시간대 10 / 급여 15(희망액 충족 만점, 미달 시 비율, 급여유형 다르면 0).
@@ -488,11 +491,16 @@ POST /api/job-postings   (Authorization: Bearer <FACILITY>)
   "mobilityStatus": "INDEPENDENT", "mealStatus": "ASSIST", "cognitiveStatus": "NORMAL",
   "duties": ["말벗","식사준비","청소","병원동행"],
   "requiredDocuments": ["요양보호사 자격증","이력서","건강검진서"],
+  "requirements": ["요양보호사 자격증 소지"], "preferences": ["인근 거주자","요양원 근무 경험자"],
+  "benefits": ["4대보험","중식 제공","명절 상여금"], "minCareerYears": 1,
+  "catchphrase": "가족처럼 모실 분을 찾습니다",
   "exposureType": "SPECIAL"
 }
 201 { "id": 1, ...전체 필드..., "status": "OPEN", "dDay": 115, "viewCount": 0, "applicantCount": 0,
+      "requirements": ["요양보호사 자격증 소지"], "preferences": [...], "benefits": [...],
+      "minCareerYears": 1, "catchphrase": "가족처럼 모실 분을 찾습니다",
       "facilityName": "강남소망재가노인복지센터", "facilityType": "COMMUNITY_CARE",
-      "facilityPhone": "010-1234-5678", "matchingScore": null }
+      "facilityPhone": "010-1234-5678", "managerName": "김담당", "matchingScore": null }
 ```
 
 ```http

@@ -23,6 +23,7 @@ import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import org.hibernate.validator.constraints.URL;
 import org.springframework.data.domain.Page;
@@ -82,10 +83,18 @@ public final class JobPostingDtos {
             @NotBlank String title,
             @NotNull JobType jobType,
             String description,
-            /** 우대사항 자유 기술 (예: "면접 후 즉시 근무 우대"). 선택. */
-            @Size(max = 2000) String preferredNote,
             /** 대표 이미지 URL. 프론트가 업로드(POST /api/files/upload-url, purpose=JOB_POSTING_IMAGE) 후 최종 URL 전달. */
             @Size(max = 500) @URL(regexp = "^https?://.*") String thumbnailUrl,
+            /** 스페셜 카드 홍보 문구 (SPECIAL 노출 시). 선택. */
+            @Size(max = 100) String catchphrase,
+            /** 자격 요건 불릿 (예: ["요양보호사 자격증 소지"]). 선택. */
+            List<String> requirements,
+            /** 우대사항 불릿 (예: ["요양원 근무 경험자"]). 선택. */
+            List<String> preferences,
+            /** 복리후생 불릿 (예: ["4대보험", "중식 제공"]). 선택. */
+            List<String> benefits,
+            /** 최소 요구 경력(년). null/0 = 경력무관. 선택. */
+            @PositiveOrZero Integer minCareerYears,
 
             @NotNull WorkType workType,
             /** 근무 시간대. 입주형(LIVE_IN)이면 생략 가능, 그 외에는 넣는다. */
@@ -131,8 +140,12 @@ public final class JobPostingDtos {
             @NotBlank String title,
             @NotNull JobType jobType,
             String description,
-            @Size(max = 2000) String preferredNote,
             @Size(max = 500) @URL(regexp = "^https?://.*") String thumbnailUrl,
+            @Size(max = 100) String catchphrase,
+            List<String> requirements,
+            List<String> preferences,
+            List<String> benefits,
+            @PositiveOrZero Integer minCareerYears,
 
             @NotNull WorkType workType,
             /** 근무 시간대. 입주형(LIVE_IN)이면 생략 가능, 그 외에는 넣는다. */
@@ -171,7 +184,7 @@ public final class JobPostingDtos {
 
         public JobPosting.UpdateForm toUpdateForm() {
             return new JobPosting.UpdateForm(
-                    title, jobType, description, preferredNote, thumbnailUrl,
+                    title, jobType, description, thumbnailUrl, catchphrase,
                     workType, workSchedule, employmentType, employmentTypeNote,
                     workDays, workStartTime, workEndTime,
                     payType, payAmount, recruitCount, deadline,
@@ -179,7 +192,8 @@ public final class JobPostingDtos {
                     careGrade, elderGender, elderAgeRange,
                     mobilityStatus, mealStatus, cognitiveStatus,
                     elderNote,
-                    duties, requiredDocuments);
+                    duties, requiredDocuments,
+                    requirements, preferences, benefits, minCareerYears);
         }
     }
 
@@ -193,8 +207,15 @@ public final class JobPostingDtos {
             String title,
             JobType jobType,
             String description,
-            String preferredNote,
             String thumbnailUrl,
+            String catchphrase,
+
+            /** 자격 요건 / 우대사항 / 복리후생 불릿. 없으면 빈 리스트. */
+            List<String> requirements,
+            List<String> preferences,
+            List<String> benefits,
+            /** 최소 요구 경력(년). null/0 = 경력무관. */
+            Integer minCareerYears,
 
             WorkType workType,
             WorkSchedule workSchedule,
@@ -238,11 +259,13 @@ public final class JobPostingDtos {
             LocalDateTime createdAt,
             LocalDateTime updatedAt,
 
-            // 시설 정보 (연락처는 무료 공개). 담당자/전체주소는 아직 미노출(docs/JOBPOSTING_FIELDS.md §1).
+            // 시설 정보 (연락처는 무료 공개). 담당자명 = 시설회원 이름(공고별 담당자 컬럼은 두지 않음).
+            //   전체 주소는 프론트가 sido+sigungu+addressDetail 조합.
             Long facilityMemberId,
             String facilityName,
             FacilityType facilityType,
             String facilityPhone,
+            String managerName,
 
             /** 매칭 스코어(0~100). 로그인한 구직자가 희망조건을 설정한 경우만 채워지고, 그 외에는 null. */
             Integer matchingScore,
@@ -270,7 +293,8 @@ public final class JobPostingDtos {
                     : ChronoUnit.DAYS.between(LocalDate.now(), jp.getDeadline());
             return new DetailResponse(
                     jp.getId(), jp.getTitle(), jp.getJobType(), jp.getDescription(),
-                    jp.getPreferredNote(), jp.getThumbnailUrl(),
+                    jp.getThumbnailUrl(), jp.getCatchphrase(),
+                    nz(jp.getRequirements()), nz(jp.getPreferences()), nz(jp.getBenefits()), jp.getMinCareerYears(),
                     jp.getWorkType(), jp.getWorkSchedule(), jp.getEmploymentType(), jp.getEmploymentTypeNote(),
                     jp.getWorkDays(), jp.getWorkStartTime(), jp.getWorkEndTime(),
                     jp.getPayType(), jp.getPayAmount(), jp.getRecruitCount(), jp.getDeadline(), dDay,
@@ -281,7 +305,7 @@ public final class JobPostingDtos {
                     jp.getStatus(), jp.getExposureType(),
                     calcNew(jp), calcClosingSoon(jp, dDay), calcRecommended(matchingScore),
                     jp.getViewCount(), applicantCount, jp.getCreatedAt(), jp.getUpdatedAt(),
-                    m.getId(), fp.getFacilityName(), fp.getFacilityType(), m.getPhone(),
+                    m.getId(), fp.getFacilityName(), fp.getFacilityType(), m.getPhone(), m.getName(),
                     matchingScore, matchingReasons == null ? List.of() : matchingReasons, scrapped);
         }
     }
@@ -292,6 +316,10 @@ public final class JobPostingDtos {
             String title,
             JobType jobType,
             String thumbnailUrl,
+            /** 스페셜 카드 홍보 문구. SPECIAL 노출 아니면 보통 null. */
+            String catchphrase,
+            /** 최소 요구 경력(년). null/0 = 경력무관 (프론트 "경력무관" 태그). */
+            Integer minCareerYears,
             String sido,
             String sigungu,
             WorkSchedule workSchedule,
@@ -339,6 +367,7 @@ public final class JobPostingDtos {
             FacilityProfile fp = jp.getFacilityProfile();
             return new SummaryResponse(
                     jp.getId(), jp.getTitle(), jp.getJobType(), jp.getThumbnailUrl(),
+                    jp.getCatchphrase(), jp.getMinCareerYears(),
                     jp.getSido(), jp.getSigungu(), jp.getWorkSchedule(),
                     jp.getWorkDays(), jp.getWorkStartTime(), jp.getWorkEndTime(),
                     jp.getPayType(), jp.getPayAmount(),
@@ -399,5 +428,9 @@ public final class JobPostingDtos {
 
     private static boolean calcRecommended(Integer matchingScore) {
         return matchingScore != null && matchingScore >= 70;
+    }
+
+    private static List<String> nz(List<String> list) {
+        return list == null ? List.of() : list;
     }
 }

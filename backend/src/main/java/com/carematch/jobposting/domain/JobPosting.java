@@ -60,13 +60,13 @@ public class JobPosting extends BaseTimeEntity {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    /** 우대사항 자유 기술 (예: "면접 후 즉시 근무 우대", "인근 거주자 우대"). 선택. */
-    @Column(name = "preferred_note", columnDefinition = "TEXT")
-    private String preferredNote;
-
     /** 대표 이미지 URL (목록 카드 / 상세 사이드바 썸네일). 프론트가 업로드 후 최종 URL 을 넘긴다. 선택. */
     @Column(name = "thumbnail_url", length = 500)
     private String thumbnailUrl;
+
+    /** 스페셜 카드 홍보 문구 (SPECIAL 노출 시). 선택. */
+    @Column(name = "catchphrase", length = 100)
+    private String catchphrase;
 
     // ===== 근무조건 =====
 
@@ -171,6 +171,25 @@ public class JobPosting extends BaseTimeEntity {
     @Column(name = "required_documents", length = 500)
     private List<String> requiredDocuments;
 
+    /** 자격 요건 (예: "요양보호사 자격증 소지", "경력 1년 이상"). 상세 화면 불릿. */
+    @Convert(converter = StringListConverter.class)
+    @Column(name = "requirements", length = 2000)
+    private List<String> requirements;
+
+    /** 우대사항 (예: "요양원 근무 경험자", "인근 거주자"). 상세 화면 불릿. */
+    @Convert(converter = StringListConverter.class)
+    @Column(name = "preferences", length = 2000)
+    private List<String> preferences;
+
+    /** 복리후생 (예: "4대보험", "중식 제공", "명절 상여금"). 상세 화면 불릿. */
+    @Convert(converter = StringListConverter.class)
+    @Column(name = "benefits", length = 2000)
+    private List<String> benefits;
+
+    /** 최소 요구 경력(년). null 또는 0 = 경력무관. 목록 카드 태그·매칭에 사용. */
+    @Column(name = "min_career_years")
+    private Integer minCareerYears;
+
     // ===== 상태 / 노출 =====
 
     @Enumerated(EnumType.STRING)
@@ -193,7 +212,7 @@ public class JobPosting extends BaseTimeEntity {
 
     @Builder
     private JobPosting(FacilityProfile facilityProfile, String title, JobType jobType, String description,
-                       String preferredNote, String thumbnailUrl,
+                       String thumbnailUrl, String catchphrase,
                        WorkType workType, WorkSchedule workSchedule,
                        EmploymentType employmentType, String employmentTypeNote,
                        String workDays, LocalTime workStartTime, LocalTime workEndTime,
@@ -202,13 +221,15 @@ public class JobPosting extends BaseTimeEntity {
                        CareGrade careGrade, ElderGender elderGender, String elderAgeRange,
                        MobilityStatus mobilityStatus, MealStatus mealStatus, CognitiveStatus cognitiveStatus,
                        String elderNote,
-                       List<String> duties, List<String> requiredDocuments, ExposureType exposureType) {
+                       List<String> duties, List<String> requiredDocuments,
+                       List<String> requirements, List<String> preferences, List<String> benefits,
+                       Integer minCareerYears, ExposureType exposureType) {
         this.facilityProfile = facilityProfile;
         this.title = title;
         this.jobType = jobType;
         this.description = description;
-        this.preferredNote = preferredNote;
         this.thumbnailUrl = thumbnailUrl;
+        this.catchphrase = catchphrase;
         this.workType = workType;
         this.workSchedule = workSchedule;
         this.employmentType = employmentType;
@@ -234,6 +255,10 @@ public class JobPosting extends BaseTimeEntity {
         this.elderNote = elderNote;
         this.duties = duties;
         this.requiredDocuments = requiredDocuments;
+        this.requirements = requirements;
+        this.preferences = preferences;
+        this.benefits = benefits;
+        this.minCareerYears = minCareerYears;
         this.status = JobPostingStatus.OPEN;
         this.exposureType = exposureType == null ? ExposureType.NORMAL : exposureType;
         this.exposurePriority = this.exposureType.getPriority();
@@ -242,7 +267,7 @@ public class JobPosting extends BaseTimeEntity {
 
     /** 공고 수정 폼. 노출옵션/상태/조회수는 이 경로로 바꾸지 않는다. */
     public record UpdateForm(
-            String title, JobType jobType, String description, String preferredNote, String thumbnailUrl,
+            String title, JobType jobType, String description, String thumbnailUrl, String catchphrase,
             WorkType workType, WorkSchedule workSchedule,
             EmploymentType employmentType, String employmentTypeNote,
             String workDays, LocalTime workStartTime, LocalTime workEndTime,
@@ -251,7 +276,9 @@ public class JobPosting extends BaseTimeEntity {
             CareGrade careGrade, ElderGender elderGender, String elderAgeRange,
             MobilityStatus mobilityStatus, MealStatus mealStatus, CognitiveStatus cognitiveStatus,
             String elderNote,
-            List<String> duties, List<String> requiredDocuments
+            List<String> duties, List<String> requiredDocuments,
+            List<String> requirements, List<String> preferences, List<String> benefits,
+            Integer minCareerYears
     ) {
     }
 
@@ -259,8 +286,8 @@ public class JobPosting extends BaseTimeEntity {
         this.title = f.title();
         this.jobType = f.jobType();
         this.description = f.description();
-        this.preferredNote = f.preferredNote();
         this.thumbnailUrl = f.thumbnailUrl();
+        this.catchphrase = f.catchphrase();
         this.workType = f.workType();
         this.workSchedule = f.workSchedule();
         this.employmentType = f.employmentType();
@@ -286,6 +313,10 @@ public class JobPosting extends BaseTimeEntity {
         this.elderNote = f.elderNote();
         this.duties = f.duties();
         this.requiredDocuments = f.requiredDocuments();
+        this.requirements = f.requirements();
+        this.preferences = f.preferences();
+        this.benefits = f.benefits();
+        this.minCareerYears = f.minCareerYears();
     }
 
     public void close() {

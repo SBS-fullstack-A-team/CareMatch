@@ -30,6 +30,7 @@ class JobPostingDtosValidationTest {
     private CreateRequest request(WorkType workType, WorkSchedule workSchedule) {
         return new CreateRequest(
                 "t", JobType.CAREGIVER, null, null, null,
+                null, null, null, null,
                 workType, workSchedule, EmploymentType.CONTRACT, null,
                 "Mon-Fri", LocalTime.of(9, 0), LocalTime.of(12, 0),
                 PayType.MONTHLY, 3_000_000, 1, LocalDate.now().plusDays(30),
