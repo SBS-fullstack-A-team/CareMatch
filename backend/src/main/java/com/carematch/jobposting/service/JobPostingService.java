@@ -89,6 +89,7 @@ public class JobPostingService {
                 .preferredNote(req.preferredNote())
                 .thumbnailUrl(req.thumbnailUrl())
                 .workType(req.workType())
+                .workSchedule(req.workSchedule())
                 .employmentType(req.employmentType())
                 .employmentTypeNote(req.employmentTypeNote())
                 .workDays(req.workDays())

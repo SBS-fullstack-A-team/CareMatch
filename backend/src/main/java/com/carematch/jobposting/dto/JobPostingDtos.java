@@ -11,6 +11,7 @@ import com.carematch.jobposting.domain.JobType;
 import com.carematch.jobposting.domain.MealStatus;
 import com.carematch.jobposting.domain.MobilityStatus;
 import com.carematch.jobposting.domain.PayType;
+import com.carematch.jobposting.domain.WorkSchedule;
 import com.carematch.jobposting.domain.WorkType;
 import com.carematch.member.domain.FacilityProfile;
 import com.carematch.member.domain.Member;
@@ -57,6 +58,8 @@ public final class JobPostingDtos {
             String sigungu,
             List<JobType> jobTypes,
             List<WorkType> workTypes,
+            /** 근무 시간대(주간/오전/오후/야간/교대) 다중(OR). */
+            List<WorkSchedule> workSchedules,
             List<EmploymentType> employmentTypes,
             List<CareGrade> careGrades,
             List<MobilityStatus> mobilityStatuses,
@@ -82,6 +85,8 @@ public final class JobPostingDtos {
             @Size(max = 500) @URL(regexp = "^https?://.*") String thumbnailUrl,
 
             @NotNull WorkType workType,
+            /** 근무 시간대. 입주형(LIVE_IN)이면 생략 가능, 그 외에는 넣는다. */
+            WorkSchedule workSchedule,
             @NotNull EmploymentType employmentType,
             String employmentTypeNote,
             @NotBlank String workDays,
@@ -123,6 +128,8 @@ public final class JobPostingDtos {
             @Size(max = 500) @URL(regexp = "^https?://.*") String thumbnailUrl,
 
             @NotNull WorkType workType,
+            /** 근무 시간대. 입주형(LIVE_IN)이면 생략 가능, 그 외에는 넣는다. */
+            WorkSchedule workSchedule,
             @NotNull EmploymentType employmentType,
             String employmentTypeNote,
             @NotBlank String workDays,
@@ -153,7 +160,7 @@ public final class JobPostingDtos {
         public JobPosting.UpdateForm toUpdateForm() {
             return new JobPosting.UpdateForm(
                     title, jobType, description, preferredNote, thumbnailUrl,
-                    workType, employmentType, employmentTypeNote,
+                    workType, workSchedule, employmentType, employmentTypeNote,
                     workDays, workStartTime, workEndTime,
                     payType, payAmount, recruitCount, deadline,
                     sido, sigungu, addressDetail, latitude, longitude,
@@ -178,6 +185,7 @@ public final class JobPostingDtos {
             String thumbnailUrl,
 
             WorkType workType,
+            WorkSchedule workSchedule,
             EmploymentType employmentType,
             String employmentTypeNote,
             String workDays,
@@ -247,7 +255,7 @@ public final class JobPostingDtos {
             return new DetailResponse(
                     jp.getId(), jp.getTitle(), jp.getJobType(), jp.getDescription(),
                     jp.getPreferredNote(), jp.getThumbnailUrl(),
-                    jp.getWorkType(), jp.getEmploymentType(), jp.getEmploymentTypeNote(),
+                    jp.getWorkType(), jp.getWorkSchedule(), jp.getEmploymentType(), jp.getEmploymentTypeNote(),
                     jp.getWorkDays(), jp.getWorkStartTime(), jp.getWorkEndTime(),
                     jp.getPayType(), jp.getPayAmount(), jp.getRecruitCount(), jp.getDeadline(), dDay,
                     jp.getSido(), jp.getSigungu(), jp.getAddressDetail(), jp.getLatitude(), jp.getLongitude(),
@@ -270,6 +278,7 @@ public final class JobPostingDtos {
             String thumbnailUrl,
             String sido,
             String sigungu,
+            WorkSchedule workSchedule,
             String workDays,
             LocalTime workStartTime,
             LocalTime workEndTime,
@@ -305,7 +314,7 @@ public final class JobPostingDtos {
                     : ChronoUnit.DAYS.between(LocalDate.now(), jp.getDeadline());
             return new SummaryResponse(
                     jp.getId(), jp.getTitle(), jp.getJobType(), jp.getThumbnailUrl(),
-                    jp.getSido(), jp.getSigungu(),
+                    jp.getSido(), jp.getSigungu(), jp.getWorkSchedule(),
                     jp.getWorkDays(), jp.getWorkStartTime(), jp.getWorkEndTime(),
                     jp.getPayType(), jp.getPayAmount(),
                     jp.getCareGrade(), jp.getElderGender(), jp.getMobilityStatus(),
