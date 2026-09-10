@@ -38,6 +38,13 @@ const SERVER_FIELD_MAP: Record<string, string> = {
   agreements: 'terms',
 }
 
+/**
+ * 본인인증 완료를 제출 조건으로 강제할지. 백엔드도 임시로 꺼둔 상태(MemberService
+ * .verificationRequiredForSignup, 기본 false)라 화면도 맞춰서 끔.
+ * 재활성화 시 true로 되돌리면 됨.
+ */
+const VERIFICATION_REQUIRED = false
+
 /** 백엔드 JobSeekerSignupRequest / PasswordPolicy 와 동일한 규칙 */
 const LOGIN_ID_RE = /^[a-zA-Z0-9_]{4,20}$/
 const PHONE_RE = /^01[0-9]-?\d{3,4}-?\d{4}$/
@@ -254,7 +261,7 @@ export function SignupPage() {
     if (!PHONE_RE.test(phone.trim())) next.phone = '휴대폰 번호 형식이 올바르지 않습니다.'
     if (residence.trim().length > 200) next.residence = '거주지는 200자 이하로 입력해 주세요.'
 
-    if (!verified) next.verification = '본인인증을 완료해 주세요.'
+    if (VERIFICATION_REQUIRED && !verified) next.verification = '본인인증을 완료해 주세요.'
 
     if (terms.length === 0) {
       next.terms = '약관을 불러오지 못했습니다. 다시 시도해 주세요.'
@@ -502,7 +509,7 @@ export function SignupPage() {
             </Field>
 
             {/* ---------------- 본인인증 ---------------- */}
-            <Field label="본인인증" required error={errors.verification}>
+            <Field label="본인인증" required={VERIFICATION_REQUIRED} error={errors.verification}>
               <SegmentedControl
                 items={[
                   { value: 'EMAIL', label: '이메일' },
