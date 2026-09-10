@@ -5,7 +5,7 @@ import { JobBadge } from '@/components/job/job-badge'
 import { MatchingReasonChips, MatchingScoreBadge } from '@/components/matching/matching-score'
 import { ScrapButton } from '@/components/common/scrap-button'
 import { Tag } from '@/components/ui/tag'
-import { jobCategoryLabel, workScheduleLabel } from '@/data/labels'
+import { employmentTypeLabel, jobCategoryLabel, workScheduleLabel } from '@/data/labels'
 import { cn, formatDotDate, formatNumber, formatPay } from '@/lib/utils'
 import type { Job } from '@/types'
 
@@ -55,7 +55,7 @@ export function JobListItem({
             <span aria-hidden className="text-border-strong">
               |
             </span>
-            <span className="text-fg-muted">{job.employmentType}</span>
+            <span className="text-fg-muted">{employmentTypeLabel(job.employmentType)}</span>
           </p>
 
           <dl className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-base text-fg-muted">

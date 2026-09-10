@@ -4,7 +4,7 @@ import { ScrapButton } from '@/components/common/scrap-button'
 import { FacilityBadge } from '@/components/job/facility-badge'
 import { JobBadge } from '@/components/job/job-badge'
 import { buttonVariants } from '@/components/ui/button'
-import { workScheduleLabel } from '@/data/labels'
+import { employmentTypeLabel, workScheduleLabel } from '@/data/labels'
 import { cn, formatDotDate, formatNumber, formatPay } from '@/lib/utils'
 import type { Job } from '@/types'
 
@@ -49,7 +49,7 @@ export function JobDetailHeader({ job, className }: { job: Job; className?: stri
             <div className="flex items-center gap-1.5">
               <dt className="sr-only">고용형태</dt>
               <Briefcase className="size-[18px] shrink-0 text-fg-subtle" aria-hidden />
-              <dd>{job.employmentType}</dd>
+              <dd>{employmentTypeLabel(job.employmentType)}</dd>
             </div>
           </dl>
 

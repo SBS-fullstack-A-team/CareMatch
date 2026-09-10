@@ -3,7 +3,7 @@
  * 단일 소스: docs/ENUM_MAPPING.md. JSON 은 항상 enum name 을 주고받고,
  * 화면 표시는 이 맵을 거친다.
  */
-import type { JobCategory, WorkSchedule } from '@/types'
+import type { EmploymentType, JobCategory, WorkSchedule } from '@/types'
 
 /** 직종 (docs/ENUM_MAPPING.md §1) */
 export const JOB_CATEGORY_LABELS: Record<JobCategory, string> = {
@@ -34,4 +34,17 @@ export const WORK_SCHEDULE_LABELS: Record<WorkSchedule, string> = {
 export function workScheduleLabel(schedule: WorkSchedule | string | null | undefined): string {
   if (!schedule) return ''
   return WORK_SCHEDULE_LABELS[schedule as WorkSchedule] ?? String(schedule)
+}
+
+/** 고용형태 (docs/ENUM_MAPPING.md §3) */
+export const EMPLOYMENT_TYPE_LABELS: Record<EmploymentType, string> = {
+  FULL_TIME: '정규직',
+  CONTRACT: '계약직',
+  TEMPORARY: '단기',
+  PART_TIME: '파트타임',
+}
+
+/** enum name 을 한글 라벨로. 알 수 없는 값은 원문 그대로 돌려준다. */
+export function employmentTypeLabel(type: EmploymentType | string): string {
+  return EMPLOYMENT_TYPE_LABELS[type as EmploymentType] ?? String(type)
 }
