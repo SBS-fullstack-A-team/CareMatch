@@ -111,7 +111,7 @@ src/
 ├── lib/             # cn, 포맷터(급여·날짜·마스킹), nav, site(고객센터 정보),
 │                    # job-filters / talent-filters(목록 검색·필터·정렬 규칙)
 ├── pages/           # Home/, JobList/, JobDetail/, TalentList/, TalentDetail/,
-│                    # JobApply/ ...
+│                    # NearbyJobs/, JobApply/, Signup/, Support/ ...
 ├── router/
 └── types/           # Job, Talent, Matching, ElderlyInfo, Notice
 ```
@@ -157,6 +157,7 @@ pill 형태는 §8(과도한 pill 금지)의 명시적 예외입니다.
 - [x] **인재정보 상세** — 화면 구현 완료 (연락처 열람은 API 연동 단계)
 - [x] **구직신청** — 구직 프로필 작성 폼 (임시저장은 localStorage, 저장 API 미연결)
 - [x] **회원가입** — 개인회원(구직자) 가입, 실제 API 연동 (시설회원 제외)
+- [x] **고객센터** — 공지·FAQ·1:1 문의, 실제 API 연동
 - [ ] 구인공고 등록
 
 ## 메인 화면 구현 메모
@@ -378,6 +379,47 @@ Breadcrumb → 페이지 제목
 - 백엔드를 로컬 실행 (`cd backend && ./gradlew bootRun`) 후 `.env.local` 을 `http://localhost:8080` 으로
   (백엔드 기본 CORS 설정에 `localhost:5173` 이 포함되어 있습니다)
 - 또는 Render 환경변수 `CORS_ALLOWED_ORIGINS` 에 `http://localhost:5173` 추가
+
+## 고객센터 구현 메모
+
+라우트 7개이며 mock 이 아니라 **실제 백엔드에 연결**됩니다.
+
+```
+/support                      허브 (FAQ·공지 미리보기 + 연락처)
+/support/faq                  자주 묻는 질문
+/support/notice               공지 목록
+/support/notice/:noticeId     공지 상세
+/support/inquiry              1:1 문의 작성   (로그인 필요)
+/support/inquiries            내 문의 목록     (로그인 필요)
+/support/inquiries/:inquiryId 내 문의 상세     (로그인 필요)
+```
+
+기존 `/support/*` 와일드카드는 제거하고 위 7개를 명시했습니다.
+
+| 기능 | API |
+| --- | --- |
+| 공지 목록·상세 | `GET /api/support/notices` · `/{id}` |
+| FAQ | `GET /api/support/faqs` |
+| 연락처·운영시간 | `GET /api/support/site-config` |
+| 문의 등록 | `POST /api/support/inquiries` |
+| 내 문의 목록·상세 | `GET /api/support/inquiries/me` · `/{id}` |
+
+- **페이징 변환 주의** — 고객센터 API 는 구인공고/인재의 `PageResponse` 가 아니라
+  **Spring 기본 `Page`** 형태이고 `number` 가 0-base 입니다. `Pagination`(1-base)에 넣을 때
+  `number + 1` 로 변환합니다.
+- FAQ 는 아코디언 공통 컴포넌트가 없어 **네이티브 `details`/`summary`** 를 씁니다.
+  카테고리는 서버에 목록 API 가 없어 응답에서 뽑아 `SegmentedControl` 로 보여줍니다.
+- 문의 3개 화면은 기존 `useApp()` 의 `authReady`/`user` 만으로 로그인 게이트를 겁니다.
+  `authReady` 전에는 로그인 여부를 판단하지 않습니다.
+- 공지 상세는 API 호출 자체가 서버에서 조회수를 올립니다 (별도 증가 호출 없음).
+- 첨부파일은 업로드 인프라가 없어 UI 를 만들지 않고 `attachmentFileKey: null` 로 보냅니다.
+- 문의 수정/삭제·관리자 답변·FAQ/공지 검색은 **서버 API 가 없어 만들지 않았습니다.**
+
+### 메인과의 데이터 분리
+
+메인의 공지 카드는 계속 `data/mock/notices.ts` 를 쓰고, 고객센터만 서버 API 를 씁니다.
+`lib/site.ts`(전화 1588-1234)와 서버 `site-config`(1600-0000)의 값이 다르지만
+Footer·메인 회귀를 피하려고 **`site.ts` 는 건드리지 않았습니다.** 어느 쪽이 맞는지 확인이 필요합니다.
 
 ## 알려진 제약
 

@@ -11,6 +11,13 @@ import { TalentListPage } from '@/pages/TalentList'
 import { LoginPage } from '@/pages/Login'
 import { OAuthCallbackPage } from '@/pages/OAuthCallback'
 import { SignupPage } from '@/pages/Signup'
+import { SupportHomePage } from '@/pages/Support'
+import { SupportFaqPage } from '@/pages/Support/Faq'
+import { SupportInquiryDetailPage } from '@/pages/Support/InquiryDetail'
+import { SupportInquiryFormPage } from '@/pages/Support/InquiryForm'
+import { SupportInquiryListPage } from '@/pages/Support/InquiryList'
+import { SupportNoticeDetailPage } from '@/pages/Support/NoticeDetail'
+import { SupportNoticeListPage } from '@/pages/Support/NoticeList'
 
 export const router = createBrowserRouter([
   {
@@ -23,14 +30,13 @@ export const router = createBrowserRouter([
       { path: '/talents/:talentId', element: <TalentDetailPage /> },
       { path: '/nearby', element: <NearbyJobsPage /> },
       { path: '/apply', element: <JobApplyPage /> },
-      {
-        path: '/support/*',
-        element: <PlaceholderPage title="고객센터" />,
-      },
-      {
-        path: '/support',
-        element: <PlaceholderPage title="고객센터" />,
-      },
+      { path: '/support', element: <SupportHomePage /> },
+      { path: '/support/faq', element: <SupportFaqPage /> },
+      { path: '/support/notice', element: <SupportNoticeListPage /> },
+      { path: '/support/notice/:noticeId', element: <SupportNoticeDetailPage /> },
+      { path: '/support/inquiry', element: <SupportInquiryFormPage /> },
+      { path: '/support/inquiries', element: <SupportInquiryListPage /> },
+      { path: '/support/inquiries/:inquiryId', element: <SupportInquiryDetailPage /> },
       { path: '/login', element: <LoginPage /> },
       { path: '/oauth/callback', element: <OAuthCallbackPage /> },
       { path: '/signup', element: <SignupPage /> },
