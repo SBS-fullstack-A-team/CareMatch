@@ -23,6 +23,7 @@ import com.carematch.terms.service.TermsService;
 import com.carematch.verification.domain.VerificationChannel;
 import com.carematch.verification.service.VerificationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,6 +43,13 @@ public class MemberService {
     private final VerificationService verificationService;
     private final FileStorageService fileStorageService;
     private final PointService pointService;
+
+    /**
+     * 본인인증(이메일/휴대폰 코드 확인) 필수 여부. 프론트 연동 초기 단계라 임시로 기본 false.
+     * 재활성화 시 Render 환경변수 VERIFICATION_REQUIRED_FOR_SIGNUP=true 로 켜거나 기본값을 true로 되돌린다.
+     */
+    @Value("${carematch.verification.required-for-signup:false}")
+    private boolean verificationRequiredForSignup;
 
     // ---------------------------------------------------------------------
     // 중복 확인
@@ -63,8 +71,10 @@ public class MemberService {
     public SignupResponse registerJobSeeker(JobSeekerSignupRequest req) {
         validateDuplicate(req.loginId(), req.email());
         PasswordPolicy.validate(req.password());
-        assertVerificationMatchesContact(req.verificationChannel(), req.verificationTarget(), req.email(), req.phone());
-        verificationService.assertVerified(req.verificationChannel(), req.verificationTarget());
+        if (verificationRequiredForSignup) {
+            assertVerificationMatchesContact(req.verificationChannel(), req.verificationTarget(), req.email(), req.phone());
+            verificationService.assertVerified(req.verificationChannel(), req.verificationTarget());
+        }
 
         Member member = memberRepository.save(Member.builder()
                 .loginId(req.loginId())
@@ -94,8 +104,10 @@ public class MemberService {
     public SignupResponse registerFacility(FacilitySignupRequest req) {
         validateDuplicate(req.loginId(), req.email());
         PasswordPolicy.validate(req.password());
-        assertVerificationMatchesContact(req.verificationChannel(), req.verificationTarget(), req.email(), req.phone());
-        verificationService.assertVerified(req.verificationChannel(), req.verificationTarget());
+        if (verificationRequiredForSignup) {
+            assertVerificationMatchesContact(req.verificationChannel(), req.verificationTarget(), req.email(), req.phone());
+            verificationService.assertVerified(req.verificationChannel(), req.verificationTarget());
+        }
 
         String bizNo = normalizeBusinessNumber(req.businessRegistrationNumber());
         if (facilityProfileRepository.existsByBusinessRegistrationNumber(bizNo)) {
