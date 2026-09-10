@@ -2,8 +2,10 @@ import { createBrowserRouter } from 'react-router-dom'
 import { PlaceholderPage } from '@/components/common/placeholder-page'
 import { SiteLayout } from '@/components/layout/site-layout'
 import { HomePage } from '@/pages/Home'
+import { JobApplyPage } from '@/pages/JobApply'
 import { JobDetailPage } from '@/pages/JobDetail'
 import { JobListPage } from '@/pages/JobList'
+import { NearbyJobsPage } from '@/pages/NearbyJobs'
 import { TalentDetailPage } from '@/pages/TalentDetail'
 import { TalentListPage } from '@/pages/TalentList'
 import { LoginPage } from '@/pages/Login'
@@ -18,14 +20,8 @@ export const router = createBrowserRouter([
       { path: '/jobs/:jobId', element: <JobDetailPage /> },
       { path: '/talents', element: <TalentListPage /> },
       { path: '/talents/:talentId', element: <TalentDetailPage /> },
-      {
-        path: '/nearby',
-        element: <PlaceholderPage title="내 주변 일자리" />,
-      },
-      {
-        path: '/apply',
-        element: <PlaceholderPage title="구직신청" description="구직신청서 작성 화면을 준비 중입니다." />,
-      },
+      { path: '/nearby', element: <NearbyJobsPage /> },
+      { path: '/apply', element: <JobApplyPage /> },
       {
         path: '/support/*',
         element: <PlaceholderPage title="고객센터" />,

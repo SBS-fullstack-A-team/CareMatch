@@ -110,7 +110,8 @@ src/
 ├── hooks/           # use-app(세션·글자크기), use-click-outside, use-dismissable
 ├── lib/             # cn, 포맷터(급여·날짜·마스킹), nav, site(고객센터 정보),
 │                    # job-filters / talent-filters(목록 검색·필터·정렬 규칙)
-├── pages/           # Home/, JobList/, JobDetail/, TalentList/, TalentDetail/ ...
+├── pages/           # Home/, JobList/, JobDetail/, TalentList/, TalentDetail/,
+│                    # JobApply/ ...
 ├── router/
 └── types/           # Job, Talent, Matching, ElderlyInfo, Notice
 ```
@@ -154,8 +155,8 @@ pill 형태는 §8(과도한 pill 금지)의 명시적 예외입니다.
 - [x] **구인공고 상세** — 화면 구현 완료 (지원·관심공고는 UI 만, API 미연결)
 - [x] **인재정보 목록** — 검색·필터·정렬·페이지네이션 (mock 데이터 기준)
 - [x] **인재정보 상세** — 화면 구현 완료 (연락처 열람은 API 연동 단계)
+- [x] **구직신청** — 구직 프로필 작성 폼 (임시저장은 localStorage, 저장 API 미연결)
 - [ ] 구인공고 등록
-- [ ] 구직신청서
 - [ ] 로그인 / 회원가입
 
 ## 메인 화면 구현 메모
@@ -306,6 +307,42 @@ Breadcrumb(홈 > 인재정보 > 인재 상세) → 프로필 핵심 영역
 이번 화면도 `getTalentById()` mock 기반입니다. API 응답에만 있는 필드
 (phone, residence, education, availableTasks, desiredWorkDays, introduction 등)는
 mock 에 임의로 추가하지 않았습니다.
+
+## 구직신청 구현 메모
+
+라우트는 `/apply` 이며 **내 구직 프로필 등록/수정** 화면입니다.
+
+```
+Breadcrumb → 페이지 제목
+→ 본문 1fr (기본 정보 · 희망 근무조건 · 경력 및 자격 · 자기소개)
++ 우측 340px sticky (작성 상태 · 인재정보 미리보기 · 임시저장/등록)
+```
+
+- **특정 공고 지원과 분리했습니다.** 백엔드에서도 프로필 등록(`PUT /api/jobseekers/me`)과
+  공고 지원(`POST /api/job-postings/{id}/applications`)은 다른 API 라,
+  이 화면은 `jobId` 쿼리를 읽지 않습니다. 공고 지원은 추후 별도 라우트로 분리합니다.
+- **폼 상태는 `useState`** 입니다. 공유 UI 컴포넌트가 `forwardRef` 가 아니어서
+  react-hook-form 을 쓸 수 없습니다(Login 화면과 동일한 판단). UI 컴포넌트는 수정하지 않았습니다.
+- **희망 지역은 시·도 + 구·군 단일 선택**입니다. `Talent.regions` 는 배열이지만,
+  백엔드 `desiredSido` / `desiredSigungu` 와 이어지도록 폼은 한 곳만 받습니다.
+- **이름은 입력받지 않습니다.** 회원정보의 이름을 사용하며, 미리보기에서 `maskName()` 으로 마스킹합니다.
+- **비로그인은 폼을 보여주지 않고** 로그인 안내(EmptyState) + `/login` 링크만 제공합니다.
+  기존 `useApp()` 의 `authReady` / `user` 만 사용하고 라우트 가드는 새로 만들지 않았습니다.
+- 필수 항목은 **희망 직종 · 희망 지역 · 근무 형태** 3개입니다. 이 셋이 없으면
+  인재정보 목록의 검색·필터에서 아예 걸리지 않기 때문입니다.
+- 미리보기는 기존 `TalentListCard` 를 그대로 씁니다. 카드를 채울 만큼 입력됐을 때만 표시하고,
+  빈 값을 임의로 채우지 않습니다.
+
+### 임시저장
+
+`localStorage` 키는 `carematch.jobApply.draft` 입니다
+(`use-app` 의 `carematch.fontScale` / `carematch.easyMode` 규칙과 동일). 새로고침해도 복원됩니다.
+
+### 저장 API 미연결
+
+`PUT /api/jobseekers/me` 가 백엔드에 있지만 프론트에 jobseeker API 계층이 없어
+"구직신청 등록"은 화면상의 완료 처리까지만 합니다. 완료 안내에서 그 사실을 밝히고,
+`/talents` 와 입력한 희망조건이 반영된 `/jobs` 검색으로 이동할 수 있게 했습니다.
 
 ## 알려진 제약
 

@@ -231,26 +231,29 @@ GET /api/terms
 |---|---|---|
 | `desiredJobType` / `desiredWorkType` | enum | 희망 직종 / 희망 근무형태 |
 | `sido` / `sigungu` | string | 희망 근무지역(정확히 일치) |
-| `payType` / `payMax` | enum / int | 희망 급여유형 / 희망 최소급여가 이 값 이하인 인재만 |
+| `payTypes` | enum[] | 희망 급여유형 다중(OR). `HOURLY/DAILY/MONTHLY` |
+| `payMax` | int | 희망 최소급여가 이 값 이하인 인재만 |
 | `gender` | enum | `MALE` / `FEMALE` |
-| `minCareerYears` | int | 경력 연수가 이 값 이상 (0/1/3 …) |
+| `careerBuckets` | enum[] | 경력 구간 다중(OR). `ENTRY`(신입) / `Y1_3`(1~3년) / `Y3_5`(3~5년) / `Y5_PLUS`(5년+). 경력 미입력 인재는 제외 |
 | `availableTasks` | enum[] | 가능 업무 다중. 하나라도 겹치면 매칭 (`?availableTasks=MEAL_SUPPORT&availableTasks=BATH_SUPPORT`) |
 | `desiredEmploymentTypes` | enum[] | 희망 고용형태 다중. 하나라도 겹치면 매칭 |
+| `certificateNames` | string[] | 자격증명 다중(OR). `certificate_name` 정확 일치, 하나라도 보유하면 매칭. 상태(검증 여부) 무관 |
 | `seekingOnly` | bool | 생략/true = 구직중(SEEKING)만. false = 취업완료 포함 |
 | `updatedWithinDays` | int | 최근 N일 내 프로필 갱신 |
-| `sort` | string | `LATEST`(기본, 최근 갱신순) — 매칭점수 정렬은 SQL 불가로 미지원(구인공고 RECOMMENDED 와 동일 제약) |
+| `sort` | string | `LATEST`(기본, 최근 갱신순) / `CAREER_DESC` / `CAREER_ASC`(경력 정렬, 미입력은 뒤). 매칭점수 정렬은 SQL 불가로 미지원 |
 | `page` / `size` | int | 기본 0 / 20. size 상한 100 |
 
-enum: `JobType` = `CAREGIVER/CARE_ATTENDANT/NURSE_AIDE/SOCIAL_WORKER/LIFE_SUPPORT/HOUSEKEEPER/ETC` (한글 라벨·정의는 [`ENUM_MAPPING.md`](./ENUM_MAPPING.md) §1),
+enum `JobType` = `CAREGIVER/CARE_ATTENDANT/NURSE_AIDE/SOCIAL_WORKER/LIFE_SUPPORT/HOUSEKEEPER/ETC` (한글 라벨·정의는 [`ENUM_MAPPING.md`](./ENUM_MAPPING.md) §1),
 `CareTask` = `DAILY_LIFE_SUPPORT/MEAL_SUPPORT/BATH_SUPPORT/MOBILITY_SUPPORT/COGNITIVE_ACTIVITY/PERSONAL_HYGIENE/HOUSEWORK/HOSPITAL_ESCORT`,
-`EmploymentType` = `FULL_TIME/CONTRACT/TEMPORARY/PART_TIME`, `Gender` = `MALE/FEMALE`, `EducationLevel` = `MIDDLE_SCHOOL/HIGH_SCHOOL/ASSOCIATE/BACHELOR/GRADUATE`.
+`EmploymentType` = `FULL_TIME/CONTRACT/TEMPORARY/PART_TIME`, `Gender` = `MALE/FEMALE`, `EducationLevel` = `MIDDLE_SCHOOL/HIGH_SCHOOL/ASSOCIATE/BACHELOR/GRADUATE`,
+`CareerBucket` = `ENTRY/Y1_3/Y5_PLUS`.
 
 - `TalentSummary`: `profileId, memberId, name, employmentStatus, gender, age, photoUrl, careerYears, education, desired*, desiredWorkDays, desiredWorkStartTime, desiredWorkEndTime, certificateNames[], updatedAt, matchingScore`
 - `age` = 올해 − `birthYear` (birthYear 미설정이면 null).
 - `matchingScore`: **시설회원이 조회 시** 그 시설의 OPEN 공고들 중 최고 매칭 점수. 관리자·공고 없음·인재 희망조건 미설정이면 `null`.
 
 ```http
-GET /api/jobseekers?desiredJobType=CAREGIVER&sido=서울특별시&sigungu=강남구&gender=FEMALE&minCareerYears=3     (Authorization: Bearer <FACILITY>)
+GET /api/jobseekers?desiredJobType=CAREGIVER&sido=서울특별시&sigungu=강남구&gender=FEMALE&careerBuckets=Y3_5&careerBuckets=Y5_PLUS&sort=CAREER_DESC     (Authorization: Bearer <FACILITY>)
 200 { "content": [ { "profileId": 42, "name": "김미영", "employmentStatus": "SEEKING",
         "gender": "FEMALE", "age": 52, "photoUrl": "https://...", "careerYears": 3, "education": "HIGH_SCHOOL",
         "desiredJobType": "CAREGIVER", "desiredSido": "서울특별시", "desiredSigungu": "강남구",
@@ -487,9 +490,9 @@ GET /api/job-postings?page=0&size=20
 | `sido` / `sigungu` | string | 지역(정확히 일치) |
 | `jobTypes` | enum[] | 직종(`JobType`) 다중 (`?jobTypes=CAREGIVER&jobTypes=HOUSEKEEPER`). 값 목록은 [`ENUM_MAPPING.md`](./ENUM_MAPPING.md) §1 |
 | `workTypes` / `employmentTypes` / `careGrades` / `mobilityStatuses` | enum[] | 각 다중 |
-| `payType` | enum | HOURLY/DAILY/MONTHLY |
-| `payMin` / `payMax` | int | 급여 범위. payType 없이 쓰면 시급·월급이 섞이니 함께 지정 권장 |
-| `sort` | string | `RECOMMENDED`(기본: 노출등급→최신) / `LATEST` / `DEADLINE` / `PAY_DESC` / `VIEWS` |
+| `payTypes` | enum[] | 급여 형태 다중(OR). HOURLY/DAILY/MONTHLY |
+| `payMin` / `payMax` | int | 급여 범위. payTypes 없이 쓰면 시급·월급이 섞이니 함께 지정 권장 |
+| `sort` | string | `RECOMMENDED`(기본: 노출등급→최신) / `LATEST` / `DEADLINE` / `PAY_DESC` / `PAY_ASC` / `VIEWS` |
 | `page` / `size` | int | 기본 0 / 20. size 상한 100 |
 
 - 상태는 서버가 OPEN 으로 고정. 잘못된 enum 값 → 400 `COMMON_001`.

@@ -216,11 +216,12 @@ public class JobPostingService {
         return sort == null ? "RECOMMENDED" : sort.toUpperCase();
     }
 
-    private Sort resolveSort(String sortKey) {
+    static Sort resolveSort(String sortKey) {
         return switch (sortKey) {
             case "LATEST" -> Sort.by(Sort.Direction.DESC, "createdAt");
             case "DEADLINE" -> Sort.by(Sort.Direction.ASC, "deadline");
             case "PAY_DESC" -> Sort.by(Sort.Direction.DESC, "payAmount");
+            case "PAY_ASC" -> Sort.by(Sort.Direction.ASC, "payAmount");
             case "VIEWS" -> Sort.by(Sort.Direction.DESC, "viewCount");
             default -> Sort.by(Sort.Order.desc("exposurePriority"), Sort.Order.desc("createdAt"));
         };

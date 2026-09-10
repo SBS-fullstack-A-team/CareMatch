@@ -42,10 +42,8 @@ public final class JobPostingSpecs {
             addIn(ps, root.get("employmentType"), c.employmentTypes());
             addIn(ps, root.get("careGrade"), c.careGrades());
             addIn(ps, root.get("mobilityStatus"), c.mobilityStatuses());
+            addIn(ps, root.get("payType"), c.payTypes());
 
-            if (c.payType() != null) {
-                ps.add(cb.equal(root.get("payType"), c.payType()));
-            }
             if (c.payMin() != null) {
                 ps.add(cb.greaterThanOrEqualTo(root.get("payAmount"), c.payMin()));
             }
