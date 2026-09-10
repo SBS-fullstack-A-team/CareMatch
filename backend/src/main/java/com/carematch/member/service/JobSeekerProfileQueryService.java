@@ -103,6 +103,7 @@ public class JobSeekerProfileQueryService {
                 names(profile.getAvailableTasks()),
                 name(profile.getDesiredJobType()),
                 name(profile.getDesiredWorkType()),
+                name(profile.getDesiredWorkSchedule()),
                 profile.getDesiredSido(),
                 profile.getDesiredSigungu(),
                 name(profile.getDesiredPayType()),

@@ -16,14 +16,20 @@ import java.util.List;
  * 실제 부합한 정도를 분자로 하여 100점 만점으로 환산한다.
  * 지정한 희망조건이 하나도 없으면 채점 불가 → {@code null}.
  *
- * 가중치: 직종 35 / 지역 30 / 근무형태 20 / 급여 15.
+ * 가중치: 직종 35 / 지역 30 / 근무형태 10 + 근무 시간대 10 / 급여 15.
+ *
+ * <p>근무 축은 두 개다(docs/ENUM_MAPPING.md §2): {@code WorkType}(출퇴근/입주 — 항상 존재,
+ * 협의는 일치 처리)과 {@code WorkSchedule}(주간/오전/오후/야간/교대 — 공고에 없을 수 있음).
+ * 각각 구직자가 희망을 지정했을 때만 채점하며, 시간대는 공고에도 값이 있을 때만 채점한다
+ * (입주형 등 시간대 없는 공고는 시간대 축에서 벌점 없음).
  */
 @Component
 public class MatchScoreCalculator {
 
     private static final int W_JOB_TYPE = 35;
     private static final int W_REGION = 30;
-    private static final int W_WORK_TYPE = 20;
+    private static final int W_WORK_TYPE = 10;
+    private static final int W_WORK_SCHEDULE = 10;
     private static final int W_PAY = 15;
 
     /**
@@ -73,6 +79,14 @@ public class MatchScoreCalculator {
             if (workTypeMatches(seeker.getDesiredWorkType(), posting.getWorkType())) {
                 earned += W_WORK_TYPE;
                 reasons.add("희망하는 근무형태와 일치해요");
+            }
+        }
+
+        if (seeker.getDesiredWorkSchedule() != null && posting.getWorkSchedule() != null) {
+            total += W_WORK_SCHEDULE;
+            if (seeker.getDesiredWorkSchedule() == posting.getWorkSchedule()) {
+                earned += W_WORK_SCHEDULE;
+                reasons.add("희망하는 근무 시간대와 일치해요");
             }
         }
 

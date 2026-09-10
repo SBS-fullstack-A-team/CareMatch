@@ -3,6 +3,7 @@ package com.carematch.jobposting.service;
 import com.carematch.jobposting.domain.JobPosting;
 import com.carematch.jobposting.domain.JobType;
 import com.carematch.jobposting.domain.PayType;
+import com.carematch.jobposting.domain.WorkSchedule;
 import com.carematch.jobposting.domain.WorkType;
 import com.carematch.member.domain.EmploymentStatus;
 import com.carematch.member.domain.JobSeekerProfile;
@@ -14,21 +15,22 @@ class MatchScoreCalculatorTest {
 
     private final MatchScoreCalculator calculator = new MatchScoreCalculator();
 
-    private JobSeekerProfile seeker(JobType jobType, WorkType workType, String sido, String sigungu,
-                                    PayType payType, Integer minPay) {
+    private JobSeekerProfile seeker(JobType jobType, WorkType workType, WorkSchedule workSchedule,
+                                    String sido, String sigungu, PayType payType, Integer minPay) {
         JobSeekerProfile p = JobSeekerProfile.builder()
                 .employmentStatus(EmploymentStatus.SEEKING)
                 .build();
         p.updateDesiredConditions(new JobSeekerProfile.DesiredConditions(
-                jobType, workType, sido, sigungu, payType, minPay));
+                jobType, workType, workSchedule, sido, sigungu, payType, minPay));
         return p;
     }
 
-    private JobPosting posting(JobType jobType, WorkType workType, String sido, String sigungu,
-                               PayType payType, Integer payAmount) {
+    private JobPosting posting(JobType jobType, WorkType workType, WorkSchedule workSchedule,
+                               String sido, String sigungu, PayType payType, Integer payAmount) {
         return JobPosting.builder()
                 .jobType(jobType)
                 .workType(workType)
+                .workSchedule(workSchedule)
                 .sido(sido)
                 .sigungu(sigungu)
                 .payType(payType)
@@ -39,65 +41,96 @@ class MatchScoreCalculatorTest {
     @Test
     void 희망조건_미설정이면_null() {
         JobSeekerProfile empty = JobSeekerProfile.builder().employmentStatus(EmploymentStatus.SEEKING).build();
-        assertThat(calculator.score(empty, posting(JobType.CAREGIVER, WorkType.COMMUTE, "서울특별시", "강남구", PayType.MONTHLY, 3_000_000)))
+        assertThat(calculator.score(empty, posting(JobType.CAREGIVER, WorkType.COMMUTE, WorkSchedule.DAY, "서울특별시", "강남구", PayType.MONTHLY, 3_000_000)))
                 .isNull();
     }
 
     @Test
     void 구직자_null이면_null() {
-        assertThat(calculator.score(null, posting(JobType.CAREGIVER, WorkType.COMMUTE, "서울특별시", "강남구", PayType.MONTHLY, 3_000_000)))
+        assertThat(calculator.score(null, posting(JobType.CAREGIVER, WorkType.COMMUTE, WorkSchedule.DAY, "서울특별시", "강남구", PayType.MONTHLY, 3_000_000)))
                 .isNull();
     }
 
     @Test
     void 모든_조건_완벽_일치면_100() {
-        JobSeekerProfile s = seeker(JobType.CAREGIVER, WorkType.COMMUTE, "서울특별시", "강남구", PayType.MONTHLY, 2_500_000);
-        JobPosting p = posting(JobType.CAREGIVER, WorkType.COMMUTE, "서울특별시", "강남구", PayType.MONTHLY, 3_000_000);
+        JobSeekerProfile s = seeker(JobType.CAREGIVER, WorkType.COMMUTE, WorkSchedule.DAY, "서울특별시", "강남구", PayType.MONTHLY, 2_500_000);
+        JobPosting p = posting(JobType.CAREGIVER, WorkType.COMMUTE, WorkSchedule.DAY, "서울특별시", "강남구", PayType.MONTHLY, 3_000_000);
         assertThat(calculator.score(s, p)).isEqualTo(100);
     }
 
     @Test
     void 직종만_지정_불일치면_0() {
-        JobSeekerProfile s = seeker(JobType.HOUSEKEEPER, null, null, null, null, null);
-        JobPosting p = posting(JobType.CAREGIVER, WorkType.COMMUTE, "서울특별시", "강남구", PayType.MONTHLY, 3_000_000);
+        JobSeekerProfile s = seeker(JobType.HOUSEKEEPER, null, null, null, null, null, null);
+        JobPosting p = posting(JobType.CAREGIVER, WorkType.COMMUTE, WorkSchedule.DAY, "서울특별시", "강남구", PayType.MONTHLY, 3_000_000);
         assertThat(calculator.score(s, p)).isEqualTo(0);
     }
 
     @Test
     void 직종_지역만_지정_직종만_맞으면_가중치비율() {
         // 지정: 직종(35) + 지역(30). 직종 일치, 지역 완전 불일치 → 35 / 65 ≈ 54
-        JobSeekerProfile s = seeker(JobType.CAREGIVER, null, "서울특별시", "강남구", null, null);
-        JobPosting p = posting(JobType.CAREGIVER, WorkType.COMMUTE, "부산광역시", "해운대구", PayType.MONTHLY, 3_000_000);
+        JobSeekerProfile s = seeker(JobType.CAREGIVER, null, null, "서울특별시", "강남구", null, null);
+        JobPosting p = posting(JobType.CAREGIVER, WorkType.COMMUTE, WorkSchedule.DAY, "부산광역시", "해운대구", PayType.MONTHLY, 3_000_000);
         assertThat(calculator.score(s, p)).isEqualTo(54);
     }
 
     @Test
     void 시도만_일치하면_지역_절반점수() {
         // 지정: 지역(30)만. 시/도 일치, 시/군/구 불일치 → 15 / 30 = 50
-        JobSeekerProfile s = seeker(null, null, "서울특별시", "강남구", null, null);
-        JobPosting p = posting(JobType.CAREGIVER, WorkType.COMMUTE, "서울특별시", "송파구", PayType.MONTHLY, 3_000_000);
+        JobSeekerProfile s = seeker(null, null, null, "서울특별시", "강남구", null, null);
+        JobPosting p = posting(JobType.CAREGIVER, WorkType.COMMUTE, WorkSchedule.DAY, "서울특별시", "송파구", PayType.MONTHLY, 3_000_000);
         assertThat(calculator.score(s, p)).isEqualTo(50);
     }
 
     @Test
     void 협의_근무형태는_일치로_처리() {
-        JobSeekerProfile s = seeker(null, WorkType.LIVE_IN, null, null, null, null);
-        JobPosting p = posting(JobType.CAREGIVER, WorkType.NEGOTIABLE, "서울특별시", "강남구", PayType.MONTHLY, 3_000_000);
+        JobSeekerProfile s = seeker(null, WorkType.LIVE_IN, null, null, null, null, null);
+        JobPosting p = posting(JobType.CAREGIVER, WorkType.NEGOTIABLE, WorkSchedule.DAY, "서울특별시", "강남구", PayType.MONTHLY, 3_000_000);
         assertThat(calculator.score(s, p)).isEqualTo(100);
+    }
+
+    @Test
+    void 근무_시간대만_지정_일치면_100() {
+        JobSeekerProfile s = seeker(null, null, WorkSchedule.NIGHT, null, null, null, null);
+        JobPosting p = posting(JobType.CAREGIVER, WorkType.COMMUTE, WorkSchedule.NIGHT, "서울특별시", "강남구", PayType.MONTHLY, 3_000_000);
+        assertThat(calculator.score(s, p)).isEqualTo(100);
+    }
+
+    @Test
+    void 근무_시간대_불일치면_0() {
+        JobSeekerProfile s = seeker(null, null, WorkSchedule.NIGHT, null, null, null, null);
+        JobPosting p = posting(JobType.CAREGIVER, WorkType.COMMUTE, WorkSchedule.DAY, "서울특별시", "강남구", PayType.MONTHLY, 3_000_000);
+        assertThat(calculator.score(s, p)).isEqualTo(0);
+    }
+
+    @Test
+    void 공고에_시간대가_없으면_시간대축은_채점에서_제외() {
+        // 지정: 직종(35) + 시간대(10). 공고에 workSchedule 없음 → 시간대 축 분모 제외.
+        // 직종만 일치 → 35 / 35 = 100
+        JobSeekerProfile s = seeker(JobType.CAREGIVER, null, WorkSchedule.DAY, null, null, null, null);
+        JobPosting p = posting(JobType.CAREGIVER, WorkType.LIVE_IN, null, "서울특별시", "강남구", PayType.MONTHLY, 3_000_000);
+        assertThat(calculator.score(s, p)).isEqualTo(100);
+    }
+
+    @Test
+    void 근무형태와_시간대_각_10점() {
+        // 지정: 근무형태(10) + 시간대(10). 근무형태 일치, 시간대 불일치 → 10 / 20 = 50
+        JobSeekerProfile s = seeker(null, WorkType.COMMUTE, WorkSchedule.MORNING, null, null, null, null);
+        JobPosting p = posting(JobType.CAREGIVER, WorkType.COMMUTE, WorkSchedule.NIGHT, "서울특별시", "강남구", PayType.MONTHLY, 3_000_000);
+        assertThat(calculator.score(s, p)).isEqualTo(50);
     }
 
     @Test
     void 급여_미달이면_비율점수() {
         // 지정: 급여(15)만. 희망 300만, 공고 240만 → 0.8 → 12 / 15 = 80
-        JobSeekerProfile s = seeker(null, null, null, null, PayType.MONTHLY, 3_000_000);
-        JobPosting p = posting(JobType.CAREGIVER, WorkType.COMMUTE, "서울특별시", "강남구", PayType.MONTHLY, 2_400_000);
+        JobSeekerProfile s = seeker(null, null, null, null, null, PayType.MONTHLY, 3_000_000);
+        JobPosting p = posting(JobType.CAREGIVER, WorkType.COMMUTE, WorkSchedule.DAY, "서울특별시", "강남구", PayType.MONTHLY, 2_400_000);
         assertThat(calculator.score(s, p)).isEqualTo(80);
     }
 
     @Test
     void 급여유형_다르면_급여점수_0() {
-        JobSeekerProfile s = seeker(null, null, null, null, PayType.HOURLY, 12_000);
-        JobPosting p = posting(JobType.CAREGIVER, WorkType.COMMUTE, "서울특별시", "강남구", PayType.MONTHLY, 3_000_000);
+        JobSeekerProfile s = seeker(null, null, null, null, null, PayType.HOURLY, 12_000);
+        JobPosting p = posting(JobType.CAREGIVER, WorkType.COMMUTE, WorkSchedule.DAY, "서울특별시", "강남구", PayType.MONTHLY, 3_000_000);
         assertThat(calculator.score(s, p)).isEqualTo(0);
     }
 
@@ -105,33 +138,35 @@ class MatchScoreCalculatorTest {
     void 채점_불가면_사유도_빈리스트() {
         JobSeekerProfile empty = JobSeekerProfile.builder().employmentStatus(EmploymentStatus.SEEKING).build();
         MatchScoreCalculator.MatchResult r = calculator.evaluate(
-                empty, posting(JobType.CAREGIVER, WorkType.COMMUTE, "서울특별시", "강남구", PayType.MONTHLY, 3_000_000));
+                empty, posting(JobType.CAREGIVER, WorkType.COMMUTE, WorkSchedule.DAY, "서울특별시", "강남구", PayType.MONTHLY, 3_000_000));
         assertThat(r.score()).isNull();
         assertThat(r.reasons()).isEmpty();
     }
 
     @Test
     void 일치한_항목만_사유에_담긴다() {
-        // 직종·근무형태 일치, 지역은 시/도만 일치, 급여 미달
-        JobSeekerProfile s = seeker(JobType.CAREGIVER, WorkType.COMMUTE, "서울특별시", "강남구", PayType.MONTHLY, 3_000_000);
-        JobPosting p = posting(JobType.CAREGIVER, WorkType.COMMUTE, "서울특별시", "송파구", PayType.MONTHLY, 2_400_000);
+        // 직종·근무형태·근무 시간대 일치, 지역은 시/도만 일치, 급여 미달
+        JobSeekerProfile s = seeker(JobType.CAREGIVER, WorkType.COMMUTE, WorkSchedule.DAY, "서울특별시", "강남구", PayType.MONTHLY, 3_000_000);
+        JobPosting p = posting(JobType.CAREGIVER, WorkType.COMMUTE, WorkSchedule.DAY, "서울특별시", "송파구", PayType.MONTHLY, 2_400_000);
         MatchScoreCalculator.MatchResult r = calculator.evaluate(s, p);
         assertThat(r.reasons()).containsExactly(
                 "희망하는 직종과 일치해요",
                 "희망하는 시·도와 일치해요",
-                "희망하는 근무형태와 일치해요");
+                "희망하는 근무형태와 일치해요",
+                "희망하는 근무 시간대와 일치해요");
     }
 
     @Test
     void 근무지_완전일치면_급여충족_사유_포함() {
-        JobSeekerProfile s = seeker(JobType.CAREGIVER, WorkType.COMMUTE, "서울특별시", "강남구", PayType.MONTHLY, 2_500_000);
-        JobPosting p = posting(JobType.CAREGIVER, WorkType.COMMUTE, "서울특별시", "강남구", PayType.MONTHLY, 3_000_000);
+        JobSeekerProfile s = seeker(JobType.CAREGIVER, WorkType.COMMUTE, WorkSchedule.DAY, "서울특별시", "강남구", PayType.MONTHLY, 2_500_000);
+        JobPosting p = posting(JobType.CAREGIVER, WorkType.COMMUTE, WorkSchedule.DAY, "서울특별시", "강남구", PayType.MONTHLY, 3_000_000);
         MatchScoreCalculator.MatchResult r = calculator.evaluate(s, p);
         assertThat(r.score()).isEqualTo(100);
         assertThat(r.reasons()).containsExactly(
                 "희망하는 직종과 일치해요",
                 "희망하는 근무지와 일치해요",
                 "희망하는 근무형태와 일치해요",
+                "희망하는 근무 시간대와 일치해요",
                 "희망하는 급여 조건을 충족해요");
     }
 }

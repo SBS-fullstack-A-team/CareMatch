@@ -2,6 +2,7 @@ package com.carematch.member.domain;
 
 import com.carematch.jobposting.domain.JobType;
 import com.carematch.jobposting.domain.PayType;
+import com.carematch.jobposting.domain.WorkSchedule;
 import com.carematch.jobposting.domain.WorkType;
 import org.junit.jupiter.api.Test;
 
@@ -21,10 +22,11 @@ class JobSeekerProfileTest {
         JobSeekerProfile profile = newProfile();
 
         profile.updateDesiredConditions(new JobSeekerProfile.DesiredConditions(
-                JobType.CAREGIVER, WorkType.COMMUTE, "서울특별시", "강남구", PayType.MONTHLY, 2_500_000));
+                JobType.CAREGIVER, WorkType.COMMUTE, WorkSchedule.DAY, "서울특별시", "강남구", PayType.MONTHLY, 2_500_000));
 
         assertThat(profile.getDesiredJobType()).isEqualTo(JobType.CAREGIVER);
         assertThat(profile.getDesiredWorkType()).isEqualTo(WorkType.COMMUTE);
+        assertThat(profile.getDesiredWorkSchedule()).isEqualTo(WorkSchedule.DAY);
         assertThat(profile.getDesiredSido()).isEqualTo("서울특별시");
         assertThat(profile.getDesiredSigungu()).isEqualTo("강남구");
         assertThat(profile.getDesiredPayType()).isEqualTo(PayType.MONTHLY);
@@ -35,13 +37,14 @@ class JobSeekerProfileTest {
     void 희망근무조건_일부_null_이면_조건없음으로_덮어쓴다() {
         JobSeekerProfile profile = newProfile();
         profile.updateDesiredConditions(new JobSeekerProfile.DesiredConditions(
-                JobType.CAREGIVER, WorkType.COMMUTE, "서울특별시", "강남구", PayType.MONTHLY, 2_500_000));
+                JobType.CAREGIVER, WorkType.COMMUTE, WorkSchedule.DAY, "서울특별시", "강남구", PayType.MONTHLY, 2_500_000));
 
         profile.updateDesiredConditions(new JobSeekerProfile.DesiredConditions(
-                JobType.HOUSEKEEPER, null, null, null, null, null));
+                JobType.HOUSEKEEPER, null, null, null, null, null, null));
 
         assertThat(profile.getDesiredJobType()).isEqualTo(JobType.HOUSEKEEPER);
         assertThat(profile.getDesiredWorkType()).isNull();
+        assertThat(profile.getDesiredWorkSchedule()).isNull();
         assertThat(profile.getDesiredSido()).isNull();
         assertThat(profile.getDesiredMinPay()).isNull();
     }
@@ -50,7 +53,7 @@ class JobSeekerProfileTest {
     void updateProfile_는_희망조건을_건드리지_않는다() {
         JobSeekerProfile profile = newProfile();
         profile.updateDesiredConditions(new JobSeekerProfile.DesiredConditions(
-                JobType.CAREGIVER, null, null, null, null, null));
+                JobType.CAREGIVER, null, null, null, null, null, null));
 
         profile.updateProfile("경기도 성남시 분당구", "안녕하세요");
 

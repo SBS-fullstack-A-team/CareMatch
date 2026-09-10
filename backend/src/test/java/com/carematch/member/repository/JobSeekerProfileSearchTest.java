@@ -52,7 +52,7 @@ class JobSeekerProfileSearchTest {
                                     String sido, String sigungu, PayType payType, Integer minPay) {
         JobSeekerProfile p = persist(status);
         p.updateDesiredConditions(new JobSeekerProfile.DesiredConditions(
-                jobType, workType, sido, sigungu, payType, minPay));
+                jobType, workType, null, sido, sigungu, payType, minPay));
         return p;
     }
 
