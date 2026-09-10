@@ -11,13 +11,17 @@ import {
 import { login as authLogin, logout as authLogout } from '@/api/auth'
 import { getDisplayPreference, getMe, updateDisplayPreference } from '@/api/members'
 import { tokenStore } from '@/lib/token-store'
-import type { FontScaleServer, MyPageResponse, TokenResponse } from '@/types/api'
+import type { FontScaleServer, MemberRole, MyPageResponse, TokenResponse } from '@/types/api'
 
 export type MemberType = 'personal' | 'facility'
 
 export interface SessionUser {
   name: string
   memberType: MemberType
+  /** 원본 역할. 라우트 가드 등 세밀한 권한 판정에 사용한다 (memberType 은 표시용). */
+  role: MemberRole
+  /** 시설회원의 관리자 승인 상태. 그 외 역할은 null. */
+  facilityApprovalStatus: MyPageResponse['facilityApprovalStatus']
   /** 개인회원: 상태 / 시설회원: 승인 상태 문구 */
   subtitle: string
   point: number
@@ -98,6 +102,8 @@ function toSessionUser(me: MyPageResponse): SessionUser {
   return {
     name: me.name,
     memberType,
+    role: me.role,
+    facilityApprovalStatus: me.facilityApprovalStatus,
     subtitle,
     point: me.point,
     unreadNotifications: 0, // TODO: 알림 API 연동 시 교체
