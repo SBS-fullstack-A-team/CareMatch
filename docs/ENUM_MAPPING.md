@@ -3,7 +3,7 @@
 프론트가 붙인 화면을 실 API로 연동하기 전, 직종·근무형태 등 공유 enum의
 체계를 통일하기 위한 설계 문서. [`FRONTEND_INTEGRATION_TODO.md`](./FRONTEND_INTEGRATION_TODO.md) §1 의 상세판.
 
-작성일 2026-09-10 · 상태: **초안 (팀장 승인 대기)**
+작성일 2026-09-10 · 상태: **§1~§3 머지 완료 · §4 백엔드 머지 / 프론트(#61) 리뷰 대기**
 
 ---
 
@@ -50,13 +50,11 @@
 - [x] 시드 — `LocalDataInitializer` 는 공고/구직 시드 없음(약관·관리자·공지만) → 변경 불필요
 - [x] 영향 지점: `MatchScoreCalculator`(값 무관 equality), `TalentMatcher`·`ApplicationDtos`(`.name()` 문자열), `JobSeekerProfileSpecs`(값 무관) — 코드 변경 없음. 기존 테스트는 `NURSING_ASSISTANT` 미사용
 
-### 작업 (프론트)
+### 작업 (프론트) — 머지: PR #53
 
-- [ ] `JobCategory` 타입을 enum name 유니온으로 변경
-- [ ] `JOB_TYPE_LABELS: Record<JobCategory, string>` 라벨맵 추가
-- [ ] `data/mock/jobs.ts`, `data/filters.ts`(`CATEGORY_OPTIONS`) 갱신
-
-> ⚠️ 프리런치 + 로컬 H2 `create-drop` + prod DB 벤더 미정 → **지금 하는 게 비용 최저**. 미루면 계속 커진다.
+- [x] `JobCategory` 타입 enum name 유니온
+- [x] `frontend/src/data/labels.ts` 신설 — `JOB_CATEGORY_LABELS` + `jobCategoryLabel()`
+- [x] `data/mock/jobs.ts`·`talents.ts`, `data/filters.ts`(`CATEGORY_OPTIONS`), 표시 컴포넌트, 키워드 검색 haystack, 조건 칩 갱신
 
 ---
 
@@ -90,24 +88,25 @@
 - `WorkType` = `LIVE_IN`(입주형)은 24h라 스케줄 무의미 → `WorkSchedule` **nullable**.
 - `WorkType`(출퇴근/입주)은 프론트가 나중에 별도 필터로 채택 (COMPONENT_RULES §17 에 자리 있음).
 
-### 작업 (백엔드) — 구현: `feature/be-workschedule`
+### 작업 (백엔드) — 머지: PR #55, #59(검증)
 
 - [x] `WorkSchedule` enum 신설 (DAY/MORNING/AFTERNOON/NIGHT/SHIFT)
 - [x] `JobPosting.workSchedule` 컬럼(nullable) + `V4__jobposting_work_schedule.sql`
 - [x] `CreateRequest` / `UpdateRequest` / `DetailResponse` / `SummaryResponse` 필드 추가
 - [x] `SearchCondition` + `JobPostingSpecs` 에 `workSchedules` 다중 필터
+- [x] `workType != LIVE_IN` 이면 `workSchedule` 필수 검증 (PR #59)
 - [ ] (후속 PR) `JobSeekerProfile.desiredWorkSchedule` + `MatchScoreCalculator`
       W_WORK_TYPE(20) 를 `WorkSchedule` 기준으로 이전/병행 — 매칭 로직은 별도
 
-### 작업 (프론트)
+### 작업 (프론트) — 머지: PR #56
 
-- [ ] `Job.workType`(현재 "주간" 등 한글 문자열) → `workSchedule` enum name 으로 교체
-- [ ] `WORK_SCHEDULE_LABELS` 라벨맵
-- [ ] `data/filters.ts`(`WORK_TYPE_OPTIONS`), `lib/job-filters.ts`, mock 갱신
+- [x] `Job.workType` → `Job.workSchedule: WorkSchedule | null`, `Talent.workType` → `workSchedule`
+- [x] `WORK_SCHEDULE_LABELS` / `workScheduleLabel()`
+- [x] `data/filters.ts`(`WORK_SCHEDULE_OPTIONS`), `lib/job-filters.ts`·`talent-filters.ts`, mock, `JobApplyDraft` 갱신
 
 ---
 
-## 3. 고용형태 (EmploymentType) — 우선순위 낮음
+## 3. 고용형태 (EmploymentType) — 프론트 머지 완료 (PR #57)
 
 | 백엔드 | 프론트 |
 |---|---|
@@ -128,10 +127,41 @@
 
 ---
 
-## 진행 순서
+## 4. 시설유형 (FacilityType)
 
-1. 이 문서의 직종 목록 + `WorkSchedule` 목록을 **팀장이 승인**
-2. **백엔드 PR** (`feature/be-*`): `JobType` 재정의 + `WorkSchedule` 신규 + V3 마이그레이션 + 시드/매칭
-3. **프론트 PR** (`feature/fe-*`): 타입 enum name 화 + 라벨맵 + mock/필터 — 2번과 병렬
-4. `docs/API.md` 목록/검색 파라미터 표 갱신
-5. 실 API 연동
+시설회원이 가입 시 선택. 프론트 공고 카드 배지·목록 필터의 주요 축.
+
+| 한글 | enum name |
+|---|---|
+| 방문요양센터 | `VISITING_CARE` |
+| 요양원 | `NURSING_HOME` |
+| 주야간보호센터 | `DAY_NIGHT_CARE` |
+| 재가복지센터 | `COMMUNITY_CARE` |
+| 요양병원 | `NURSING_HOSPITAL` |
+| 기타 | `ETC` |
+
+### 작업 (백엔드) — 머지 완료: PR #58
+
+- [x] `FacilityType` enum 신설
+- [x] `FacilityProfile.facilityType` 컬럼(nullable — V5 이전 가입 시설) + `V5__facility_type.sql`
+- [x] `FacilitySignupRequest.facilityType` `@NotNull`, `SocialRoleSelectionRequest.facilityType` (role=FACILITY 시 검증)
+- [x] `SummaryResponse` / `DetailResponse` 에 `facilityType` + `SearchCondition.facilityTypes` 필터 + 공고 응답 `applicantCount`
+
+### 작업 (프론트) — 리뷰 대기: PR #61
+
+- [x] `FacilityType` 타입 enum name 유니온 (`types/index.ts`)
+- [x] `FACILITY_TYPE_LABELS` / `facilityTypeLabel()` 라벨맵 (`data/labels.ts`)
+- [x] `data/filters.ts`(`FACILITY_TYPE_OPTIONS` value → enum name)
+- [x] `mock/jobs.ts`(`facilityType`), 표시 컴포넌트(`facility-badge`·`job-card`·`JobDetail`), `lib/job-filters.ts` 갱신 (§1 직종과 동일 패턴)
+- [x] `JobList`·`NearbyJobs` 조건 칩 `FILTER_VALUE_LABEL` 에 시설유형 추가 (NearbyJobs 는 `FILTER_VALUE_LABEL` 로 승격)
+
+---
+
+## 진행 상태
+
+- §1 직종 — **머지 완료** (#52 백 / #53 프)
+- §2 근무 시간대 — **머지 완료** (#55 백 / #56 프 / #59 검증). 매칭 이전은 후속 PR
+- §3 고용형태 — **머지 완료** (#57 프)
+- §4 시설유형 — 백엔드 **머지 완료** (#58), 프론트 **리뷰 대기** (#61)
+- 남은 것: 매칭(`MatchScoreCalculator`)을 `WorkSchedule` 기준으로 이전 + `JobSeekerProfile.desiredWorkSchedule` + 프론트 프로필 폼 → 별도 PR
+- `docs/API.md` 는 각 PR 에서 함께 갱신됨
