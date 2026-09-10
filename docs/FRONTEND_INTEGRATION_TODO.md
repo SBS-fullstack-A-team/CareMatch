@@ -20,10 +20,14 @@
 | 직종 | `JobType`: `CAREGIVER / NURSING_ASSISTANT / HOUSEKEEPER / LIFE_SUPPORT / ETC` | `요양보호사 / 간병인 / 가사도우미 / 사회복지사 / 간호조무사` |
 | 근무형태 | `WorkType`: `COMMUTE / LIVE_IN / REMOTE / NEGOTIABLE` (출퇴근/입주 축) | `주간 / 오전 / 오후 / 야간 / 교대` (시간대 축) |
 
-- [ ] 직종 최종 목록 확정 — 프론트의 **사회복지사·간호조무사**가 백엔드에 없고, 백엔드 `LIFE_SUPPORT(생활지원사)`가 프론트에 없음
-- [ ] `NURSING_ASSISTANT` 정의 정리 — enum 이름은 "간호조무사", 주석은 "간병인"으로 불일치
-- [ ] 근무형태: "주간/야간/교대"(시간대)를 담을 필드/enum 신설 여부 결정 — 현재 `workStartTime/workEndTime`만 있고 카테고리 없음. 백엔드 `WorkType`(출퇴근/입주)과는 별개 축
-- [ ] enum ↔ 한글 라벨 매핑표를 `docs/API.md`에 명시, 전송 규약 확정(프론트가 enum name 전송)
+> 해결 방향 상세 설계는 **[`ENUM_MAPPING.md`](./ENUM_MAPPING.md)** 참고.
+
+- [ ] `ENUM_MAPPING.md` 의 직종 최종 목록 + `WorkSchedule` 목록을 팀장이 승인
+- [ ] 직종: `NURSING_ASSISTANT`(현 "간병인" 의미) → `CARE_ATTENDANT` 리네임, 간호조무사·사회복지사 값 추가
+- [ ] 근무형태: 시간대 축 `WorkSchedule`(주간/오전/오후/야간/교대) 신규 필드 추가. 백엔드 `WorkType`(출퇴근/입주)은 유지
+- [ ] V3 마이그레이션: `job_posting` / `jobseeker_profile` 의 enum CHECK 제약 교체 + 데이터 `UPDATE`
+- [ ] 매칭(`MatchScoreCalculator`) 을 `WorkSchedule` 기준으로 이전/병행 — 후속 PR 분리 가능
+- [ ] 전송 규약 확정: JSON 은 항상 enum name, 프론트가 라벨맵 보유 (`ENUM_MAPPING.md` 가 단일 소스)
 
 ### 2. 시설유형(FacilityType) 백엔드에 신설
 
