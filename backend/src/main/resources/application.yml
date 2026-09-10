@@ -105,6 +105,12 @@ carematch:
       max-fail-count: ${LOGIN_MAX_FAIL:5}
       lock-minutes: ${LOGIN_LOCK_MINUTES:15}
 
+  verification:
+    # 회원가입 시 본인인증(이메일/휴대폰 코드 확인) 완료를 요구할지.
+    # 프론트 연동 초기 단계라 임시로 기본 false. 준비되면 true로 되돌리거나
+    # 환경변수 VERIFICATION_REQUIRED_FOR_SIGNUP=true 로 켠다.
+    required-for-signup: ${VERIFICATION_REQUIRED_FOR_SIGNUP:false}
+
   storage:
     # provider=stub : 외부 연동 없이 더미 URL (기본). provider=r2 : Cloudflare R2(S3 호환).
     provider: ${STORAGE_PROVIDER:stub}
