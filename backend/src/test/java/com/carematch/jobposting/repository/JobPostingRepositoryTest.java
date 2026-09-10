@@ -73,6 +73,39 @@ class JobPostingRepositoryTest {
     }
 
     @Test
+    void 상세필드_요건_우대_복리후생_경력_문구가_저장되고_응답에_담긴다() {
+        JobPosting jp = JobPosting.builder()
+                .facilityProfile(facility)
+                .title("t").jobType(JobType.CAREGIVER)
+                .workType(WorkType.COMMUTE).employmentType(EmploymentType.CONTRACT)
+                .workDays("Mon-Fri").workStartTime(LocalTime.of(9, 0)).workEndTime(LocalTime.of(12, 0))
+                .payType(PayType.MONTHLY).payAmount(3_000_000).recruitCount(1).deadline(LocalDate.now().plusDays(30))
+                .sido("Seoul").sigungu("Gangnam")
+                .careGrade(CareGrade.GRADE_4).elderGender(ElderGender.FEMALE)
+                .mobilityStatus(MobilityStatus.INDEPENDENT).mealStatus(MealStatus.ASSIST)
+                .cognitiveStatus(CognitiveStatus.NORMAL)
+                .requirements(java.util.List.of("요양보호사 자격증 소지"))
+                .preferences(java.util.List.of("인근 거주자", "요양원 근무 경험자"))
+                .benefits(java.util.List.of("4대보험", "중식 제공"))
+                .minCareerYears(1)
+                .catchphrase("가족처럼 모실 분을 찾습니다")
+                .build();
+        em.persist(jp);
+        em.flush();
+        em.clear();
+
+        JobPosting reloaded = repository.findById(jp.getId()).orElseThrow();
+        var res = com.carematch.jobposting.dto.JobPostingDtos.DetailResponse.from(reloaded, null);
+
+        assertThat(res.requirements()).containsExactly("요양보호사 자격증 소지");
+        assertThat(res.preferences()).containsExactly("인근 거주자", "요양원 근무 경험자");
+        assertThat(res.benefits()).containsExactly("4대보험", "중식 제공");
+        assertThat(res.minCareerYears()).isEqualTo(1);
+        assertThat(res.catchphrase()).isEqualTo("가족처럼 모실 분을 찾습니다");
+        assertThat(res.managerName()).isEqualTo("F"); // 시설회원 이름
+    }
+
+    @Test
     void exposurePriority_는_등록_시_exposureType_우선순위로_채워진다() {
         JobPosting normal = posting(ExposureType.NORMAL);
         JobPosting special = posting(ExposureType.SPECIAL);

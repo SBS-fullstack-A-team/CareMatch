@@ -88,8 +88,8 @@ public class JobPostingService {
                 .title(req.title())
                 .jobType(req.jobType())
                 .description(req.description())
-                .preferredNote(req.preferredNote())
                 .thumbnailUrl(req.thumbnailUrl())
+                .catchphrase(req.catchphrase())
                 .workType(req.workType())
                 .workSchedule(req.workSchedule())
                 .employmentType(req.employmentType())
@@ -115,6 +115,10 @@ public class JobPostingService {
                 .elderNote(req.elderNote())
                 .duties(req.duties())
                 .requiredDocuments(req.requiredDocuments())
+                .requirements(req.requirements())
+                .preferences(req.preferences())
+                .benefits(req.benefits())
+                .minCareerYears(req.minCareerYears())
                 .exposureType(exposureType)
                 .build();
 
