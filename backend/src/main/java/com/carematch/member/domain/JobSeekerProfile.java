@@ -116,13 +116,11 @@ public class JobSeekerProfile extends BaseTimeEntity {
     @Column(name = "desired_work_schedule", length = 20)
     private WorkSchedule desiredWorkSchedule;
 
-    /** 희망 근무지역 시/도. */
-    @Column(name = "desired_sido", length = 30)
-    private String desiredSido;
-
-    /** 희망 근무지역 시/군/구. */
-    @Column(name = "desired_sigungu", length = 30)
-    private String desiredSigungu;
+    /** 희망 근무지역(다중, 최대 3). 매칭·검색 기준. 비어 있으면 지역 조건 없음. 중복은 저장 시 제거. */
+    @ElementCollection
+    @CollectionTable(name = "jobseeker_desired_region",
+            joinColumns = @JoinColumn(name = "jobseeker_profile_id"))
+    private List<DesiredRegion> desiredRegions = new ArrayList<>();
 
     /** 희망 급여 유형(시급/일급/월급). desiredMinPay 의 단위. */
     @Enumerated(EnumType.STRING)
@@ -167,8 +165,7 @@ public class JobSeekerProfile extends BaseTimeEntity {
             JobType desiredJobType,
             WorkType desiredWorkType,
             WorkSchedule desiredWorkSchedule,
-            String desiredSido,
-            String desiredSigungu,
+            List<DesiredRegion> desiredRegions,
             PayType desiredPayType,
             Integer desiredMinPay
     ) {
@@ -191,8 +188,10 @@ public class JobSeekerProfile extends BaseTimeEntity {
         this.desiredJobType = c.desiredJobType();
         this.desiredWorkType = c.desiredWorkType();
         this.desiredWorkSchedule = c.desiredWorkSchedule();
-        this.desiredSido = c.desiredSido();
-        this.desiredSigungu = c.desiredSigungu();
+        this.desiredRegions.clear();
+        if (c.desiredRegions() != null) {
+            c.desiredRegions().stream().distinct().forEach(this.desiredRegions::add);
+        }
         this.desiredPayType = c.desiredPayType();
         this.desiredMinPay = c.desiredMinPay();
     }

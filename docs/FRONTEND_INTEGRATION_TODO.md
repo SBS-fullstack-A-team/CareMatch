@@ -74,7 +74,8 @@
 
 - [ ] **자격증(certificates) 필터** — 프론트 필터 축인데 `TalentSearchDtos.SearchCondition`에 없음
 - [ ] **경력 구간 필터** — 프론트 신입 / 1~3 / 3~5 / 5년+ 구간, 백엔드는 `minCareerYears`(하한)만. 구간(상한 포함) 매핑 또는 파라미터 추가
-- [ ] **희망지역 다중** — 프론트 `Talent.regions: string[]`, 백엔드 `desiredSido`/`desiredSigungu` 단일. 다중 희망지역 모델 결정
+- [x] **희망지역 다중** — 백엔드 `desiredRegions: [{sido, sigungu}]` 최대 3 (`jobseeker_desired_region` 테이블, V7). 매칭 지역 축은 "희망지역 중 best". 검색 `sido`/`sigungu` = 그 지역을 희망지역에 넣은 인재. (feature/be-talent-desired-regions)
+  - [ ] 프론트: `/apply` 폼 다중 지역 입력 (현재 시/도+구/군 단일). `Talent.regions` 타입은 이미 배열
 - [ ] **정렬(경력 높은/낮은순)** — 프론트 `updated / careerDesc / careerAsc`. 백엔드는 "최근 갱신순 고정"(`sort` 파라미터 받지만 미사용). `CAREER_DESC/CAREER_ASC` 구현
 - [ ] **급여 필터 다중선택** — 공고와 동일 이슈 (`payType` 단일값)
 

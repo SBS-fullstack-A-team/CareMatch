@@ -2,9 +2,9 @@ package com.carematch.jobposting.service;
 
 import com.carematch.jobposting.domain.JobPosting;
 import com.carematch.jobposting.domain.WorkType;
+import com.carematch.member.domain.DesiredRegion;
 import com.carematch.member.domain.JobSeekerProfile;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -63,9 +63,9 @@ public class MatchScoreCalculator {
             }
         }
 
-        if (StringUtils.hasText(seeker.getDesiredSido()) || StringUtils.hasText(seeker.getDesiredSigungu())) {
+        if (!seeker.getDesiredRegions().isEmpty()) {
             total += W_REGION;
-            double ratio = regionRatio(seeker, posting);
+            double ratio = bestRegionRatio(seeker, posting);
             earned += W_REGION * ratio;
             if (ratio >= 1.0) {
                 reasons.add("희망하는 근무지와 일치해요");
@@ -106,23 +106,25 @@ public class MatchScoreCalculator {
         return new MatchResult(score, List.copyOf(reasons));
     }
 
-    /** 시/도·시/군/구 모두 지정 시: 둘 다 일치 1.0, 시/도만 일치 0.5, 그 외 0. 한쪽만 지정 시 그 값 기준. */
-    private double regionRatio(JobSeekerProfile s, JobPosting p) {
-        boolean hasSido = StringUtils.hasText(s.getDesiredSido());
-        boolean hasSigungu = StringUtils.hasText(s.getDesiredSigungu());
-        boolean sidoMatch = hasSido && s.getDesiredSido().equals(p.getSido());
-        boolean sigunguMatch = hasSigungu && s.getDesiredSigungu().equals(p.getSigungu());
-
-        if (hasSido && hasSigungu) {
-            if (sidoMatch && sigunguMatch) {
+    /**
+     * 희망지역들 중 공고 위치와 가장 잘 맞는 비율.
+     * 한 지역: 시/군/구까지 지정했으면 둘 다 일치 1.0 / 시/도만 일치 0.5, 시/도만 지정했으면 시/도 일치 1.0.
+     */
+    private double bestRegionRatio(JobSeekerProfile s, JobPosting p) {
+        double best = 0.0;
+        for (DesiredRegion r : s.getDesiredRegions()) {
+            if (!r.getSido().equals(p.getSido())) {
+                continue;
+            }
+            double ratio = r.hasSigungu()
+                    ? (r.getSigungu().equals(p.getSigungu()) ? 1.0 : 0.5)
+                    : 1.0;
+            if (ratio >= 1.0) {
                 return 1.0;
             }
-            return sidoMatch ? 0.5 : 0.0;
+            best = Math.max(best, ratio);
         }
-        if (hasSido) {
-            return sidoMatch ? 1.0 : 0.0;
-        }
-        return sigunguMatch ? 1.0 : 0.0;
+        return best;
     }
 
     /** 협의(NEGOTIABLE)는 어느 쪽이든 유연한 것으로 보고 일치로 처리. */
