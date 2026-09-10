@@ -160,16 +160,17 @@ feature/*   # 개별 기능 작업 브랜치. main에서 분기 → main으로 P
 ## PR 생성 규칙
 
 - "오늘 ~작업했어" 또는 "커밋하고 PR까지 만들어줘"라고 말하면 아래 순서로 진행할 것:
-  1. 현재 브랜치가 `feature/*`인지 확인 (`main`이면 먼저 feature 브랜치 생성)
-  2. `git add`, `git commit` (커밋 컨벤션 태그 사용)
-  3. `git push origin 현재브랜치명`
-  4. GitHub CLI로 PR 생성:
+  1. `git fetch origin`으로 `origin/main`이 최신인지 확인. 로컬 `main`이 뒤처져 있으면 먼저 `git pull origin main`으로 최신화 (단, 현재 작업 중인 feature 브랜치에 미커밋 변경이 있으면 pull 전에 그대로 두고 feature 브랜치 기준으로만 진행 — main 갱신 때문에 작업 내용을 stash/덮어쓰기 하지 말 것)
+  2. 현재 브랜치가 `feature/*`인지 확인 (`main`이면 먼저 최신 main에서 feature 브랜치 생성)
+  3. `git add`, `git commit` (커밋 컨벤션 태그 사용)
+  4. `git push origin 현재브랜치명`
+  5. GitHub CLI로 PR 생성:
      ```bash
      gh pr create --base main --head feature/역할-기능명 \
        --title "feat: 기능 설명" \
        --body "작업 내용 요약"
      ```
-  5. PR 링크를 사용자에게 안내
+  6. PR 링크를 사용자에게 안내
 - **PR 승인(approve)과 머지(merge)는 절대 자동으로 하지 말 것** — 반드시 팀원 리뷰 후 사람이 직접 GitHub에서 진행
 - `gh` 명령 실행 전 `gh auth status`로 로그인 상태 확인, 안 되어 있으면 `gh auth login` 안내할 것
 
