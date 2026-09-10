@@ -1,5 +1,6 @@
 import { Building2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { facilityTypeLabel } from '@/data/labels'
 import type { FacilityType } from '@/types'
 
 interface FacilityBadgeProps {
@@ -13,7 +14,7 @@ export function FacilityBadge({ type, plain, size = 'sm' }: FacilityBadgeProps) 
   return (
     <Badge variant="neutralOutline" size={size}>
       {!plain && <Building2 aria-hidden />}
-      {type}
+      {facilityTypeLabel(type)}
     </Badge>
   )
 }

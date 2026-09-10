@@ -18,13 +18,16 @@ export type JobCategory =
  */
 export type WorkSchedule = 'DAY' | 'MORNING' | 'AFTERNOON' | 'NIGHT' | 'SHIFT'
 
-/** 시설 유형 */
+/**
+ * 시설 유형. 값은 API enum name (docs/ENUM_MAPPING.md §4). 한글 라벨은 FACILITY_TYPE_LABELS.
+ */
 export type FacilityType =
-  | '방문요양센터'
-  | '요양원'
-  | '주야간보호센터'
-  | '재가복지센터'
-  | '요양병원'
+  | 'VISITING_CARE' // 방문요양센터
+  | 'NURSING_HOME' // 요양원
+  | 'DAY_NIGHT_CARE' // 주야간보호센터
+  | 'COMMUNITY_CARE' // 재가복지센터
+  | 'NURSING_HOSPITAL' // 요양병원
+  | 'ETC' // 기타
 
 /**
  * 고용형태. 값은 API enum name (docs/ENUM_MAPPING.md §3). 한글 라벨은 EMPLOYMENT_TYPE_LABELS.

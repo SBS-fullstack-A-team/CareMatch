@@ -21,7 +21,7 @@ import { SectionHeader } from '@/components/common/section-header'
 import { MatchingScore } from '@/components/matching/matching-score'
 import { Tag } from '@/components/ui/tag'
 import { buttonVariants } from '@/components/ui/button'
-import { employmentTypeLabel, jobCategoryLabel, workScheduleLabel } from '@/data/labels'
+import { employmentTypeLabel, facilityTypeLabel, jobCategoryLabel, workScheduleLabel } from '@/data/labels'
 import { getJobById, getRelatedJobs } from '@/data/mock/jobs'
 import { JOB_APPLY_NOTICES } from '@/lib/site'
 import { cn, formatDotDate, formatPay } from '@/lib/utils'
@@ -210,7 +210,7 @@ function FacilitySection({ job }: { job: Job }) {
     <DetailSection title="시설정보" icon={Building2}>
       <p className="text-lg font-bold text-fg">{job.facilityName}</p>
       <dl className="mt-4">
-        <DetailRow label="시설유형">{job.facilityType}</DetailRow>
+        <DetailRow label="시설유형">{facilityTypeLabel(job.facilityType)}</DetailRow>
         <DetailRow label="지역">
           {job.region}
           {job.district && ` ${job.district}`}
