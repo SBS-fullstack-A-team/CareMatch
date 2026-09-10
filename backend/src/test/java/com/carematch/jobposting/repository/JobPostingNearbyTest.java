@@ -80,4 +80,30 @@ class JobPostingNearbyTest {
 
         assertThat(list).extracting(JobPosting::getTitle).containsExactly("inside");
     }
+
+    @Test
+    void 모서리가_뒤바뀌면_between_이_비어_결과없음_서비스가_정규화해야_한다() {
+        posting("inside", 37.5665, 126.9780, true);
+        em.flush();
+        em.clear();
+
+        // min/max 를 뒤집어 전달 → SQL between 은 아무것도 못 잡는다 (mapView 가 min/max 보정하는 이유)
+        var swapped = repository.findOpenWithinBoundingBox(37.616, 37.516, 127.028, 126.928, PageRequest.of(0, 100));
+        assertThat(swapped).isEmpty();
+
+        var normalized = repository.findOpenWithinBoundingBox(37.516, 37.616, 126.928, 127.028, PageRequest.of(0, 100));
+        assertThat(normalized).extracting(JobPosting::getTitle).containsExactly("inside");
+    }
+
+    @Test
+    void 결과가_상한을_넘으면_Pageable_로_잘린다() {
+        for (int i = 0; i < 5; i++) {
+            posting("p" + i, 37.560 + i * 0.001, 126.977, true);
+        }
+        em.flush();
+        em.clear();
+
+        var capped = repository.findOpenWithinBoundingBox(37.5, 37.7, 126.9, 127.1, PageRequest.of(0, 3));
+        assertThat(capped).hasSize(3);
+    }
 }

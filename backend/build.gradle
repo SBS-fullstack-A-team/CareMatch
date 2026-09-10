@@ -47,6 +47,15 @@ dependencies {
     runtimeOnly 'org.postgresql:postgresql'
     runtimeOnly 'com.h2database:h2'
 
+    // --- DB 마이그레이션 (Flyway; prod 프로필에서만 실행, local/test 는 spring.flyway.enabled=false) ---
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-database-postgresql'
+
+    // --- 파일 스토리지: Cloudflare R2 (S3 호환). carematch.storage.provider=r2 일 때만 사용 ---
+    implementation platform('software.amazon.awssdk:bom:2.28.29')
+    implementation 'software.amazon.awssdk:s3'
+    implementation 'software.amazon.awssdk:url-connection-client'
+
     // --- Lombok ---
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'

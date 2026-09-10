@@ -4,11 +4,22 @@
 # - DB 벤더 미확정: datasource url/driver/dialect 는 프로필별 파일에서 채운다.
 # - 파일 스토리지 미확정: storage.* 키 이름만 정의하고 스텁 구현체가 사용.
 # ==========================================================================
+
+# 서버 포트: 배포 플랫폼(Render 등)이 주입하는 PORT 환경변수를 사용.
+# 로컬 개발은 PORT 가 없으므로 기본값 8080.
+server:
+  port: ${PORT:8080}
+
 spring:
   application:
     name: carematch
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:local}
+
+  # DB 마이그레이션(Flyway)은 기본 비활성. prod 프로필에서만 켠다.
+  # local 은 H2 + ddl-auto=create-drop, test 도 H2 라 Flyway 불필요.
+  flyway:
+    enabled: false
 
   jpa:
     open-in-view: false
@@ -95,13 +106,18 @@ carematch:
       lock-minutes: ${LOGIN_LOCK_MINUTES:15}
 
   storage:
-    # 스토리지 벤더 미확정(R2 등 후보). 키 이름만 선점. 스텁 구현체가 참조.
+    # provider=stub : 외부 연동 없이 더미 URL (기본). provider=r2 : Cloudflare R2(S3 호환).
     provider: ${STORAGE_PROVIDER:stub}
     bucket: ${STORAGE_BUCKET:carematch-dev}
     public-base-url: ${STORAGE_PUBLIC_BASE_URL:https://files.example.invalid}
     presign-expiry-seconds: ${STORAGE_PRESIGN_TTL:600}
     max-upload-size-bytes: ${STORAGE_MAX_UPLOAD_BYTES:5242880} # 5MB
     allowed-content-types: image/jpeg,image/png,application/pdf
+    # provider=r2 일 때만 필요. 값은 Render 대시보드 Environment 에 등록.
+    r2:
+      endpoint: ${R2_ENDPOINT:}
+      access-key-id: ${R2_ACCESS_KEY_ID:}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY:}
 
   support:
     tel: ${SUPPORT_TEL:1600-0000}

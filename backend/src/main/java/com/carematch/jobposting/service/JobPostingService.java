@@ -7,6 +7,7 @@ import com.carematch.jobposting.domain.JobPosting;
 import com.carematch.jobposting.domain.JobPostingStatus;
 import com.carematch.jobposting.dto.JobPostingDtos.CreateRequest;
 import com.carematch.jobposting.dto.JobPostingDtos.DetailResponse;
+import com.carematch.jobposting.dto.JobPostingDtos.MapResult;
 import com.carematch.jobposting.dto.JobPostingDtos.NearbyResult;
 import com.carematch.jobposting.dto.JobPostingDtos.PageResponse;
 import com.carematch.jobposting.dto.JobPostingDtos.SearchCondition;
@@ -124,9 +125,10 @@ public class JobPostingService {
     /**
      * 다중조건 검색 (상태 OPEN 고정). 로그인 회원이면 각 결과에 찜 여부(scrapped)·매칭점수를 채운다.
      *
-     * <p><b>RECOMMENDED + 로그인 구직자</b>: SQL 은 노출등급→최신 순으로 뽑되, 그 <i>페이지 안에서만</i>
-     * 매칭점수 우선으로 재정렬한다. 매칭점수는 조회 시점 Java 계산이라 전역 SQL 정렬이 불가 —
-     * 페이지 경계를 넘는 순서는 근사치다 (부채 C2).
+     * <p><b>RECOMMENDED + 로그인 구직자</b>: SQL 은 노출등급→최신 순으로 뽑고, 그 페이지 안에서
+     * <i>같은 노출등급끼리만</i> 매칭점수 우선으로 재정렬한다. 유료 상단노출(노출등급)은 매칭점수로
+     * 뒤집히지 않는다. 매칭점수는 조회 시점 Java 계산이라 같은 등급 내 순서는 페이지 경계에서
+     * 근사치다 (부채 C2).
      */
     public PageResponse<SummaryResponse> search(SearchCondition cond, int page, int size, Long viewerMemberId) {
         int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
@@ -142,8 +144,12 @@ public class JobPostingService {
 
         List<JobPosting> content = pageResult.getContent();
         if ("RECOMMENDED".equals(sortKey) && viewer != null) {
-            content = content.stream().sorted(byMatchThenExposure(
-                    jp -> scores.get(jp.getId()) == null ? Integer.MIN_VALUE : scores.get(jp.getId()))).toList();
+            content = content.stream()
+                    .sorted(byExposureThenMatch(jp -> {
+                        Integer s = scores.get(jp.getId());
+                        return s == null ? Integer.MIN_VALUE : s;
+                    }))
+                    .toList();
         }
 
         List<SummaryResponse> mapped = content.stream()
@@ -154,10 +160,13 @@ public class JobPostingService {
                 pageResult.getTotalElements(), pageResult.getTotalPages());
     }
 
-    /** 매칭점수 desc(미채점은 뒤) → 노출등급 desc → 최신 desc. */
-    static Comparator<JobPosting> byMatchThenExposure(java.util.function.ToIntFunction<JobPosting> scoreOf) {
-        return Comparator.comparingInt(scoreOf).reversed()
-                .thenComparing(Comparator.comparingInt(JobPosting::getExposurePriority).reversed())
+    /**
+     * 노출등급 desc → 매칭점수 desc(미채점은 뒤) → 최신 desc.
+     * 노출등급이 1순위이므로 유료 상단노출 공고가 매칭점수 때문에 일반 공고 아래로 내려가지 않는다.
+     */
+    static Comparator<JobPosting> byExposureThenMatch(java.util.function.ToIntFunction<JobPosting> scoreOf) {
+        return Comparator.comparingInt(JobPosting::getExposurePriority).reversed()
+                .thenComparing(Comparator.comparingInt(scoreOf).reversed())
                 .thenComparing(JobPosting::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder()));
     }
 
@@ -240,6 +249,8 @@ public class JobPostingService {
     private static final int MAX_NEARBY_LIMIT = 100;
     /** 바운딩 박스 1차 후보 상한 — 밀집 지역 + 넓은 반경에서 메모리 폭주 방지. */
     private static final int NEARBY_CANDIDATE_CAP = 500;
+    /** 지도 뷰포트 결과 상한 — 넓게 축소했을 때 마커 폭주 방지. 넘치면 최신순으로 잘린다. */
+    private static final int MAX_MAP_RESULTS = 200;
 
     /**
      * "내 주변 일자리" — 기준 좌표 반경 내 OPEN 공고를 가까운 순으로.
@@ -274,6 +285,32 @@ public class JobPostingService {
                                 scrappedFlag(viewerMemberId, scrappedIds, s.posting().getId()),
                                 matchScore(viewer, s.posting())),
                         Math.round(s.km() * 10.0) / 10.0))
+                .toList();
+    }
+
+    /**
+     * "지도로 보기" — 지도 뷰포트(남서·북동 모서리) 안의 OPEN 공고를 마커용으로.
+     * nearby 와 달리 원형 반경이 아니라 사각형 영역이며, 거리 계산·정렬이 없어 더 가볍다.
+     * 모서리 좌표는 순서가 뒤바뀌어 와도(min/max) 보정한다. 결과가 {@link #MAX_MAP_RESULTS} 를
+     * 넘으면 최신순으로 잘리므로, 프론트는 "확대해서 보세요" 안내를 띄우면 된다.
+     */
+    public List<MapResult> mapView(double swLat, double swLng, double neLat, double neLng, Long viewerMemberId) {
+        double minLat = Math.min(swLat, neLat);
+        double maxLat = Math.max(swLat, neLat);
+        double minLng = Math.min(swLng, neLng);
+        double maxLng = Math.max(swLng, neLng);
+
+        List<JobPosting> postings = jobPostingRepository.findOpenWithinBoundingBox(
+                minLat, maxLat, minLng, maxLng, PageRequest.of(0, MAX_MAP_RESULTS));
+
+        Set<Long> scrappedIds = scrappedIdsAmong(viewerMemberId, postings);
+        JobSeekerProfile viewer = viewerProfile(viewerMemberId);
+        return postings.stream()
+                .map(jp -> new MapResult(
+                        SummaryResponse.from(jp,
+                                scrappedFlag(viewerMemberId, scrappedIds, jp.getId()),
+                                matchScore(viewer, jp)),
+                        jp.getLatitude(), jp.getLongitude()))
                 .toList();
     }
 

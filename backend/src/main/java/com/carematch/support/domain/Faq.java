@@ -6,7 +6,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -33,8 +32,7 @@ public class Faq extends BaseTimeEntity {
     @Column(name = "question", nullable = false, length = 300)
     private String question;
 
-    @Lob
-    @Column(name = "answer", nullable = false)
+    @Column(name = "answer", nullable = false, columnDefinition = "TEXT")
     private String answer;
 
     @Column(name = "sort_order", nullable = false)

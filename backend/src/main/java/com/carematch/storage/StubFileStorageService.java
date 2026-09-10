@@ -4,6 +4,7 @@ import com.carematch.common.exception.BusinessException;
 import com.carematch.common.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -19,6 +20,7 @@ import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@ConditionalOnProperty(prefix = "carematch.storage", name = "provider", havingValue = "stub", matchIfMissing = true)
 public class StubFileStorageService implements FileStorageService {
 
     private final StorageProperties props;

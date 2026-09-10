@@ -1,9 +1,11 @@
 package com.carematch.member.controller;
 
+import com.carematch.member.dto.DisplayPreferenceDtos;
 import com.carematch.member.dto.FacilitySignupRequest;
 import com.carematch.member.dto.JobSeekerSignupRequest;
 import com.carematch.member.dto.MyPageResponse;
 import com.carematch.member.dto.SignupResponse;
+import com.carematch.member.service.MemberDisplayPreferenceService;
 import com.carematch.member.service.MemberService;
 import com.carematch.security.CustomUserDetails;
 import jakarta.validation.Valid;
@@ -13,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -26,6 +29,7 @@ import java.util.Map;
 public class MemberController {
 
     private final MemberService memberService;
+    private final MemberDisplayPreferenceService displayPreferenceService;
 
     /** 구직자(개인) 회원가입 */
     @PostMapping("/jobseekers")
@@ -58,5 +62,20 @@ public class MemberController {
     @GetMapping("/me")
     public ResponseEntity<MyPageResponse> myPage(@AuthenticationPrincipal CustomUserDetails principal) {
         return ResponseEntity.ok(memberService.getMyPage(principal.getMemberId()));
+    }
+
+    /** 내 화면 표시 설정 조회 (쉬운 화면 모드 / 글자 크기). 로그인한 모든 회원. */
+    @GetMapping("/me/display-preference")
+    public ResponseEntity<DisplayPreferenceDtos.Response> getDisplayPreference(
+            @AuthenticationPrincipal CustomUserDetails principal) {
+        return ResponseEntity.ok(displayPreferenceService.get(principal.getMemberId()));
+    }
+
+    /** 내 화면 표시 설정 변경. 두 값 모두 필수(전체 교체). */
+    @PutMapping("/me/display-preference")
+    public ResponseEntity<DisplayPreferenceDtos.Response> updateDisplayPreference(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @Valid @RequestBody DisplayPreferenceDtos.UpdateRequest request) {
+        return ResponseEntity.ok(displayPreferenceService.update(principal.getMemberId(), request));
     }
 }

@@ -44,6 +44,8 @@ POST /api/verifications/verify
 | POST | `/api/members/jobseekers` | 공개 | 구직자 회원가입 |
 | POST | `/api/members/facilities` | 공개 | 시설 회원가입(PENDING 생성) |
 | GET | `/api/members/me` | 인증 | 마이페이지 요약(포인트/유형) |
+| GET | `/api/members/me/display-preference` | 인증 | 내 화면 표시 설정 (쉬운 화면 모드 / 글자 크기) |
+| PUT | `/api/members/me/display-preference` | 인증 | 화면 표시 설정 변경 |
 
 ```http
 GET /api/members/exists?loginId=hong123&email=hong@example.com
@@ -101,6 +103,26 @@ GET /api/members/me     (Authorization: Bearer ...)
 }
 ```
 
+### 화면 표시 설정 (`/api/members/me/display-preference`)
+
+고연령 사용자 대응 — 쉬운 화면 모드 / 글자 크기. 기기 localStorage 에도 저장하지만, 로그인 회원은
+서버에도 저장해 다른 기기에서도 같은 설정이 유지되도록 한다. 역할 무관(GUEST 포함) 로그인만 필요.
+
+- `easyMode` (`boolean`): 쉬운 화면 모드 on/off
+- `fontScale` (`NORMAL` | `LARGE` | `XLARGE`): 글자 크기. 프론트 [기본]/[크게]/[더크게] 와 1:1
+- 설정한 적 없으면 기본값 `{ easyMode: false, fontScale: "NORMAL" }`
+- `PUT` 은 두 값 모두 필수(전체 교체). 잘못된 enum 값이면 `400`.
+
+```http
+GET /api/members/me/display-preference   (Authorization: Bearer ...)
+200 { "easyMode": false, "fontScale": "NORMAL" }
+```
+```http
+PUT /api/members/me/display-preference    (Authorization: Bearer ...)
+{ "easyMode": true, "fontScale": "XLARGE" }
+200 { "easyMode": true, "fontScale": "XLARGE" }
+```
+
 ## 3. 로그인 / 토큰
 
 | 메서드 | 경로 | 권한 | 설명 |
@@ -146,25 +168,33 @@ POST /api/auth/social/select-role     (Authorization: Bearer <GUEST accessToken>
       "tokenType": "Bearer", "accessTokenExpiresIn": 1800, "roleSelected": true }
 ```
 
-## 4. 파일 업로드 URL (스토리지 스텁)
+## 4. 파일 업로드 URL
 
 | 메서드 | 경로 | 권한 | 설명 |
 |---|---|---|---|
-| POST | `/api/files/upload-url` | 공개 | 업로드용(임시) URL 발급 |
-| POST | `/api/files/confirm` | 공개 | 업로드 완료 후 파일 검증(스텁: 더미 메타) |
+| POST | `/api/files/upload-url` | 공개 | 업로드용(임시) presigned URL 발급 |
+| POST | `/api/files/confirm` | 공개 | 업로드 완료 후 파일 검증 |
+
+구현체는 `carematch.storage.provider` 로 전환:
+- `stub` (로컬 기본): 더미 URL / 더미 메타
+- `r2` (운영): Cloudflare R2(S3 호환). presigned PUT/GET, `confirm` 은 실제 HeadObject 검증
 
 ```http
 POST /api/files/upload-url
 { "purpose": "BUSINESS_LICENSE", "originalFilename": "license.pdf", "contentType": "application/pdf" }
 200 {
   "fileKey": "business-license/2026/09/6f1c...-.pdf",
-  "uploadUrl": "https://files.example.invalid/_stub-upload/business-license/2026/09/6f1c...pdf?expires=...",
+  "uploadUrl": "https://<account>.r2.cloudflarestorage.com/<bucket>/business-license/2026/09/6f1c....pdf?X-Amz-Algorithm=...&X-Amz-Signature=...",
   "httpMethod": "PUT",
   "expiresAt": "2026-09-07T12:45:00+09:00"
 }
 ```
 
 - `purpose`: `BUSINESS_LICENSE`(사업자등록증) / `CERTIFICATE`(자격증) / `INQUIRY_ATTACHMENT`(문의 첨부) / `JOB_POSTING_IMAGE`(구인공고 대표 이미지).
+- 클라이언트는 `uploadUrl` 에 **PUT** 하되, `Content-Type` 헤더를 `upload-url` 요청 때 보낸 `contentType` 과 **동일하게** 보내야 한다(서명에 포함됨). 바디는 파일 바이트 그대로.
+- 업로드 후 `POST /api/files/confirm { "fileKey": "..." }` → `{ exists, sizeBytes, contentType }`. `r2` 모드에서는 없으면 `404 FILE_003`, 용량 초과 `413 FILE_002`, 허용 안 된 타입 `400 FILE_001`.
+- 다운로드는 서버가 발급하는 만료형 presigned GET URL 로만 (영구 공개 URL 없음).
+- R2 버킷에는 프론트 도메인 대상 **CORS 정책**을 Cloudflare 대시보드에서 별도 설정해야 브라우저 PUT/GET 이 된다 (백엔드 CORS 와 무관).
 
 ## 5. 약관 (공개 조회)
 
@@ -386,6 +416,7 @@ POST /api/admin/facilities/13/approve     (Authorization: Bearer <ADMIN>)
 | GET | `/api/job-postings` | 공개 | 모집중(OPEN) 목록/검색. 필터·정렬 아래 참고 |
 | GET | `/api/job-postings/featured` | 공개 | "소페셜 채용정보" — 만료 안 된 SPECIAL 공고 상위 3 |
 | GET | `/api/job-postings/nearby` | 공개 | "내 주변 일자리" — 반경 내 OPEN 공고, 가까운 순 (`List<NearbyResult>`) |
+| GET | `/api/job-postings/in-bounds` | 공개 | "지도로 보기" — 지도 뷰포트 내 OPEN 공고 마커 (`List<MapResult>`) |
 | POST | `/api/job-postings/{id}/scrap` | 인증 | 찜 추가 (멱등, 204) |
 | DELETE | `/api/job-postings/{id}/scrap` | 인증 | 찜 취소 (멱등, 204) |
 | GET | `/api/members/me/scraps` | 인증 | 내 찜 목록 (최신순, `PageResponse<SummaryResponse>`) |
@@ -411,9 +442,9 @@ POST /api/admin/facilities/13/approve     (Authorization: Bearer <ADMIN>)
 - `matchingScore`(0~100): **로그인한 구직자**가 희망조건(`desired*`, `PUT /api/jobseekers/me`)을 설정한 경우만 채워진다. 비로그인·시설회원·희망조건 미설정이면 `null`.
   - 가중치: 직종 35 / 지역 30(시군구 일치 만점, 시도만 일치 절반) / 근무형태 20(협의는 일치 처리) / 급여 15(희망액 충족 만점, 미달 시 비율, 급여유형 다르면 0).
   - 지정한 항목들의 가중치 합을 100점으로 환산 — 예: 직종·지역만 지정했으면 그 둘로 100점.
-  - 목록 정렬(`sort=RECOMMENDED`): SQL 은 노출등급→최신 순. **로그인한 구직자**면 그 위에 **각 페이지 안에서만** 매칭점수 우선으로 재정렬한다
-    (매칭점수 desc → 노출등급 desc → 최신 desc). 매칭점수는 조회 시점 Java 계산이라 페이지 경계를 넘는 전역 순서는 근사치.
-    비로그인·시설회원은 노출등급→최신 순 그대로.
+  - 목록 정렬(`sort=RECOMMENDED`): SQL 은 노출등급→최신 순. **로그인한 구직자**면 각 페이지 안에서 **같은 노출등급끼리만** 매칭점수 우선으로 재정렬한다
+    (노출등급 desc → 매칭점수 desc → 최신 desc). 유료 상단노출(PREMIUM/SPECIAL)은 매칭점수가 낮아도 일반 공고 위에 유지된다.
+    매칭점수는 조회 시점 Java 계산이라 같은 등급 안에서의 순서는 페이지 경계에서 근사치(부채 C2). 비로그인·시설회원은 노출등급→최신 순 그대로.
 - `matchingReasons`(`List<String>`): **상세 응답 전용**. 실제로 일치한 항목의 문구만 담는다
   (예: `["희망하는 직종과 일치해요","희망하는 근무지와 일치해요","희망하는 급여 조건을 충족해요"]`).
   채점 불가(비로그인·희망조건 미설정)면 빈 리스트. 목록/featured/similar 응답에는 없음.
@@ -482,6 +513,27 @@ GET /api/job-postings/nearby?lat=37.5665&lng=126.9780&radiusKm=3
 
 - 위경도가 없는 공고(`latitude`/`longitude` null)는 제외.
 - 로그인 회원이면 `posting.scrapped` / `posting.matchScore` 채워짐 (목록 검색과 동일).
+
+### 지도로 보기 (`GET /api/job-postings/in-bounds`)
+
+지도 뷰포트(남서·북동 모서리) 안의 OPEN 공고를 마커용으로. 비로그인 공개.
+`nearby` 와 달리 원형 반경이 아니라 사각 영역이고, 거리 계산·정렬이 없어 더 가볍다.
+`SummaryResponse` 에 위경도가 없어 마커 배치용으로 `latitude`/`longitude` 를 따로 실어 준다.
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `swLat` / `swLng` | double | **필수**. 뷰포트 남서(좌하) 모서리 |
+| `neLat` / `neLng` | double | **필수**. 뷰포트 북동(우상) 모서리 |
+
+```http
+GET /api/job-postings/in-bounds?swLat=37.48&swLng=126.90&neLat=37.60&neLng=127.05
+200 [ { "posting": { ...SummaryResponse... }, "latitude": 37.5665, "longitude": 126.9780 }, ... ]
+```
+
+- 모서리 좌표가 뒤바뀌어 와도 서버가 min/max 로 보정한다.
+- 위경도 없는 공고 제외. 로그인 회원이면 `posting.scrapped` / `posting.matchScore` 채워짐.
+- 결과 상한 **200(최신순)**. 초과 시 잘리므로 프론트는 "확대해서 보세요" 안내를 띄운다.
+- (경도 ±180 을 넘는 뷰포트는 미지원 — 국내 서비스라 해당 없음.)
 
 ### 임시저장 (`/api/job-posting-drafts`)
 

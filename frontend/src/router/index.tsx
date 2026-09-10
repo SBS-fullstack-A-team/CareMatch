@@ -5,6 +5,8 @@ import { HomePage } from '@/pages/Home'
 import { JobDetailPage } from '@/pages/JobDetail'
 import { JobListPage } from '@/pages/JobList'
 import { TalentListPage } from '@/pages/TalentList'
+import { LoginPage } from '@/pages/Login'
+import { OAuthCallbackPage } from '@/pages/OAuthCallback'
 
 export const router = createBrowserRouter([
   {
@@ -34,7 +36,8 @@ export const router = createBrowserRouter([
         path: '/support',
         element: <PlaceholderPage title="고객센터" />,
       },
-      { path: '/login', element: <PlaceholderPage title="로그인" /> },
+      { path: '/login', element: <LoginPage /> },
+      { path: '/oauth/callback', element: <OAuthCallbackPage /> },
       { path: '/signup', element: <PlaceholderPage title="회원가입" /> },
       { path: '/notifications', element: <PlaceholderPage title="알림" /> },
       { path: '/mypage/*', element: <PlaceholderPage title="마이페이지" /> },

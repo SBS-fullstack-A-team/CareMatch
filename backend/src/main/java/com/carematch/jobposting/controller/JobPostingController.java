@@ -8,6 +8,7 @@ import com.carematch.jobposting.domain.PayType;
 import com.carematch.jobposting.domain.WorkType;
 import com.carematch.jobposting.dto.JobPostingDtos.CreateRequest;
 import com.carematch.jobposting.dto.JobPostingDtos.DetailResponse;
+import com.carematch.jobposting.dto.JobPostingDtos.MapResult;
 import com.carematch.jobposting.dto.JobPostingDtos.NearbyResult;
 import com.carematch.jobposting.dto.JobPostingDtos.PageResponse;
 import com.carematch.jobposting.dto.JobPostingDtos.SearchCondition;
@@ -98,6 +99,19 @@ public class JobPostingController {
                                      @RequestParam(defaultValue = "3") double radiusKm,
                                      @RequestParam(defaultValue = "30") int limit) {
         return jobPostingService.nearby(lat, lng, radiusKm, limit, memberIdOrNull(principal));
+    }
+
+    /**
+     * "지도로 보기" — 지도 뷰포트(남서/북동 모서리) 안의 OPEN 공고를 마커용으로. 비로그인 공개.
+     * 결과 상한 200(최신순). 넘치면 프론트가 "확대해서 보세요" 안내.
+     */
+    @GetMapping("/in-bounds")
+    public List<MapResult> inBounds(@AuthenticationPrincipal CustomUserDetails principal,
+                                    @RequestParam double swLat,
+                                    @RequestParam double swLng,
+                                    @RequestParam double neLat,
+                                    @RequestParam double neLng) {
+        return jobPostingService.mapView(swLat, swLng, neLat, neLng, memberIdOrNull(principal));
     }
 
     @GetMapping("/{jobPostingId}")
