@@ -201,6 +201,18 @@ public final class JobPostingDtos {
     // 응답
     // =====================================================================
 
+    /**
+     * 매칭 사유 한 건 (상세 응답). 구직자가 지정한 희망조건 축마다 하나씩,
+     * 충족 여부(matched)와 함께 내려간다. 프론트 `MatchingReason` 와 1:1.
+     *
+     * @param kind   프론트 `MatchingReasonKind`: {@code category / region / schedule / pay}
+     * @param label  화면 문구 (충족 기준 표현, 예: "직종 일치"). 미충족이면 프론트가 다르게 렌더
+     * @param matched 충족 여부
+     * @param detail 부가 정보 (예: 매칭된 지역 "서울특별시 강남구"). 없으면 null
+     */
+    public record MatchReason(String kind, String label, boolean matched, String detail) {
+    }
+
     /** 상세 응답. */
     public record DetailResponse(
             Long id,
@@ -270,8 +282,8 @@ public final class JobPostingDtos {
             /** 매칭 스코어(0~100). 로그인한 구직자가 희망조건을 설정한 경우만 채워지고, 그 외에는 null. */
             Integer matchingScore,
 
-            /** 매칭 사유 문구 (예: "희망하는 근무지와 일치해요"). 일치한 항목만. 채점 불가면 빈 리스트. */
-            List<String> matchingReasons,
+            /** 매칭 사유 (구직자가 지정한 희망조건 축마다, 충족 여부 포함). 채점 불가면 빈 리스트. */
+            List<MatchReason> matchingReasons,
 
             /** 로그인 회원의 찜 여부. 비로그인이면 null. */
             Boolean scrapped
@@ -285,7 +297,7 @@ public final class JobPostingDtos {
         }
 
         public static DetailResponse from(JobPosting jp, Integer matchingScore,
-                                          List<String> matchingReasons, Boolean scrapped,
+                                          List<MatchReason> matchingReasons, Boolean scrapped,
                                           long applicantCount) {
             FacilityProfile fp = jp.getFacilityProfile();
             Member m = fp.getMember();

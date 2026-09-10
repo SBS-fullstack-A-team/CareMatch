@@ -471,9 +471,12 @@ POST /api/admin/facilities/13/approve     (Authorization: Bearer <ADMIN>)
   - 목록 정렬(`sort=RECOMMENDED`): SQL 은 노출등급→최신 순. **로그인한 구직자**면 각 페이지 안에서 **같은 노출등급끼리만** 매칭점수 우선으로 재정렬한다
     (노출등급 desc → 매칭점수 desc → 최신 desc). 유료 상단노출(PREMIUM/SPECIAL)은 매칭점수가 낮아도 일반 공고 위에 유지된다.
     매칭점수는 조회 시점 Java 계산이라 같은 등급 안에서의 순서는 페이지 경계에서 근사치(부채 C2). 비로그인·시설회원은 노출등급→최신 순 그대로.
-- `matchingReasons`(`List<String>`): **상세 응답 전용**. 실제로 일치한 항목의 문구만 담는다
-  (예: `["희망하는 직종과 일치해요","희망하는 근무지와 일치해요","희망하는 급여 조건을 충족해요"]`).
-  채점 불가(비로그인·희망조건 미설정)면 빈 리스트. 목록/featured/similar 응답에는 없음.
+- `matchingReasons`(`List<MatchReason>`): **상세 응답 전용**. 구직자가 지정한 희망조건 축마다 1건씩(충족·미충족 모두). 채점 불가(비로그인·희망조건 미설정)면 빈 리스트. 목록/featured/similar 응답에는 없음.
+  - `MatchReason { kind, label, matched, detail }` — 프론트 `MatchingReason` 와 1:1.
+  - `kind`: `category`(직종) / `region`(지역) / `schedule`(근무 시간대) / `pay`(급여). 근무형태(WorkType) 축은 점수엔 반영하되 사유 칩은 없음. `facilityType`·`career` 는 대응 희망조건 필드 도입 후.
+  - `label`: 충족 기준 문구 (예: `"직종 일치"`). `matched=false` 면 프론트가 "미충족"으로 렌더.
+  - `detail`: 부가 정보 (예: `region` → `"서울특별시 강남구"`). 없으면 `null`.
+  - 예: `[{ "kind":"category","label":"직종 일치","matched":true,"detail":"CAREGIVER" }, { "kind":"region","label":"지역 일치","matched":false,"detail":"서울특별시 송파구" }]`
 - 노출등급 정렬은 `exposure_priority`(int, SPECIAL 2 > PREMIUM 1 > NORMAL 0) 컬럼 기준. 노출 만료(`exposureExpiredAt` 경과) 시
   매일 새벽 스케줄러가 NORMAL(0)로 강등하므로 만료된 프리미엄/스페셜은 상단에서 내려간다.
 

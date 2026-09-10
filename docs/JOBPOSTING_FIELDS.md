@@ -128,18 +128,20 @@ record MatchReason(String kind, String label, boolean matched, String detail)
 | `facilityType` | △ | 필드는 있음(#58) — 구직자 희망 시설유형 필드가 없어서 채점 불가. 그거 생기면 |
 | `career` | X | 경력 필드 없음 (위 3번 `minCareerYears` 도입 후) |
 
-- 1차: 채점 가능한 4개(`category/region/schedule/pay`)만 `matched` true/false 둘 다 emit.
-- `facilityType`/`career` 는 각 필드 도입 PR 에서 추가.
-- `label` 문구는 이 표에 고정 (프론트가 그대로 렌더). 예: category→"직종 일치", region→"지역 일치", schedule→"시간대 일치", pay→"급여 조건 충족".
+- 1차: `category/region/schedule/pay` 4개. 구직자가 지정한 축만, `matched` true/false 둘 다 emit.
+- **근무형태(WorkType) 축**: #64 병행으로 점수엔 반영(10점)되지만 프론트 `kind` 가 없어 사유 칩은 안 만듦.
+- `facilityType`/`career` 는 각 대응 희망조건 필드 도입 후.
+- `label`: 충족 기준 문구 고정 — category→"직종 일치", region→"지역 일치", schedule→"근무 시간대 일치", pay→"급여 조건 충족". `matched=false` 면 프론트가 "미충족" 렌더.
+- `detail`: region → 매칭된 공고 위치 "sido sigungu". 나머지는 enum name 또는 null.
 
-### 작업 (백엔드)
-- [ ] `MatchScoreCalculator.MatchResult.reasons` 를 `List<MatchReason>` 로
-- [ ] `DetailResponse.matchingReasons` / `SummaryResponse` (필요 시) 타입 변경
-- [ ] 홈 `featured` 응답에도 동일 적용 확인
-- [ ] `MatchScoreCalculatorTest` 갱신
+### 작업 (백엔드) — 구현 완료 (feature/be-match-reasons-structured)
+- [x] `MatchScoreCalculator.MatchResult.reasons` → `List<MatchReason>` (`JobPostingDtos.MatchReason`)
+- [x] `DetailResponse.matchingReasons` 타입 변경. `SummaryResponse`·featured 는 reasons 안 실어서 변경 없음
+- [x] `MatchScoreCalculatorTest` 갱신
+- [x] `docs/API.md`
 
 ### 작업 (프론트)
-- [ ] `matchingReasons` 를 응답 구조체로 직접 매핑 (변환 로직 제거)
+- [ ] `matchingReasons` 를 응답 구조체로 직접 매핑 (문자열 변환 로직 제거). `MatchingReasonKind` 는 이미 일치
 
 ---
 
@@ -170,6 +172,6 @@ record MatchReason(String kind, String label, boolean matched, String detail)
 ## 진행 상태
 
 1. ✅ **백엔드 PR `feature/be-jobposting-fields`** (V8): §1 managerName + §2 요건/우대/복리 + §3 minCareerYears + §5 catchphrase. `preferred_note` 폐기
-2. ⬜ **§4 매칭사유 구조화** — 별도 PR (`MatchReason{kind,label,matched,detail}`, 홈 매칭칩용). kind/label 문구는 아래 §4 표 확정 후
-3. ⬜ **프론트 PR** (`feature/fe-*`): 응답 매핑(requirements/preferences/benefits/managerName/catchphrase), 카드 태그 파생, `Job.minCareerYears` 타입, `size=10`
-4. ✅ `docs/API.md` 갱신 (1·2·3·5)
+2. ✅ **§4 매칭사유 구조화** — `feature/be-match-reasons-structured` (`MatchReason{kind,label,matched,detail}`, category/region/schedule/pay)
+3. ⬜ **프론트 PR** (`feature/fe-*`): 응답 매핑(requirements/preferences/benefits/managerName/catchphrase/matchingReasons), 카드 태그 파생, `Job.minCareerYears` 타입, `size=10`
+4. ✅ `docs/API.md` 갱신
