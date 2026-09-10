@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom'
 import { PlaceholderPage } from '@/components/common/placeholder-page'
 import { SiteLayout } from '@/components/layout/site-layout'
+import { TalentAccessGate } from '@/components/talent/talent-access-gate'
 import { HomePage } from '@/pages/Home'
 import { JobApplyPage } from '@/pages/JobApply'
 import { JobDetailPage } from '@/pages/JobDetail'
@@ -19,8 +20,22 @@ export const router = createBrowserRouter([
       { path: '/', element: <HomePage /> },
       { path: '/jobs', element: <JobListPage /> },
       { path: '/jobs/:jobId', element: <JobDetailPage /> },
-      { path: '/talents', element: <TalentListPage /> },
-      { path: '/talents/:talentId', element: <TalentDetailPage /> },
+      {
+        path: '/talents',
+        element: (
+          <TalentAccessGate>
+            <TalentListPage />
+          </TalentAccessGate>
+        ),
+      },
+      {
+        path: '/talents/:talentId',
+        element: (
+          <TalentAccessGate>
+            <TalentDetailPage />
+          </TalentAccessGate>
+        ),
+      },
       { path: '/nearby', element: <NearbyJobsPage /> },
       { path: '/apply', element: <JobApplyPage /> },
       {
