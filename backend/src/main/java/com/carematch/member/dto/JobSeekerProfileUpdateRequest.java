@@ -3,6 +3,7 @@ package com.carematch.member.dto;
 import com.carematch.jobposting.domain.EmploymentType;
 import com.carematch.jobposting.domain.JobType;
 import com.carematch.jobposting.domain.PayType;
+import com.carematch.jobposting.domain.WorkSchedule;
 import com.carematch.jobposting.domain.WorkType;
 import com.carematch.member.domain.CareTask;
 import com.carematch.member.domain.EducationLevel;
@@ -48,6 +49,7 @@ public record JobSeekerProfileUpdateRequest(
         // --- 희망 근무조건 ---
         JobType desiredJobType,
         WorkType desiredWorkType,
+        WorkSchedule desiredWorkSchedule,
         @Size(max = 30) String desiredSido,
         @Size(max = 30) String desiredSigungu,
         PayType desiredPayType,
@@ -59,7 +61,8 @@ public record JobSeekerProfileUpdateRequest(
 ) {
     public JobSeekerProfile.DesiredConditions toDesiredConditions() {
         return new JobSeekerProfile.DesiredConditions(
-                desiredJobType, desiredWorkType, desiredSido, desiredSigungu, desiredPayType, desiredMinPay);
+                desiredJobType, desiredWorkType, desiredWorkSchedule,
+                desiredSido, desiredSigungu, desiredPayType, desiredMinPay);
     }
 
     public JobSeekerProfile.ProfileDetails toProfileDetails() {

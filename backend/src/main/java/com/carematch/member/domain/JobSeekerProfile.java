@@ -5,6 +5,7 @@ import com.carematch.certificate.domain.Certificate;
 import com.carematch.jobposting.domain.EmploymentType;
 import com.carematch.jobposting.domain.JobType;
 import com.carematch.jobposting.domain.PayType;
+import com.carematch.jobposting.domain.WorkSchedule;
 import com.carematch.jobposting.domain.WorkType;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
@@ -110,6 +111,11 @@ public class JobSeekerProfile extends BaseTimeEntity {
     @Column(name = "desired_work_type", length = 20)
     private WorkType desiredWorkType;
 
+    /** 희망 근무 시간대(주간/오전/오후/야간/교대). 매칭 스코어의 근무 축. docs/ENUM_MAPPING.md §2 */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "desired_work_schedule", length = 20)
+    private WorkSchedule desiredWorkSchedule;
+
     /** 희망 근무지역 시/도. */
     @Column(name = "desired_sido", length = 30)
     private String desiredSido;
@@ -160,6 +166,7 @@ public class JobSeekerProfile extends BaseTimeEntity {
     public record DesiredConditions(
             JobType desiredJobType,
             WorkType desiredWorkType,
+            WorkSchedule desiredWorkSchedule,
             String desiredSido,
             String desiredSigungu,
             PayType desiredPayType,
@@ -183,6 +190,7 @@ public class JobSeekerProfile extends BaseTimeEntity {
     public void updateDesiredConditions(DesiredConditions c) {
         this.desiredJobType = c.desiredJobType();
         this.desiredWorkType = c.desiredWorkType();
+        this.desiredWorkSchedule = c.desiredWorkSchedule();
         this.desiredSido = c.desiredSido();
         this.desiredSigungu = c.desiredSigungu();
         this.desiredPayType = c.desiredPayType();

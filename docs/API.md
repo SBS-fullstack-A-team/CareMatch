@@ -234,7 +234,7 @@ GET /api/terms
 
 | 파라미터 | 타입 | 설명 |
 |---|---|---|
-| `desiredJobType` / `desiredWorkType` | enum | 희망 직종 / 희망 근무형태 |
+| `desiredJobType` / `desiredWorkType` | enum | 희망 직종 / 희망 근무형태(출퇴근·입주). 희망 근무 시간대(`WorkSchedule`) 필터는 후속 |
 | `sido` / `sigungu` | string | 희망 근무지역(정확히 일치) |
 | `payTypes` | enum[] | 희망 급여유형 다중(OR). `HOURLY/DAILY/MONTHLY` |
 | `payMax` | int | 희망 최소급여가 이 값 이하인 인재만 |
@@ -289,6 +289,7 @@ PUT /api/jobseekers/me        (Authorization: Bearer <JOBSEEKER>)
   "education": "HIGH_SCHOOL",               // EducationLevel, 선택
   "availableTasks": ["MEAL_SUPPORT","BATH_SUPPORT"],   // CareTask[], 선택
   "desiredJobType": "CAREGIVER", "desiredWorkType": "COMMUTE",
+  "desiredWorkSchedule": "DAY",             // WorkSchedule(주간/오전/오후/야간/교대), 선택. 매칭 근무 축
   "desiredSido": "서울특별시", "desiredSigungu": "강남구",
   "desiredPayType": "MONTHLY", "desiredMinPay": 2500000,
   "desiredEmploymentTypes": ["FULL_TIME","CONTRACT"],  // EmploymentType[], 선택
@@ -321,7 +322,7 @@ GET /api/jobseekers/42        (Authorization: Bearer <FACILITY>)
       "status": "VERIFIED",
       "downloadUrl": "https://files.example.invalid/_stub-download/certificate/...?expires=...&sig=..." }
   ],
-  "desiredJobType": "CAREGIVER", "desiredWorkType": "COMMUTE",
+  "desiredJobType": "CAREGIVER", "desiredWorkType": "COMMUTE", "desiredWorkSchedule": "DAY",
   "desiredSido": "서울특별시", "desiredSigungu": "강남구",
   "desiredPayType": "MONTHLY", "desiredMinPay": 2500000    // 미설정 시 각각 null
 }
@@ -453,7 +454,8 @@ POST /api/admin/facilities/13/approve     (Authorization: Bearer <ADMIN>)
 - `preferredNote`(선택, 최대 2000자): 우대사항 자유 기술 (예: "면접 후 즉시 근무 우대"). 상세 응답에만 포함.
 - 응답 계산필드: `dDay`(마감까지 일수), `isNew`(등록 3일 내), `isClosingSoon`(D-7 & OPEN), `isRecommended`(`matchingScore` ≥ 70).
 - `matchingScore`(0~100): **로그인한 구직자**가 희망조건(`desired*`, `PUT /api/jobseekers/me`)을 설정한 경우만 채워진다. 비로그인·시설회원·희망조건 미설정이면 `null`.
-  - 가중치: 직종 35 / 지역 30(시군구 일치 만점, 시도만 일치 절반) / 근무형태 20(협의는 일치 처리) / 급여 15(희망액 충족 만점, 미달 시 비율, 급여유형 다르면 0).
+  - 가중치: 직종 35 / 지역 30(시군구 일치 만점, 시도만 일치 절반) / 근무형태 10 + 근무 시간대 10 / 급여 15(희망액 충족 만점, 미달 시 비율, 급여유형 다르면 0).
+    - 근무 축은 둘 ([`ENUM_MAPPING.md`](./ENUM_MAPPING.md) §2): `desiredWorkType`(출퇴근/입주, 협의는 일치 처리) 10점 + `desiredWorkSchedule`(주간/오전/오후/야간/교대) 10점. 각각 구직자가 희망을 지정했을 때만 채점하며, 시간대는 공고 `workSchedule` 이 있을 때만(입주형 등 없으면 그 10점은 분모에서 제외).
   - 지정한 항목들의 가중치 합을 100점으로 환산 — 예: 직종·지역만 지정했으면 그 둘로 100점.
   - 목록 정렬(`sort=RECOMMENDED`): SQL 은 노출등급→최신 순. **로그인한 구직자**면 각 페이지 안에서 **같은 노출등급끼리만** 매칭점수 우선으로 재정렬한다
     (노출등급 desc → 매칭점수 desc → 최신 desc). 유료 상단노출(PREMIUM/SPECIAL)은 매칭점수가 낮아도 일반 공고 위에 유지된다.
