@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils'
  * 인재 검색 패널.
  *
  * JobSearchBar 와 같은 디자인 언어(48px 필드 · 상단 Label · Primary Deep 검색 버튼)를 쓰지만,
- * 네 번째 필드가 시설유형이 아니라 근무형태라 필드 구성이 다르다.
+ * 네 번째 필드가 시설유형이 아니라 근무 시간대라 필드 구성이 다르다.
  * JobSearchBar 를 일반화하면 구인공고 화면에 영향이 가므로 Talent 전용으로 분리했다.
  * (COMPONENT_RULES.md §16 / DESIGN_SYSTEM.md §12)
  */
@@ -83,10 +83,10 @@ export function TalentSearchBar({
           />
         </Field>
 
-        <Field id={`${id}-work-schedule`} label="근무형태">
+        <Field id={`${id}-work-schedule`} label="근무 시간대">
           <Select
             id={`${id}-work-schedule`}
-            placeholder="근무형태 전체"
+            placeholder="근무 시간대 전체"
             options={WORK_SCHEDULE_OPTIONS}
             value={values.workSchedule}
             onChange={(event) => update({ workSchedule: event.target.value })}

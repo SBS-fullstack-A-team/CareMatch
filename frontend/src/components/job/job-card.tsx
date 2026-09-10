@@ -12,7 +12,7 @@ import type { Job } from '@/types'
  * [매칭 92%] [지역 일치] [시간대 일치]   [스페셜]
  * 시설명 / 시설유형 / 직종
  * 지역
- * 근무형태 | 급여
+ * 근무 시간대 | 급여
  * 등록일
  *
  * 하트 스크랩 버튼·태그·그림자는 넣지 않는다.
@@ -59,7 +59,7 @@ export function JobCard({ job, className }: { job: Job; className?: string }) {
           <dd className="truncate">{job.region}</dd>
         </div>
         <div className="flex items-center gap-1.5">
-          <dt className="sr-only">근무 형태와 급여</dt>
+          <dt className="sr-only">근무 시간대와 급여</dt>
           <Clock className="size-[18px] shrink-0 text-fg-subtle" aria-hidden />
           <dd className="flex flex-wrap items-center gap-x-2">
             <span className="whitespace-nowrap">{workScheduleLabel(job.workSchedule)}</span>

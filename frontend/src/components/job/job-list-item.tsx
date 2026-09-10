@@ -13,7 +13,7 @@ import type { Job } from '@/types'
  * 목록형 공고 행 (COMPONENT_RULES.md §12)
  * 구인공고 목록처럼 여러 공고를 나란히 비교하는 화면에서 사용한다.
  *
- * 정보 우선순위: 시설명 + 직종 > 급여 > 지역 + 근무형태 > 근무시간 > 등록일 > 상태
+ * 정보 우선순위: 시설명 + 직종 > 급여 > 지역 + 근무 시간대 > 근무시간 > 등록일 > 상태
  * 카드가 아니라 행으로 쌓이므로 화면 전체가 카드로만 채워지지 않는다.
  *
  * 상태 배지는 메인 TABLE 과 마찬가지로 5종을 모두 노출한다. 목록에서는 상태가
@@ -68,7 +68,7 @@ export function JobListItem({
               </dd>
             </div>
             <div className="flex items-center gap-1.5">
-              <dt className="sr-only">근무형태와 근무시간</dt>
+              <dt className="sr-only">근무 시간대와 근무시간</dt>
               <Clock className="size-[18px] shrink-0 text-fg-subtle" aria-hidden />
               <dd className="tabular">
                 {job.workSchedule ? `${workScheduleLabel(job.workSchedule)} · ` : ''}

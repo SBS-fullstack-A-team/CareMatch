@@ -37,7 +37,7 @@ const SEARCH_FIELD_LABEL: Record<keyof TalentSearchQuery, string> = {
   sido: '지역',
   district: '구·군',
   category: '희망직종',
-  workSchedule: '근무형태',
+  workSchedule: '근무 시간대',
   keyword: '키워드',
 }
 

@@ -253,7 +253,7 @@ export function JobApplyPage() {
                 </div>
               </Field>
 
-              <Field label="근무 형태" required error={errors.workSchedule}>
+              <Field label="근무 시간대" required error={errors.workSchedule}>
                 <SegmentedControl
                   items={WORK_SCHEDULE_OPTIONS.map((option) => ({
                     value: option.value,
@@ -393,7 +393,7 @@ export function JobApplyPage() {
             <dl className="mt-4 space-y-0.5">
               <StatusRow label="희망 직종" filled={Boolean(draft.category)} required />
               <StatusRow label="희망 지역" filled={Boolean(draft.sido)} required />
-              <StatusRow label="근무 형태" filled={Boolean(draft.workSchedule)} required />
+              <StatusRow label="근무 시간대" filled={Boolean(draft.workSchedule)} required />
               <StatusRow label="기본 정보" filled={Boolean(draft.gender && draft.age)} />
               <StatusRow label="경력 및 자격" filled={Boolean(draft.hasCareer)} />
               <StatusRow label="자기소개" filled={Boolean(draft.summary)} />
@@ -411,7 +411,7 @@ export function JobApplyPage() {
                 <TalentListCard talent={previewTalent} />
               ) : (
                 <p className="rounded-card border border-dashed border-border-strong px-4 py-6 text-center text-base text-fg-muted">
-                  성별·나이·희망 직종·희망 지역·근무 형태를 입력하면
+                  성별·나이·희망 직종·희망 지역·근무 시간대를 입력하면
                   <br />
                   미리보기가 표시됩니다.
                 </p>

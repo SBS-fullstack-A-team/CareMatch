@@ -29,7 +29,7 @@ export function JobTable({ jobs, className }: { jobs: Job[]; className?: string 
               지역
             </th>
             <th scope="col" className="w-[170px] px-4 py-3 font-medium">
-              근무형태
+              근무 시간대
             </th>
             <th scope="col" className="w-[150px] px-4 py-3 font-medium">
               급여

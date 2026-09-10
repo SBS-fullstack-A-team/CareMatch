@@ -121,7 +121,7 @@ export function TalentFilterPanel({
         ))}
       </FilterGroup>
 
-      <FilterGroup title="근무형태">
+      <FilterGroup title="근무 시간대">
         {WORK_SCHEDULE_OPTIONS.map((option) => (
           <FilterCheckbox
             key={option.value}
