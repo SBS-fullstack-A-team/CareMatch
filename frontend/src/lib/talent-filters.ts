@@ -1,4 +1,4 @@
-import { jobCategoryLabel } from '@/data/labels'
+import { jobCategoryLabel, workScheduleLabel } from '@/data/labels'
 import { toRegionLabel } from '@/lib/job-filters'
 import type { Talent } from '@/types'
 
@@ -14,7 +14,8 @@ export interface TalentSearchQuery {
   sido: string
   district: string
   category: string
-  workType: string
+  /** WorkSchedule enum name */
+  workSchedule: string
   keyword: string
 }
 
@@ -22,7 +23,7 @@ export const EMPTY_TALENT_SEARCH: TalentSearchQuery = {
   sido: '',
   district: '',
   category: '',
-  workType: '',
+  workSchedule: '',
   keyword: '',
 }
 
@@ -31,7 +32,8 @@ export interface TalentFilterState {
   /** "서울", "경기" 같은 시·도 짧은 라벨 */
   regions: string[]
   categories: string[]
-  workTypes: string[]
+  /** Talent.workSchedule (WorkSchedule enum name) */
+  workSchedules: string[]
   /** CAREER_OPTIONS 의 value ('entry' | '1-3' | '3-5' | '5+') */
   careers: string[]
   certificates: string[]
@@ -42,7 +44,7 @@ export type TalentFilterGroup = keyof TalentFilterState
 export const EMPTY_TALENT_FILTERS: TalentFilterState = {
   regions: [],
   categories: [],
-  workTypes: [],
+  workSchedules: [],
   careers: [],
   certificates: [],
 }
@@ -72,7 +74,7 @@ export function careerBucket(years: number | undefined) {
 const GROUP_VALUES: Record<TalentFilterGroup, (talent: Talent) => string[]> = {
   regions: regionLabelsOf,
   categories: (talent) => [talent.category],
-  workTypes: (talent) => (talent.workType ? [talent.workType] : []),
+  workSchedules: (talent) => (talent.workSchedule ? [talent.workSchedule] : []),
   careers: (talent) => {
     const bucket = careerBucket(talent.careerYears)
     return bucket ? [bucket] : []
@@ -87,14 +89,14 @@ export function matchesSearch(talent: Talent, query: TalentSearchQuery) {
     return false
   }
   if (query.category && talent.category !== query.category) return false
-  if (query.workType && talent.workType !== query.workType) return false
+  if (query.workSchedule && talent.workSchedule !== query.workSchedule) return false
 
   if (query.keyword.trim()) {
     const keyword = query.keyword.trim().toLowerCase()
     // 실명은 마스킹해서 노출하므로 검색 대상에 넣지 않는다 (DESIGN_SYSTEM.md §21)
     const haystack = [
       jobCategoryLabel(talent.category),
-      talent.workType,
+      workScheduleLabel(talent.workSchedule),
       talent.careerLabel,
       talent.preferredHours,
       talent.summary,

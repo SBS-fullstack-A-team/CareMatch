@@ -127,15 +127,15 @@ export const JOB_SORT_OPTIONS: SelectOption[] = [
 ]
 
 /**
- * 근무형태 — Job.workType 의 실제 값과 1:1 로 대응한다.
+ * 근무 시간대 — value 는 API enum name(WorkSchedule), label 은 한글 (docs/ENUM_MAPPING.md §2).
  * (WORK_TIME_OPTIONS 는 시간대 범위를 고르는 등록 폼용이라 용도가 다르다)
  */
-export const WORK_TYPE_OPTIONS: SelectOption[] = [
-  { value: '주간', label: '주간' },
-  { value: '오전', label: '오전' },
-  { value: '오후', label: '오후' },
-  { value: '야간', label: '야간' },
-  { value: '교대', label: '교대' },
+export const WORK_SCHEDULE_OPTIONS: SelectOption[] = [
+  { value: 'DAY', label: '주간' },
+  { value: 'MORNING', label: '오전' },
+  { value: 'AFTERNOON', label: '오후' },
+  { value: 'NIGHT', label: '야간' },
+  { value: 'SHIFT', label: '교대' },
 ]
 
 /** 급여 형태 — Job.payType 중 목록 필터에서 사용하는 3종 */

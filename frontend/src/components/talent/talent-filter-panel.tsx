@@ -8,7 +8,7 @@ import {
   CATEGORY_OPTIONS,
   CERTIFICATE_OPTIONS,
   REGION_SHORTCUTS,
-  WORK_TYPE_OPTIONS,
+  WORK_SCHEDULE_OPTIONS,
 } from '@/data/filters'
 import {
   countByOption,
@@ -50,7 +50,7 @@ export function TalentFilterPanel({
     () => ({
       regions: countByOption(talents, value, 'regions'),
       categories: countByOption(talents, value, 'categories'),
-      workTypes: countByOption(talents, value, 'workTypes'),
+      workSchedules: countByOption(talents, value, 'workSchedules'),
       careers: countByOption(talents, value, 'careers'),
       certificates: countByOption(talents, value, 'certificates'),
     }),
@@ -122,13 +122,13 @@ export function TalentFilterPanel({
       </FilterGroup>
 
       <FilterGroup title="근무형태">
-        {WORK_TYPE_OPTIONS.map((option) => (
+        {WORK_SCHEDULE_OPTIONS.map((option) => (
           <FilterCheckbox
             key={option.value}
             option={option}
-            group="workTypes"
+            group="workSchedules"
             value={value}
-            counts={counts.workTypes}
+            counts={counts.workSchedules}
             onToggle={toggle}
           />
         ))}

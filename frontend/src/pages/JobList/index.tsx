@@ -8,7 +8,12 @@ import { JobListItem } from '@/components/job/job-list-item'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { Tag } from '@/components/ui/tag'
-import { CATEGORY_OPTIONS, JOB_SORT_OPTIONS, PAY_TYPE_OPTIONS } from '@/data/filters'
+import {
+  CATEGORY_OPTIONS,
+  JOB_SORT_OPTIONS,
+  PAY_TYPE_OPTIONS,
+  WORK_SCHEDULE_OPTIONS,
+} from '@/data/filters'
 import { JOBS } from '@/data/mock/jobs'
 import {
   applyFilters,
@@ -36,7 +41,10 @@ const SEARCH_FIELD_LABEL: Record<keyof JobSearchQuery, string> = {
 
 /** 값(CAREGIVER, hourly)과 표기 라벨(요양보호사, 시급)이 다른 필터의 칩 표기용 라벨 */
 const FILTER_VALUE_LABEL = Object.fromEntries(
-  [...PAY_TYPE_OPTIONS, ...CATEGORY_OPTIONS].map((option) => [option.value, option.label]),
+  [...PAY_TYPE_OPTIONS, ...CATEGORY_OPTIONS, ...WORK_SCHEDULE_OPTIONS].map((option) => [
+    option.value,
+    option.label,
+  ]),
 ) as Record<string, string>
 
 /** 검색 조건은 URL 로 공유할 수 있게 쿼리스트링과 주고받는다 */

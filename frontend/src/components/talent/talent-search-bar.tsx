@@ -7,7 +7,7 @@ import {
   CATEGORY_OPTIONS,
   DISTRICT_OPTIONS,
   SIDO_OPTIONS,
-  WORK_TYPE_OPTIONS,
+  WORK_SCHEDULE_OPTIONS,
 } from '@/data/filters'
 import { EMPTY_TALENT_SEARCH, type TalentSearchQuery } from '@/lib/talent-filters'
 import { cn } from '@/lib/utils'
@@ -83,13 +83,13 @@ export function TalentSearchBar({
           />
         </Field>
 
-        <Field id={`${id}-work-type`} label="근무형태">
+        <Field id={`${id}-work-schedule`} label="근무형태">
           <Select
-            id={`${id}-work-type`}
+            id={`${id}-work-schedule`}
             placeholder="근무형태 전체"
-            options={WORK_TYPE_OPTIONS}
-            value={values.workType}
-            onChange={(event) => update({ workType: event.target.value })}
+            options={WORK_SCHEDULE_OPTIONS}
+            value={values.workSchedule}
+            onChange={(event) => update({ workSchedule: event.target.value })}
           />
         </Field>
 

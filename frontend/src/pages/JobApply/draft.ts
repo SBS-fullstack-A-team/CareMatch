@@ -20,8 +20,8 @@ export interface JobApplyDraft {
   sido: string
   /** 백엔드 desiredSigungu */
   district: string
-  /** Talent.workType */
-  workType: string
+  /** Talent.workSchedule (WorkSchedule enum name) */
+  workSchedule: string
   /** Talent.preferredHours */
   preferredHours: string
   /** Talent.payType */
@@ -45,7 +45,7 @@ export const EMPTY_DRAFT: JobApplyDraft = {
   category: '',
   sido: '',
   district: '',
-  workType: '',
+  workSchedule: '',
   preferredHours: '',
   payType: '',
   payAmount: '',
@@ -94,12 +94,12 @@ export function clearDraft() {
 }
 
 /** 필수 항목 — 이 셋이 없으면 인재정보 검색·필터에서 아예 걸리지 않는다 */
-export type RequiredField = 'category' | 'sido' | 'workType'
+export type RequiredField = 'category' | 'sido' | 'workSchedule'
 
 export function validateDraft(draft: JobApplyDraft) {
   const errors: Partial<Record<RequiredField, string>> = {}
   if (!draft.category) errors.category = '희망 직종을 선택해 주세요.'
   if (!draft.sido) errors.sido = '희망 지역을 선택해 주세요.'
-  if (!draft.workType) errors.workType = '근무 형태를 선택해 주세요.'
+  if (!draft.workSchedule) errors.workSchedule = '근무 형태를 선택해 주세요.'
   return errors
 }

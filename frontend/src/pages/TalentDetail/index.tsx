@@ -9,7 +9,7 @@ import { TalentDetailHeader } from '@/components/talent/talent-detail-header'
 import { TalentListCard } from '@/components/talent/talent-list-card'
 import { buttonVariants } from '@/components/ui/button'
 import { Tag } from '@/components/ui/tag'
-import { jobCategoryLabel } from '@/data/labels'
+import { jobCategoryLabel, workScheduleLabel } from '@/data/labels'
 import { getTalentById, TALENTS } from '@/data/mock/talents'
 import { cn, formatPay } from '@/lib/utils'
 import type { Talent } from '@/types'
@@ -65,7 +65,7 @@ export function TalentDetailPage() {
             <dl>
               <DetailRow label="희망 지역">{talent.regions.join(' · ')}</DetailRow>
               <DetailRow label="희망 직종">{jobCategoryLabel(talent.category)}</DetailRow>
-              <DetailRow label="근무 형태">{talent.workType}</DetailRow>
+              <DetailRow label="근무 형태">{workScheduleLabel(talent.workSchedule) || '-'}</DetailRow>
               <DetailRow label="희망 근무시간">{talent.preferredHours}</DetailRow>
               <DetailRow label="희망 급여">
                 {talent.payType && (

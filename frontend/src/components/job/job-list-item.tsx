@@ -5,7 +5,7 @@ import { JobBadge } from '@/components/job/job-badge'
 import { MatchingReasonChips, MatchingScoreBadge } from '@/components/matching/matching-score'
 import { ScrapButton } from '@/components/common/scrap-button'
 import { Tag } from '@/components/ui/tag'
-import { jobCategoryLabel } from '@/data/labels'
+import { jobCategoryLabel, workScheduleLabel } from '@/data/labels'
 import { cn, formatDotDate, formatNumber, formatPay } from '@/lib/utils'
 import type { Job } from '@/types'
 
@@ -71,7 +71,8 @@ export function JobListItem({
               <dt className="sr-only">근무형태와 근무시간</dt>
               <Clock className="size-[18px] shrink-0 text-fg-subtle" aria-hidden />
               <dd className="tabular">
-                {job.workType} · {job.workHours}
+                {job.workSchedule ? `${workScheduleLabel(job.workSchedule)} · ` : ''}
+                {job.workHours}
               </dd>
             </div>
           </dl>
