@@ -40,7 +40,7 @@ API 상세는 [`docs/API.md`](./docs/API.md), 데이터 모델은 [`docs/ERD.md`
 
 | 이름 | GitHub | 역할 |
 |---|---|---|
-| Heo (팀장) | [@heo-hyuk](https://github.com/heo-hyuk) | 백엔드 |
+| 혁 (팀장) | [@heo-hyuk](https://github.com/heo-hyuk) | 백엔드 |
 | 신영 | [@syyu21b](https://github.com/syyu21b) | 프론트엔드 |
 | 경수 | [@HurKyungsoo](https://github.com/HurKyungsoo) | 백엔드 |
 | 동한 | [@Kim-dong-han](https://github.com/Kim-dong-han) | 프론트엔드 |

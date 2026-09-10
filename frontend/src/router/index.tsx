@@ -5,6 +5,7 @@ import { HomePage } from '@/pages/Home'
 import { JobApplyPage } from '@/pages/JobApply'
 import { JobDetailPage } from '@/pages/JobDetail'
 import { JobListPage } from '@/pages/JobList'
+import { NearbyJobsPage } from '@/pages/NearbyJobs'
 import { TalentDetailPage } from '@/pages/TalentDetail'
 import { TalentListPage } from '@/pages/TalentList'
 import { LoginPage } from '@/pages/Login'
@@ -19,10 +20,7 @@ export const router = createBrowserRouter([
       { path: '/jobs/:jobId', element: <JobDetailPage /> },
       { path: '/talents', element: <TalentListPage /> },
       { path: '/talents/:talentId', element: <TalentDetailPage /> },
-      {
-        path: '/nearby',
-        element: <PlaceholderPage title="내 주변 일자리" />,
-      },
+      { path: '/nearby', element: <NearbyJobsPage /> },
       { path: '/apply', element: <JobApplyPage /> },
       {
         path: '/support/*',

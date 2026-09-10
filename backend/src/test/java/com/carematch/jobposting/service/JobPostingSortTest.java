@@ -12,6 +12,7 @@ import com.carematch.jobposting.domain.MobilityStatus;
 import com.carematch.jobposting.domain.PayType;
 import com.carematch.jobposting.domain.WorkType;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.Sort;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -62,5 +63,24 @@ class JobPostingSortTest {
                 .toList();
 
         assertThat(sorted).extracting(JobPosting::getTitle).containsExactly("scored", "unscored");
+    }
+
+    @Test
+    void resolveSort_PAY_ASC_는_급여_오름차순() {
+        assertThat(JobPostingService.resolveSort("PAY_ASC"))
+                .containsExactly(new Sort.Order(Sort.Direction.ASC, "payAmount"));
+    }
+
+    @Test
+    void resolveSort_PAY_DESC_는_급여_내림차순() {
+        assertThat(JobPostingService.resolveSort("PAY_DESC"))
+                .containsExactly(new Sort.Order(Sort.Direction.DESC, "payAmount"));
+    }
+
+    @Test
+    void resolveSort_알수없는_값이면_추천정렬_노출등급_최신순() {
+        assertThat(JobPostingService.resolveSort("RECOMMENDED"))
+                .containsExactly(new Sort.Order(Sort.Direction.DESC, "exposurePriority"),
+                        new Sort.Order(Sort.Direction.DESC, "createdAt"));
     }
 }

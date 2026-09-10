@@ -58,7 +58,7 @@ public class JobPostingController {
 
     /**
      * 목록/검색. 모든 필터는 선택. 다중값은 반복 파라미터(?jobTypes=A&jobTypes=B) 또는 콤마.
-     * sort: RECOMMENDED(기본)/LATEST/DEADLINE/PAY_DESC/VIEWS.
+     * sort: RECOMMENDED(기본)/LATEST/DEADLINE/PAY_DESC/PAY_ASC/VIEWS.
      */
     @GetMapping
     public PageResponse<SummaryResponse> search(
@@ -70,7 +70,7 @@ public class JobPostingController {
             @RequestParam(required = false) List<EmploymentType> employmentTypes,
             @RequestParam(required = false) List<CareGrade> careGrades,
             @RequestParam(required = false) List<MobilityStatus> mobilityStatuses,
-            @RequestParam(required = false) PayType payType,
+            @RequestParam(required = false) List<PayType> payTypes,
             @RequestParam(required = false) Integer payMin,
             @RequestParam(required = false) Integer payMax,
             @RequestParam(required = false) String sort,
@@ -78,7 +78,7 @@ public class JobPostingController {
             @RequestParam(defaultValue = "20") int size) {
         SearchCondition cond = new SearchCondition(
                 sido, sigungu, jobTypes, workTypes, employmentTypes, careGrades, mobilityStatuses,
-                payType, payMin, payMax, sort);
+                payTypes, payMin, payMax, sort);
         return jobPostingService.search(cond, page, size, memberIdOrNull(principal));
     }
 
