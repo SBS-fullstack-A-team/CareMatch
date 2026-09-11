@@ -462,3 +462,178 @@ export interface JobFacetsResponse {
   workSchedule: Record<string, number>
   payType: Record<string, number>
 }
+
+/* ---------------------------------------------------------------------------
+   인재(구직자) — docs/API.md, TalentSearchDtos / JobSeekerProfileResponse. Phase C.
+   `lib/talent-adapter.ts` 의 toTalent() 가 이 응답을 화면용 types/index.ts 의 Talent 로 변환한다.
+   --------------------------------------------------------------------------- */
+
+export type ApiGender = 'MALE' | 'FEMALE'
+export type ApiEducationLevel = 'MIDDLE_SCHOOL' | 'HIGH_SCHOOL' | 'ASSOCIATE' | 'BACHELOR' | 'GRADUATE'
+export type ApiCareTask =
+  | 'DAILY_LIFE_SUPPORT'
+  | 'MEAL_SUPPORT'
+  | 'BATH_SUPPORT'
+  | 'MOBILITY_SUPPORT'
+  | 'COGNITIVE_ACTIVITY'
+  | 'PERSONAL_HYGIENE'
+  | 'HOUSEWORK'
+  | 'HOSPITAL_ESCORT'
+export type ApiEmploymentStatus = 'SEEKING' | 'EMPLOYED'
+/** 경력 구간. ENTRY=신입, Y1_3=1~3년, Y3_5=3~5년, Y5_PLUS=5년 이상. */
+export type CareerBucket = 'ENTRY' | 'Y1_3' | 'Y3_5' | 'Y5_PLUS'
+
+/** 희망지역 한 건. sigungu 가 null 이면 "그 시·도 전체". */
+export interface RegionDto {
+  sido: string
+  sigungu: string | null
+}
+
+/** GET /api/jobseekers 목록 카드 (TalentSearchDtos.TalentSummary) */
+export interface TalentSummaryResponse {
+  profileId: number
+  memberId: number
+  /** 마스킹된 이름("홍*동"). */
+  name: string
+  employmentStatus: ApiEmploymentStatus
+  gender: ApiGender | null
+  age: number | null
+  photoUrl: string | null
+  careerYears: number | null
+  education: ApiEducationLevel | null
+  desiredJobType: ApiJobType | null
+  desiredWorkType: ApiWorkType | null
+  desiredWorkSchedule: ApiWorkSchedule | null
+  desiredRegions: RegionDto[]
+  desiredPayType: ApiPayType | null
+  desiredMinPay: number | null
+  desiredWorkDays: string | null
+  desiredWorkStartTime: string | null
+  desiredWorkEndTime: string | null
+  /** 표시용 자격증 이름. */
+  certificateNames: string[]
+  /** certificateNames 와 같은 순서 대응하는 enum name. */
+  certificateTypes: string[]
+  updatedAt: string
+  /** 이 시설의 OPEN 공고들 중 최고 매칭 점수. 시설이 아니거나 희망조건 미설정이면 null. */
+  matchingScore: number | null
+}
+
+/** 상세 응답의 자격증 한 건 (member/dto/CertificateResponse) */
+export interface JobSeekerCertificate {
+  id: number
+  certificateType: string
+  certificateName: string
+  certificateNumber: string | null
+  status: CertificateStatus
+  downloadUrl: string | null
+}
+
+export interface PostingMatchResponse {
+  jobPostingId: number
+  title: string
+  jobType: ApiJobType
+  matchingScore: number
+}
+
+/** GET /api/jobseekers/{id}(시설 열람) 및 GET /api/jobseekers/me(본인) 공용 응답 */
+export interface JobSeekerProfileResponseDto {
+  profileId: number
+  memberId: number
+  name: string
+  employmentStatus: ApiEmploymentStatus
+  /** 마스킹된 연락처. contactUnlocked=true(또는 /me)면 언마스크. */
+  phone: string
+  residence: string
+  introduction: string | null
+  contactUnlocked: boolean
+  unlockCost: number
+  certificates: JobSeekerCertificate[]
+  gender: ApiGender | null
+  age: number | null
+  photoUrl: string | null
+  careerYears: number | null
+  education: ApiEducationLevel | null
+  headline: string | null
+  availableTasks: ApiCareTask[]
+  desiredJobType: ApiJobType | null
+  desiredWorkType: ApiWorkType | null
+  desiredWorkSchedule: ApiWorkSchedule | null
+  desiredRegions: RegionDto[]
+  desiredPayType: ApiPayType | null
+  desiredMinPay: number | null
+  desiredEmploymentTypes: ApiEmploymentType[]
+  desiredWorkDays: string | null
+  desiredWorkStartTime: string | null
+  desiredWorkEndTime: string | null
+  /** 시설회원이 볼 때만: 그 시설의 OPEN 공고 중 최고 매칭 점수. 본인(/me)이면 null. */
+  matchingScore: number | null
+  /** 시설회원이 볼 때만: 그 시설의 OPEN 공고별 매칭 결과. 본인(/me)이면 빈 배열. */
+  postingMatches: PostingMatchResponse[]
+}
+
+/** PUT /api/jobseekers/me 요청 (JobSeekerProfileUpdateRequest) */
+export interface JobSeekerProfileUpdateRequestDto {
+  employmentStatus: ApiEmploymentStatus
+  residence?: string
+  introduction?: string
+  gender?: ApiGender
+  birthYear?: number
+  photoUrl?: string
+  careerYears?: number
+  education?: ApiEducationLevel
+  headline?: string
+  availableTasks?: ApiCareTask[]
+  desiredJobType?: ApiJobType
+  desiredWorkType?: ApiWorkType
+  desiredWorkSchedule?: ApiWorkSchedule
+  /** 최대 3. */
+  desiredRegions?: RegionDto[]
+  desiredPayType?: ApiPayType
+  desiredMinPay?: number
+  desiredEmploymentTypes?: ApiEmploymentType[]
+  desiredWorkDays?: string
+  desiredWorkStartTime?: string
+  desiredWorkEndTime?: string
+}
+
+/** POST /api/jobseekers/{id}/contact/unlock 응답 */
+export interface ContactUnlockResponseDto {
+  profileId: number
+  phone: string
+  residence: string
+  free: boolean
+  pointsSpent: number
+  unlockedAt: string
+}
+
+/** GET /api/jobseekers 등에 보내는 검색 파라미터 (모두 선택) */
+export interface TalentSearchParams {
+  /** 희망 직종 다중(OR). 좌측 필터 체크박스가 여러 직종을 동시에 선택할 수 있다. */
+  desiredJobTypes?: ApiJobType[]
+  desiredWorkType?: ApiWorkType
+  desiredWorkSchedules?: ApiWorkSchedule[]
+  sidos?: string[]
+  sigungu?: string
+  payTypes?: ApiPayType[]
+  payMax?: number
+  gender?: ApiGender
+  careerBuckets?: CareerBucket[]
+  availableTasks?: ApiCareTask[]
+  desiredEmploymentTypes?: ApiEmploymentType[]
+  certificateTypes?: string[]
+  seekingOnly?: boolean
+  updatedWithinDays?: number
+  /** LATEST(기본) / CAREER_DESC / CAREER_ASC */
+  sort?: 'LATEST' | 'CAREER_DESC' | 'CAREER_ASC'
+  page?: number
+  size?: number
+}
+
+/** GET /api/jobseekers/facets — 좌측 필터 옵션별 결과 인원수. 자격증 축은 제공하지 않는다. */
+export interface TalentFacetsResponse {
+  sido: Record<string, number>
+  desiredJobType: Record<string, number>
+  desiredWorkSchedule: Record<string, number>
+  careerBucket: Record<string, number>
+}
