@@ -100,8 +100,9 @@ class JobSeekerProfileSearchTest {
                                         List<CareTask> tasks, List<EmploymentType> empTypes,
                                         List<CertificateType> certificateTypes,
                                         Boolean seekingOnly, Integer withinDays) {
-        return new SearchCondition(jt, wt, null, sido, sigungu, payTypes, payMax, gender, careerBuckets,
-                tasks, empTypes, certificateTypes, seekingOnly, withinDays, null);
+        return new SearchCondition(jt == null ? null : List.of(jt), wt, null,
+                sido == null ? null : List.of(sido), sigungu, payTypes,
+                payMax, gender, careerBuckets, tasks, empTypes, certificateTypes, seekingOnly, withinDays, null);
     }
 
     /** 희망 근무 시간대 필터만 지정하는 헬퍼. */
@@ -155,6 +156,22 @@ class JobSeekerProfileSearchTest {
         // "경기도 성남시 분당구" 를 포함한 인재 = 1 (다중 희망지역 중 하나로 매칭)
         assertThat(search(cond(null, null, "경기도", "성남시 분당구", null, null, null, null, null, null, null, null, null)))
                 .hasSize(1);
+    }
+
+    @Test
+    void sidos_다중선택은_OR_로_필터된다() {
+        seekerWithRegions(new DesiredRegion("서울특별시", "강남구"));
+        seekerWithRegions(new DesiredRegion("부산광역시", "해운대구"));
+        seekerWithRegions(new DesiredRegion("대구광역시", "중구"));
+        em.flush();
+
+        SearchCondition sidos = new SearchCondition(null, null, null, List.of("서울특별시", "부산광역시"), null,
+                null, null, null, null, null, null, null, null, null, null);
+        assertThat(search(sidos)).hasSize(2);
+
+        SearchCondition noSidos = new SearchCondition(null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null);
+        assertThat(search(noSidos)).hasSize(3);
     }
 
     @Test

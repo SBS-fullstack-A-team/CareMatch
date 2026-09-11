@@ -28,9 +28,10 @@ public final class JobSeekerProfileSpecs {
 
     public static Specification<JobSeekerProfile> from(SearchCondition c) {
         return (root, query, cb) -> {
-            // 목록 조회 시 member 를 함께 fetch (단일값 → 페이지네이션 안전, count 쿼리엔 미적용)
+            // 목록 조회(엔티티 자체를 select) 시에만 member 를 fetch 한다.
+            // count()/facets() 는 CriteriaQuery<Long> · CriteriaQuery<Tuple> 이라 fetch 가 허용되지 않는다.
             Class<?> resultType = query.getResultType();
-            if (resultType != Long.class && resultType != long.class) {
+            if (resultType == JobSeekerProfile.class) {
                 root.fetch("member", JoinType.INNER);
             }
 
@@ -39,8 +40,8 @@ public final class JobSeekerProfileSpecs {
             if (c.seekingOnly() == null || c.seekingOnly()) {
                 ps.add(cb.equal(root.get("employmentStatus"), EmploymentStatus.SEEKING));
             }
-            if (c.desiredJobType() != null) {
-                ps.add(cb.equal(root.get("desiredJobType"), c.desiredJobType()));
+            if (!CollectionUtils.isEmpty(c.desiredJobTypes())) {
+                ps.add(root.get("desiredJobType").in(c.desiredJobTypes()));
             }
             if (c.desiredWorkType() != null) {
                 ps.add(cb.equal(root.get("desiredWorkType"), c.desiredWorkType()));
@@ -81,12 +82,13 @@ public final class JobSeekerProfileSpecs {
 
             // 다중값(희망지역 / 가능 업무 / 희망 고용형태): 컬렉션 조인 + distinct
             boolean joined = false;
-            if (StringUtils.hasText(c.sido()) || StringUtils.hasText(c.sigungu())) {
+            if (!CollectionUtils.isEmpty(c.sidos()) || StringUtils.hasText(c.sigungu())) {
                 // 희망지역 중 (sido[, sigungu]) 를 포함한 인재 (한 region element 안에서 둘 다 일치)
+                // sido 는 다중(OR) — 좌측 필터 지역 체크박스가 여러 시·도를 동시에 선택할 수 있다.
                 var region = root.join("desiredRegions", JoinType.INNER);
                 List<Predicate> rp = new ArrayList<>();
-                if (StringUtils.hasText(c.sido())) {
-                    rp.add(cb.equal(region.get("sido"), c.sido()));
+                if (!CollectionUtils.isEmpty(c.sidos())) {
+                    rp.add(region.get("sido").in(c.sidos()));
                 }
                 if (StringUtils.hasText(c.sigungu())) {
                     rp.add(cb.equal(region.get("sigungu"), c.sigungu()));
