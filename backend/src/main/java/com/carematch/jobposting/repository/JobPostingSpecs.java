@@ -3,6 +3,7 @@ package com.carematch.jobposting.repository;
 import com.carematch.jobposting.domain.JobPosting;
 import com.carematch.jobposting.domain.JobPostingStatus;
 import com.carematch.jobposting.dto.JobPostingDtos.SearchCondition;
+import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
@@ -22,25 +23,32 @@ public final class JobPostingSpecs {
 
     public static Specification<JobPosting> from(SearchCondition c) {
         return (root, query, cb) -> {
-            // 목록 조회 시 시설/회원을 함께 fetch (count 쿼리에는 적용하지 않음)
+            // 목록 조회(엔티티 자체를 select) 시에만 시설/회원을 fetch 한다.
+            // count()/facets() 는 CriteriaQuery<Long> · CriteriaQuery<Tuple> 이라 fetch 가 허용되지 않는다.
             Class<?> resultType = query.getResultType();
-            if (resultType != Long.class && resultType != long.class) {
+            if (resultType == JobPosting.class) {
                 root.fetch("facilityProfile", JoinType.INNER).fetch("member", JoinType.INNER);
             }
 
             List<Predicate> ps = new ArrayList<>();
             ps.add(cb.equal(root.get("status"), JobPostingStatus.OPEN));
 
-            if (hasText(c.sido())) {
-                ps.add(cb.equal(root.get("sido"), c.sido()));
-            }
+            addIn(ps, root.get("sido"), c.sidos());
             if (hasText(c.sigungu())) {
                 ps.add(cb.equal(root.get("sigungu"), c.sigungu()));
             }
             addIn(ps, root.get("jobType"), c.jobTypes());
+
+            // facilityType 필터와 keyword(시설명 포함) 검색이 같은 join 을 공유해 중복 join 을 피한다.
+            boolean needsFacilityJoin = (c.facilityTypes() != null && !c.facilityTypes().isEmpty())
+                    || hasText(c.keyword());
+            Join<Object, Object> facilityJoin = needsFacilityJoin
+                    ? root.join("facilityProfile", JoinType.INNER)
+                    : null;
             if (c.facilityTypes() != null && !c.facilityTypes().isEmpty()) {
-                ps.add(root.join("facilityProfile", JoinType.INNER).get("facilityType").in(c.facilityTypes()));
+                ps.add(facilityJoin.get("facilityType").in(c.facilityTypes()));
             }
+
             addIn(ps, root.get("workType"), c.workTypes());
             addIn(ps, root.get("workSchedule"), c.workSchedules());
             addIn(ps, root.get("employmentType"), c.employmentTypes());
@@ -53,6 +61,13 @@ public final class JobPostingSpecs {
             }
             if (c.payMax() != null) {
                 ps.add(cb.lessThanOrEqualTo(root.get("payAmount"), c.payMax()));
+            }
+
+            if (hasText(c.keyword())) {
+                String like = "%" + c.keyword().trim().toLowerCase() + "%";
+                ps.add(cb.or(
+                        cb.like(cb.lower(root.get("title")), like),
+                        cb.like(cb.lower(facilityJoin.get("facilityName")), like)));
             }
 
             return cb.and(ps.toArray(new Predicate[0]));

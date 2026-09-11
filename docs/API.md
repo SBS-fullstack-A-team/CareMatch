@@ -46,6 +46,7 @@ POST /api/verifications/verify
 | GET | `/api/members/me` | 인증 | 마이페이지 요약(포인트/유형) |
 | GET | `/api/members/me/display-preference` | 인증 | 내 화면 표시 설정 (쉬운 화면 모드 / 글자 크기) |
 | PUT | `/api/members/me/display-preference` | 인증 | 화면 표시 설정 변경 |
+| PUT | `/api/members/me/phone` | 인증 | 내 전화번호 등록/변경(저장만, 인증은 별도) |
 
 ```http
 GET /api/members/exists?loginId=hong123&email=hong@example.com
@@ -126,6 +127,18 @@ GET /api/members/me/display-preference   (Authorization: Bearer ...)
 PUT /api/members/me/display-preference    (Authorization: Bearer ...)
 { "easyMode": true, "fontScale": "XLARGE" }
 200 { "easyMode": true, "fontScale": "XLARGE" }
+```
+
+### 전화번호 등록/변경 (`/api/members/me/phone`)
+
+소셜(카카오 등) 가입자는 가입 시 전화번호가 없다 — 이 API로 나중에 채운다. **저장만 하고 인증은 안 됨.**
+실제 인증은 이 번호로 `/api/verifications/send` → `/api/verifications/verify`를 거쳐야 하고,
+그 인증 여부는 자격증 최초 등록(§7, 요양보호사 등록 시점)에서 확인한다 — 회원가입 시점이 아니다.
+
+```http
+PUT /api/members/me/phone     (Authorization: Bearer ...)
+{ "phone": "010-1234-5678" }
+204
 ```
 
 ## 3. 로그인 / 토큰
@@ -245,7 +258,7 @@ GET /api/terms
 | `careerBuckets` | enum[] | 경력 구간 다중(OR). `ENTRY`(신입) / `Y1_3`(1~3년) / `Y3_5`(3~5년) / `Y5_PLUS`(5년+). 경력 미입력 인재는 제외 |
 | `availableTasks` | enum[] | 가능 업무 다중. 하나라도 겹치면 매칭 (`?availableTasks=MEAL_SUPPORT&availableTasks=BATH_SUPPORT`) |
 | `desiredEmploymentTypes` | enum[] | 희망 고용형태 다중. 하나라도 겹치면 매칭 |
-| `certificateNames` | string[] | 자격증명 다중(OR). `certificate_name` 정확 일치, 하나라도 보유하면 매칭. 상태(검증 여부) 무관 |
+| `certificateTypes` | enum[] | 자격증 종류 다중(OR). `certificate_type` 일치, 하나라도 보유하면 매칭. 상태(검증 여부) 무관. `CertificateType` = `CAREGIVER/NURSE_AIDE/SOCIAL_WORKER_1/SOCIAL_WORKER_2/CARE_ASSISTANT/DRIVER_LICENSE/OTHER` ([`ENUM_MAPPING.md`](./ENUM_MAPPING.md) §5) |
 | `seekingOnly` | bool | 생략/true = 구직중(SEEKING)만. false = 취업완료 포함 |
 | `updatedWithinDays` | int | 최근 N일 내 프로필 갱신 |
 | `sort` | string | `LATEST`(기본, 최근 갱신순) / `CAREER_DESC` / `CAREER_ASC`(경력 정렬, 미입력은 뒤). 매칭점수 정렬은 SQL 불가로 미지원 |
@@ -254,7 +267,7 @@ GET /api/terms
 enum `JobType` = `CAREGIVER/CARE_ATTENDANT/NURSE_AIDE/SOCIAL_WORKER/LIFE_SUPPORT/HOUSEKEEPER/ETC` (한글 라벨·정의는 [`ENUM_MAPPING.md`](./ENUM_MAPPING.md) §1),
 `CareTask` = `DAILY_LIFE_SUPPORT/MEAL_SUPPORT/BATH_SUPPORT/MOBILITY_SUPPORT/COGNITIVE_ACTIVITY/PERSONAL_HYGIENE/HOUSEWORK/HOSPITAL_ESCORT`,
 `EmploymentType` = `FULL_TIME/CONTRACT/TEMPORARY/PART_TIME`, `Gender` = `MALE/FEMALE`, `EducationLevel` = `MIDDLE_SCHOOL/HIGH_SCHOOL/ASSOCIATE/BACHELOR/GRADUATE`,
-`CareerBucket` = `ENTRY/Y1_3/Y5_PLUS`.
+`CareerBucket` = `ENTRY/Y1_3/Y3_5/Y5_PLUS`, `CertificateType` = `CAREGIVER/NURSE_AIDE/SOCIAL_WORKER_1/SOCIAL_WORKER_2/CARE_ASSISTANT/DRIVER_LICENSE/OTHER`.
 
 - `TalentSummary`: `profileId, memberId, name, employmentStatus, gender, age, photoUrl, careerYears, education, desiredJobType, desiredWorkType, desiredWorkSchedule, desiredRegions[], desiredPayType, desiredMinPay, desiredWorkDays, desiredWorkStartTime, desiredWorkEndTime, certificateNames[], updatedAt, matchingScore`
 - `desiredRegions`: `[{ "sido": "...", "sigungu": "..." | null }]` — 희망 근무지역 다중(최대 3). `sigungu` 가 null 이면 그 시/도 전체. 한글 라벨 조합은 프론트 담당
@@ -354,17 +367,31 @@ POST /api/jobseekers/42/contact/unlock    (Authorization: Bearer <FACILITY>)
 
 | 메서드 | 경로 | 권한 | 설명 |
 |---|---|---|---|
-| POST | `/api/certificates` | JOBSEEKER | 자격증 등록(fileKey) |
+| POST | `/api/certificates` | JOBSEEKER | 자격증 등록(fileKey) — **전화번호 인증 필수** |
 | POST | `/api/certificates/{id}/verify` | JOBSEEKER | 업로드 완료 검증(스텁 메타) |
 | GET | `/api/certificates/me` | JOBSEEKER | 내 자격증 목록(서명 URL) |
 | DELETE | `/api/certificates/{id}` | JOBSEEKER | 삭제 |
 
+**요양보호사 등록(=자격증 최초 등록) 시점에 전화번호 인증을 요구한다.** 가입 시가 아니다 — 소셜
+가입자는 가입 시 전화번호가 없기 때문. 순서: `PUT /api/members/me/phone`로 번호 입력 →
+`/api/verifications/send`·`/verify`로 그 번호 인증 → 그제서야 `POST /api/certificates` 성공.
+미인증 상태로 호출하면 `400 MEMBER_005 VERIFICATION_REQUIRED`.
+
+- `certificateType` (필수, enum): `CAREGIVER/NURSE_AIDE/SOCIAL_WORKER_1/SOCIAL_WORKER_2/CARE_ASSISTANT/DRIVER_LICENSE/OTHER` ([`ENUM_MAPPING.md`](./ENUM_MAPPING.md) §5)
+- `certificateName`: `OTHER` 일 때만 필수(자유 입력). 그 외 종류는 무시되고 표준 라벨로 저장된다. 공백으로 `OTHER` 등록 시 400 `COMMON_001`
+- 응답의 `certificateName` 은 표시용(정형 종류는 라벨, `OTHER` 는 입력값)
+
 ```http
 POST /api/certificates
-{ "certificateName": "요양보호사 1급", "certificateNumber": "2020-12345",
+{ "certificateType": "CAREGIVER", "certificateNumber": "2020-12345",
   "fileKey": "certificate/2026/09/uuid.jpg" }
-201 { "id": 5, "certificateName": "요양보호사 1급", "status": "PENDING",
+201 { "id": 5, "certificateType": "CAREGIVER", "certificateName": "요양보호사", "status": "PENDING",
       "downloadUrl": "https://.../_stub-download/certificate/...?expires=...", ... }
+
+POST /api/certificates
+{ "certificateType": "OTHER", "certificateName": "치매전문교육 이수",
+  "fileKey": "certificate/2026/09/uuid2.jpg" }
+201 { "id": 6, "certificateType": "OTHER", "certificateName": "치매전문교육 이수", "status": "PENDING", ... }
 ```
 
 ## 8. 고객센터 (공개 조회)

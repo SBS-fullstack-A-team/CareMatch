@@ -3,7 +3,13 @@
  * 단일 소스: docs/ENUM_MAPPING.md. JSON 은 항상 enum name 을 주고받고,
  * 화면 표시는 이 맵을 거친다.
  */
-import type { EmploymentType, FacilityType, JobCategory, WorkSchedule } from '@/types'
+import type {
+  CertificateType,
+  EmploymentType,
+  FacilityType,
+  JobCategory,
+  WorkSchedule,
+} from '@/types'
 
 /** 직종 (docs/ENUM_MAPPING.md §1) */
 export const JOB_CATEGORY_LABELS: Record<JobCategory, string> = {
@@ -65,6 +71,7 @@ export function facilityTypeLabel(type: FacilityType | string): string {
   return FACILITY_TYPE_LABELS[type as FacilityType] ?? String(type)
 }
 
+feature/fe-phase-a-integration
 /* ---------------------------------------------------------------------------
    구인공고 상세 전용 — 어르신 정보 (ElderlyInfoCard). API 는 flat enum 으로 내려주고
    화면은 한글 문장으로 표시하므로 여기서 변환한다. (docs/API.md §11, JOBPOSTING_FIELDS.md)
@@ -137,4 +144,22 @@ const LOCAL_PAY_TYPE_TO_API: Record<string, 'HOURLY' | 'DAILY' | 'MONTHLY'> = {
 /** 필터 패널 체크박스 값(hourly 등)을 검색 API 파라미터(HOURLY 등)로 되돌린다. */
 export function payTypeToApi(payType: string): 'HOURLY' | 'DAILY' | 'MONTHLY' {
   return LOCAL_PAY_TYPE_TO_API[payType] ?? 'MONTHLY'
+=======
+/** 자격증 종류 (docs/ENUM_MAPPING.md §5) */
+export const CERTIFICATE_TYPE_LABELS: Record<CertificateType, string> = {
+  CAREGIVER: '요양보호사',
+  NURSE_AIDE: '간호조무사',
+  SOCIAL_WORKER_1: '사회복지사 1급',
+  SOCIAL_WORKER_2: '사회복지사 2급',
+  CARE_ASSISTANT: '간병사',
+  DRIVER_LICENSE: '운전면허',
+  OTHER: '기타',
+}
+
+/**
+ * enum name 을 한글 라벨로. 알 수 없는 값(OTHER 의 자유 입력 이름 등)은 원문 그대로 돌려준다.
+ */
+export function certificateTypeLabel(type: CertificateType | string): string {
+  return CERTIFICATE_TYPE_LABELS[type as CertificateType] ?? String(type)
+ main
 }
