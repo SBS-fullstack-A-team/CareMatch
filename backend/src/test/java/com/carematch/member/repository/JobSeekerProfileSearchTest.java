@@ -1,6 +1,7 @@
 package com.carematch.member.repository;
 
 import com.carematch.certificate.domain.Certificate;
+import com.carematch.certificate.domain.CertificateType;
 import com.carematch.jobposting.domain.EmploymentType;
 import com.carematch.jobposting.domain.JobType;
 import com.carematch.jobposting.domain.PayType;
@@ -80,9 +81,10 @@ class JobSeekerProfileSearchTest {
                 null, (LocalTime) null, (LocalTime) null));
     }
 
-    private void certificate(JobSeekerProfile p, String name) {
+    private void certificate(JobSeekerProfile p, CertificateType type) {
         em.persist(Certificate.builder()
-                .jobSeekerProfile(p).certificateName(name).certificateNumber("n").fileKey("k")
+                .jobSeekerProfile(p).certificateType(type).certificateName(type.label())
+                .certificateNumber("n").fileKey("k")
                 .build());
     }
 
@@ -96,10 +98,10 @@ class JobSeekerProfileSearchTest {
                                         List<PayType> payTypes, Integer payMax, Gender gender,
                                         List<CareerBucket> careerBuckets,
                                         List<CareTask> tasks, List<EmploymentType> empTypes,
-                                        List<String> certificateNames,
+                                        List<CertificateType> certificateTypes,
                                         Boolean seekingOnly, Integer withinDays) {
         return new SearchCondition(jt, wt, null, sido, sigungu, payTypes, payMax, gender, careerBuckets,
-                tasks, empTypes, certificateNames, seekingOnly, withinDays, null);
+                tasks, empTypes, certificateTypes, seekingOnly, withinDays, null);
     }
 
     /** 희망 근무 시간대 필터만 지정하는 헬퍼. */
@@ -242,21 +244,21 @@ class JobSeekerProfileSearchTest {
     @Test
     void 자격증_다중_필터_보유하면_매칭() {
         JobSeekerProfile a = persist(EmploymentStatus.SEEKING);
-        certificate(a, "요양보호사 1급");
-        certificate(a, "치매전문교육 이수");
+        certificate(a, CertificateType.CAREGIVER);
+        certificate(a, CertificateType.OTHER);
         JobSeekerProfile b = persist(EmploymentStatus.SEEKING);
-        certificate(b, "간호조무사");
+        certificate(b, CertificateType.NURSE_AIDE);
         persist(EmploymentStatus.SEEKING); // 자격증 없음
         em.flush();
         em.clear();
 
         assertThat(search(cond(null, null, null, null, null, null, null, null, null, null,
-                List.of("요양보호사 1급"), null, null))).hasSize(1);
+                List.of(CertificateType.CAREGIVER), null, null))).hasSize(1);
         // 하나라도 보유하면 매칭
         assertThat(search(cond(null, null, null, null, null, null, null, null, null, null,
-                List.of("요양보호사 1급", "간호조무사"), null, null))).hasSize(2);
+                List.of(CertificateType.CAREGIVER, CertificateType.NURSE_AIDE), null, null))).hasSize(2);
         assertThat(search(cond(null, null, null, null, null, null, null, null, null, null,
-                List.of("사회복지사 2급"), null, null))).isEmpty();
+                List.of(CertificateType.SOCIAL_WORKER_2), null, null))).isEmpty();
     }
 
     @Test

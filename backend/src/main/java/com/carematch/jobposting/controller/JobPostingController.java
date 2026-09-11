@@ -9,7 +9,6 @@ import com.carematch.jobposting.domain.WorkSchedule;
 import com.carematch.jobposting.domain.WorkType;
 import com.carematch.jobposting.dto.JobPostingDtos.CreateRequest;
 import com.carematch.jobposting.dto.JobPostingDtos.DetailResponse;
-import com.carematch.jobposting.dto.JobPostingDtos.FacetsResponse;
 import com.carematch.jobposting.dto.JobPostingDtos.MapResult;
 import com.carematch.jobposting.dto.JobPostingDtos.NearbyResult;
 import com.carematch.jobposting.dto.JobPostingDtos.PageResponse;
@@ -66,7 +65,7 @@ public class JobPostingController {
     @GetMapping
     public PageResponse<SummaryResponse> search(
             @AuthenticationPrincipal CustomUserDetails principal,
-            @RequestParam(required = false) List<String> sidos,
+            @RequestParam(required = false) String sido,
             @RequestParam(required = false) String sigungu,
             @RequestParam(required = false) List<JobType> jobTypes,
             @RequestParam(required = false) List<FacilityType> facilityTypes,
@@ -79,41 +78,12 @@ public class JobPostingController {
             @RequestParam(required = false) Integer payMin,
             @RequestParam(required = false) Integer payMax,
             @RequestParam(required = false) String sort,
-            /** 자유 텍스트 검색(제목·시설명 부분일치). 선택. */
-            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         SearchCondition cond = new SearchCondition(
-                sidos, sigungu, jobTypes, facilityTypes, workTypes, workSchedules, employmentTypes,
-                careGrades, mobilityStatuses, payTypes, payMin, payMax, sort, keyword);
+                sido, sigungu, jobTypes, facilityTypes, workTypes, workSchedules, employmentTypes,
+                careGrades, mobilityStatuses, payTypes, payMin, payMax, sort);
         return jobPostingService.search(cond, page, size, memberIdOrNull(principal));
-    }
-
-    /**
-     * 좌측 필터 패널의 옵션별 결과 건수. 검색과 같은 필터 파라미터를 받되 sort/page/size 는 없다.
-     * 각 축(sido/jobType/facilityType/workSchedule/payType)은 그 축 자신의 선택은 제외하고 센다
-     * (프론트 {@code countByOption} 과 동일 규칙) — 같은 그룹에서 다른 항목을 추가로 켜도
-     * 이미 선택한 항목의 건수가 0으로 사라지지 않는다.
-     */
-    @GetMapping("/facets")
-    public FacetsResponse facets(
-            @RequestParam(required = false) List<String> sidos,
-            @RequestParam(required = false) String sigungu,
-            @RequestParam(required = false) List<JobType> jobTypes,
-            @RequestParam(required = false) List<FacilityType> facilityTypes,
-            @RequestParam(required = false) List<WorkType> workTypes,
-            @RequestParam(required = false) List<WorkSchedule> workSchedules,
-            @RequestParam(required = false) List<EmploymentType> employmentTypes,
-            @RequestParam(required = false) List<CareGrade> careGrades,
-            @RequestParam(required = false) List<MobilityStatus> mobilityStatuses,
-            @RequestParam(required = false) List<PayType> payTypes,
-            @RequestParam(required = false) Integer payMin,
-            @RequestParam(required = false) Integer payMax,
-            @RequestParam(required = false) String keyword) {
-        SearchCondition cond = new SearchCondition(
-                sidos, sigungu, jobTypes, facilityTypes, workTypes, workSchedules, employmentTypes,
-                careGrades, mobilityStatuses, payTypes, payMin, payMax, null, keyword);
-        return jobPostingService.facets(cond);
     }
 
     /** "소페셜 채용정보" 상단 노출용 SPECIAL 공고 상위 3. */

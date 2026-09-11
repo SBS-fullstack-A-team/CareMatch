@@ -8,7 +8,6 @@ import com.carematch.jobposting.domain.JobPosting;
 import com.carematch.jobposting.domain.JobPostingStatus;
 import com.carematch.jobposting.dto.JobPostingDtos.CreateRequest;
 import com.carematch.jobposting.dto.JobPostingDtos.DetailResponse;
-import com.carematch.jobposting.dto.JobPostingDtos.FacetsResponse;
 import com.carematch.jobposting.dto.JobPostingDtos.MapResult;
 import com.carematch.jobposting.dto.JobPostingDtos.NearbyResult;
 import com.carematch.jobposting.dto.JobPostingDtos.PageResponse;
@@ -23,14 +22,6 @@ import com.carematch.member.domain.JobSeekerProfile;
 import com.carematch.member.repository.FacilityProfileRepository;
 import com.carematch.member.repository.JobSeekerProfileRepository;
 import com.carematch.point.PointService;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.Tuple;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.JoinType;
-import jakarta.persistence.criteria.Path;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -41,7 +32,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -77,7 +67,6 @@ public class JobPostingService {
     private final ApplicationRepository applicationRepository;
     private final PointService pointService;
     private final MatchScoreCalculator matchScoreCalculator;
-    private final EntityManager entityManager;
 
     @Transactional
     public DetailResponse create(Long memberId, CreateRequest req) {
@@ -178,48 +167,6 @@ public class JobPostingService {
                 .toList();
         return new PageResponse<>(mapped, pageResult.getNumber(), pageResult.getSize(),
                 pageResult.getTotalElements(), pageResult.getTotalPages());
-    }
-
-    /**
-     * 좌측 필터 패널의 옵션별 결과 건수. 축마다 "그 축 자신의 선택은 제외한 나머지 조건"으로
-     * {@code GROUP BY} 집계 쿼리 한 번씩 실행한다(축당 1쿼리, 후보값 개수와 무관).
-     */
-    public FacetsResponse facets(SearchCondition cond) {
-        return new FacetsResponse(
-                countGroupedBy(cond.withoutSidos(), "sido", false),
-                countGroupedBy(cond.withoutJobTypes(), "jobType", false),
-                countGroupedBy(cond.withoutFacilityTypes(), "facilityType", true),
-                countGroupedBy(cond.withoutWorkSchedules(), "workSchedule", false),
-                countGroupedBy(cond.withoutPayTypes(), "payType", false));
-    }
-
-    /**
-     * {@code SELECT <attribute>, COUNT(*) FROM JobPosting WHERE <cond 의 조건> GROUP BY <attribute>}.
-     * {@link JobPostingSpecs#from} 을 그대로 재사용해 검색/집계가 항상 같은 조건 로직을 쓰게 한다.
-     * facet 값이 없는(null) 행은 결과에서 제외한다. 0건인 값은 애초에 GROUP BY 결과에 나오지 않는다.
-     *
-     * @param onFacilityProfile true 면 attribute 를 {@code facilityProfile} 조인에서 읽는다 (facilityType 전용)
-     */
-    private Map<String, Long> countGroupedBy(SearchCondition cond, String attribute, boolean onFacilityProfile) {
-        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
-        CriteriaQuery<Tuple> query = cb.createTupleQuery();
-        Root<JobPosting> root = query.from(JobPosting.class);
-
-        Predicate predicate = JobPostingSpecs.from(cond).toPredicate(root, query, cb);
-        Path<?> axis = onFacilityProfile
-                ? root.join("facilityProfile", JoinType.INNER).get(attribute)
-                : root.get(attribute);
-
-        query.multiselect(axis, cb.count(root)).where(predicate).groupBy(axis);
-
-        Map<String, Long> counts = new LinkedHashMap<>();
-        for (Tuple row : entityManager.createQuery(query).getResultList()) {
-            Object key = row.get(0);
-            if (key != null) {
-                counts.put(key.toString(), (Long) row.get(1));
-            }
-        }
-        return counts;
     }
 
     /**

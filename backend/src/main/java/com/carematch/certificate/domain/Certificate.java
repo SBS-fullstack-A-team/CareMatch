@@ -36,6 +36,12 @@ public class Certificate extends BaseTimeEntity {
     @JoinColumn(name = "jobseeker_profile_id", nullable = false)
     private JobSeekerProfile jobSeekerProfile;
 
+    /** 자격증 종류. 검색 필터 축. 매핑표: docs/ENUM_MAPPING.md §5 */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "certificate_type", nullable = false, length = 30)
+    private CertificateType certificateType;
+
+    /** 표시용 이름. 정형 종류는 {@link CertificateType#label()}, OTHER 는 사용자 입력값. */
     @Column(name = "certificate_name", nullable = false, length = 100)
     private String certificateName;
 
@@ -61,9 +67,10 @@ public class Certificate extends BaseTimeEntity {
     private String rejectReason;
 
     @Builder
-    private Certificate(JobSeekerProfile jobSeekerProfile, String certificateName,
-                        String certificateNumber, String fileKey) {
+    private Certificate(JobSeekerProfile jobSeekerProfile, CertificateType certificateType,
+                        String certificateName, String certificateNumber, String fileKey) {
         this.jobSeekerProfile = jobSeekerProfile;
+        this.certificateType = certificateType;
         this.certificateName = certificateName;
         this.certificateNumber = certificateNumber;
         this.fileKey = fileKey;

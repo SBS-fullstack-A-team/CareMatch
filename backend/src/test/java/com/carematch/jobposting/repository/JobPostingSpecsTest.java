@@ -80,66 +80,11 @@ class JobPostingSpecsTest {
     }
 
     private SearchCondition payTypes(List<PayType> payTypes) {
-        return new SearchCondition(null, null, null, null, null, null, null, null, null, payTypes, null, null, null, null);
+        return new SearchCondition(null, null, null, null, null, null, null, null, null, payTypes, null, null, null);
     }
 
     private SearchCondition facilityTypes(List<FacilityType> facilityTypes) {
-        return new SearchCondition(null, null, null, facilityTypes, null, null, null, null, null, null, null, null, null, null);
-    }
-
-    private SearchCondition keyword(String keyword) {
-        return new SearchCondition(null, null, null, null, null, null, null, null, null, null, null, null, null, keyword);
-    }
-
-    private SearchCondition sidos(List<String> sidos) {
-        return new SearchCondition(sidos, null, null, null, null, null, null, null, null, null, null, null, null, null);
-    }
-
-    /** 지정한 시·도의 새 시설을 만들어 그 공고를 저장한다 (sidos 다중선택 테스트용). */
-    private void postingOfSido(String sido) {
-        fSeq++;
-        Member m = Member.builder()
-                .loginId("fac-sido-" + fSeq).password("x").email("sido" + fSeq + "@t.com").name("F")
-                .phone("010-3333-000" + fSeq).role(Role.FACILITY).verified(true).build();
-        em.persist(m);
-        FacilityProfile fp = FacilityProfile.builder()
-                .member(m).facilityName("C").businessRegistrationNumber("333-33-3333" + fSeq).build();
-        em.persist(fp);
-        em.persist(JobPosting.builder()
-                .facilityProfile(fp)
-                .title("t").jobType(JobType.CAREGIVER)
-                .workType(WorkType.COMMUTE).employmentType(EmploymentType.CONTRACT)
-                .workDays("Mon-Fri").workStartTime(LocalTime.of(9, 0)).workEndTime(LocalTime.of(12, 0))
-                .payType(PayType.MONTHLY).payAmount(3_000_000).recruitCount(1).deadline(LocalDate.now().plusDays(30))
-                .sido(sido).sigungu("Gu")
-                .careGrade(CareGrade.GRADE_4).elderGender(ElderGender.FEMALE)
-                .mobilityStatus(MobilityStatus.INDEPENDENT).mealStatus(MealStatus.ASSIST)
-                .cognitiveStatus(CognitiveStatus.NORMAL).exposureType(ExposureType.NORMAL).build());
-    }
-
-    @Test
-    void sidos_다중선택은_OR_로_필터된다() {
-        postingOfSido("Seoul");
-        postingOfSido("Busan");
-        postingOfSido("Daegu");
-        em.flush();
-        em.clear();
-
-        List<JobPosting> result = repository.findAll(
-                JobPostingSpecs.from(sidos(List.of("Seoul", "Busan"))), Pageable.unpaged()).getContent();
-
-        assertThat(result).extracting(JobPosting::getSido).containsExactlyInAnyOrder("Seoul", "Busan");
-    }
-
-    @Test
-    void sidos_가_비어있으면_지역으로_거르지_않는다() {
-        postingOfSido("Seoul");
-        postingOfSido("Busan");
-        em.flush();
-        em.clear();
-
-        assertThat(repository.findAll(JobPostingSpecs.from(sidos(null)), Pageable.unpaged())).hasSize(2);
-        assertThat(repository.findAll(JobPostingSpecs.from(sidos(List.of())), Pageable.unpaged())).hasSize(2);
+        return new SearchCondition(null, null, null, facilityTypes, null, null, null, null, null, null, null, null, null);
     }
 
     private int fSeq = 0;
@@ -184,7 +129,7 @@ class JobPostingSpecsTest {
     }
 
     private SearchCondition workSchedules(List<WorkSchedule> workSchedules) {
-        return new SearchCondition(null, null, null, null, null, workSchedules, null, null, null, null, null, null, null, null);
+        return new SearchCondition(null, null, null, null, null, workSchedules, null, null, null, null, null, null, null);
     }
 
     @Test
@@ -240,53 +185,5 @@ class JobPostingSpecsTest {
 
         assertThat(repository.findAll(JobPostingSpecs.from(workSchedules(null)), Pageable.unpaged())).hasSize(2);
         assertThat(repository.findAll(JobPostingSpecs.from(workSchedules(List.of())), Pageable.unpaged())).hasSize(2);
-    }
-
-    /** 지정한 제목의 공고를 저장한다 (keyword 검색 테스트용). */
-    private void postingWithTitle(String title) {
-        em.persist(JobPosting.builder()
-                .facilityProfile(facility)
-                .title(title).jobType(JobType.CAREGIVER)
-                .workType(WorkType.COMMUTE).employmentType(EmploymentType.CONTRACT)
-                .workDays("Mon-Fri").workStartTime(LocalTime.of(9, 0)).workEndTime(LocalTime.of(12, 0))
-                .payType(PayType.MONTHLY).payAmount(3_000_000).recruitCount(1).deadline(LocalDate.now().plusDays(30))
-                .sido("Seoul").sigungu("Gangnam")
-                .careGrade(CareGrade.GRADE_4).elderGender(ElderGender.FEMALE)
-                .mobilityStatus(MobilityStatus.INDEPENDENT).mealStatus(MealStatus.ASSIST)
-                .cognitiveStatus(CognitiveStatus.NORMAL).exposureType(ExposureType.NORMAL).build());
-    }
-
-    @Test
-    void keyword_는_제목에_대소문자_구분없이_부분일치한다() {
-        postingWithTitle("요양보호사 모집합니다");
-        postingWithTitle("사회복지사 채용");
-        em.flush();
-        em.clear();
-
-        List<JobPosting> result = repository.findAll(JobPostingSpecs.from(keyword("보호사")), Pageable.unpaged())
-                .getContent();
-
-        assertThat(result).extracting(JobPosting::getTitle).containsExactly("요양보호사 모집합니다");
-    }
-
-    @Test
-    void keyword_는_시설명에도_일치한다() {
-        postingWithTitle("모집공고");
-        em.flush();
-        em.clear();
-
-        assertThat(repository.findAll(JobPostingSpecs.from(keyword("c")), Pageable.unpaged())).hasSize(1);
-        assertThat(repository.findAll(JobPostingSpecs.from(keyword("존재하지않음")), Pageable.unpaged())).isEmpty();
-    }
-
-    @Test
-    void keyword_가_비어있으면_거르지_않는다() {
-        postingWithTitle("공고1");
-        postingWithTitle("공고2");
-        em.flush();
-        em.clear();
-
-        assertThat(repository.findAll(JobPostingSpecs.from(keyword(null)), Pageable.unpaged())).hasSize(2);
-        assertThat(repository.findAll(JobPostingSpecs.from(keyword("  ")), Pageable.unpaged())).hasSize(2);
     }
 }

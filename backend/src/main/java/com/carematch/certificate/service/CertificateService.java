@@ -1,6 +1,7 @@
 package com.carematch.certificate.service;
 
 import com.carematch.certificate.domain.Certificate;
+import com.carematch.certificate.domain.CertificateType;
 import com.carematch.certificate.dto.CertificateDtos.CertificateDetailResponse;
 import com.carematch.certificate.dto.CertificateDtos.CreateCertificateRequest;
 import com.carematch.certificate.repository.CertificateRepository;
@@ -11,6 +12,8 @@ import com.carematch.member.repository.JobSeekerProfileRepository;
 import com.carematch.storage.FileMetadata;
 import com.carematch.storage.FileStorageService;
 import com.carematch.storage.StorageProperties;
+import com.carematch.verification.domain.VerificationChannel;
+import com.carematch.verification.service.VerificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,15 +38,24 @@ public class CertificateService {
     private final JobSeekerProfileRepository jobSeekerProfileRepository;
     private final FileStorageService fileStorageService;
     private final StorageProperties storageProperties;
+    private final VerificationService verificationService;
 
+    /**
+     * 자격증 등록 = 요양보호사로 등록하는 시점. 가입 시가 아니라 여기서 전화번호 인증을 요구한다
+     * (소셜 가입자는 가입 시 전화번호가 아예 없으므로 — PUT /api/members/me/phone 으로 먼저 입력받고,
+     * POST /api/verifications/{send,verify} 로 그 번호를 인증한 뒤에야 자격증을 등록할 수 있다).
+     * 미인증이면 VERIFICATION_REQUIRED.
+     */
     @Transactional
     public CertificateDetailResponse register(Long memberId, CreateCertificateRequest req) {
         JobSeekerProfile profile = jobSeekerProfileRepository.findByMemberId(memberId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "jobseeker profile of member " + memberId));
+        verificationService.assertVerified(VerificationChannel.PHONE, profile.getMember().getPhone());
 
         Certificate certificate = Certificate.builder()
                 .jobSeekerProfile(profile)
-                .certificateName(req.certificateName())
+                .certificateType(req.certificateType())
+                .certificateName(resolveName(req))
                 .certificateNumber(req.certificateNumber())
                 .fileKey(req.fileKey())
                 .build();
@@ -90,6 +102,19 @@ public class CertificateService {
         certificateRepository.delete(certificate);
     }
 
+    /** OTHER 는 사용자 입력 이름 필수, 그 외 정형 종류는 라벨을 표시명으로 쓴다. */
+    static String resolveName(CreateCertificateRequest req) {
+        if (req.certificateType() != CertificateType.OTHER) {
+            return req.certificateType().label();
+        }
+        String name = req.certificateName() == null ? "" : req.certificateName().trim();
+        if (name.isEmpty()) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT,
+                    "certificateType=OTHER 는 certificateName 이 필요합니다");
+        }
+        return name;
+    }
+
     private Certificate loadOwned(Long memberId, Long certificateId) {
         Certificate certificate = certificateRepository.findById(certificateId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "certificate " + certificateId));
@@ -103,7 +128,8 @@ public class CertificateService {
         Duration ttl = Duration.ofSeconds(storageProperties.presignExpirySeconds());
         String url = fileStorageService.issueDownloadUrl(c.getFileKey(), ttl);
         return new CertificateDetailResponse(
-                c.getId(), c.getCertificateName(), c.getCertificateNumber(), c.getStatus().name(),
+                c.getId(), c.getCertificateType().name(), c.getCertificateName(),
+                c.getCertificateNumber(), c.getStatus().name(),
                 c.getFileSize(), c.getContentType(), url, c.getRejectReason());
     }
 }
