@@ -229,8 +229,9 @@ export interface InquiryResponse {
 
 /* ---------------------------------------------------------------------------
    마이페이지 — 지원 / 스크랩 / 자격증
-   구인공고·인재 화면 전체의 타입은 아직 없다(mock 사용, Phase B/C).
-   여기 있는 타입은 마이페이지가 직접 쓰는 응답 필드만 옮긴 것이라 SummaryResponse 의 부분집합이다.
+   인재 화면 전체의 타입은 아직 없다(mock 사용, Phase C).
+   여기 있는 JobPostingSummary 는 마이페이지가 직접 쓰는 응답 필드만 옮긴 것이라
+   아래 JobPostingSummaryResponse(구인공고 화면 전체가 쓰는 완전판)의 부분집합이다.
    --------------------------------------------------------------------------- */
 
 /**
@@ -294,4 +295,170 @@ export interface CertificateDetailResponse {
   contentType: string | null
   downloadUrl: string | null
   rejectReason: string | null
+}
+
+/* ---------------------------------------------------------------------------
+   구인공고 (docs/API.md, JobPostingDtos) — Phase B.
+   `lib/job-adapter.ts` 의 toJob() 이 이 응답을 화면용 types/index.ts 의 Job 으로 변환한다.
+   enum 필드는 항상 대문자 enum name (JSON 그대로), 한글 라벨은 data/labels.ts 를 거친다.
+   --------------------------------------------------------------------------- */
+
+export type ApiJobType =
+  | 'CAREGIVER'
+  | 'CARE_ATTENDANT'
+  | 'NURSE_AIDE'
+  | 'SOCIAL_WORKER'
+  | 'LIFE_SUPPORT'
+  | 'HOUSEKEEPER'
+  | 'ETC'
+export type ApiWorkType = 'COMMUTE' | 'LIVE_IN' | 'REMOTE' | 'NEGOTIABLE'
+export type ApiWorkSchedule = 'DAY' | 'MORNING' | 'AFTERNOON' | 'NIGHT' | 'SHIFT'
+export type ApiEmploymentType = 'FULL_TIME' | 'CONTRACT' | 'TEMPORARY' | 'PART_TIME'
+export type ApiPayType = 'HOURLY' | 'DAILY' | 'MONTHLY'
+export type ApiFacilityType =
+  | 'VISITING_CARE'
+  | 'NURSING_HOME'
+  | 'DAY_NIGHT_CARE'
+  | 'COMMUNITY_CARE'
+  | 'NURSING_HOSPITAL'
+  | 'ETC'
+export type ApiCareGrade = 'GRADE_1' | 'GRADE_2' | 'GRADE_3' | 'GRADE_4' | 'GRADE_5'
+export type ApiElderGender = 'MALE' | 'FEMALE'
+export type ApiMobilityStatus = 'INDEPENDENT' | 'PARTIAL_ASSIST' | 'BEDRIDDEN'
+export type ApiMealStatus = 'SELF' | 'ASSIST' | 'TUBE'
+export type ApiCognitiveStatus = 'NORMAL' | 'MILD' | 'SEVERE'
+export type JobPostingStatus = 'OPEN' | 'CLOSED'
+export type ExposureType = 'NORMAL' | 'PREMIUM' | 'SPECIAL'
+/** RECOMMENDED(기본) / LATEST / DEADLINE / PAY_DESC / PAY_ASC / VIEWS */
+export type JobPostingSort = 'RECOMMENDED' | 'LATEST' | 'DEADLINE' | 'PAY_DESC' | 'PAY_ASC' | 'VIEWS'
+
+/** 매칭 사유 한 건 (상세 응답 전용). kind: category/region/schedule/pay */
+export interface MatchReason {
+  kind: string
+  label: string
+  matched: boolean
+  detail: string | null
+}
+
+/** GET /api/job-postings, /featured, /{id}/similar 목록 카드용 경량 응답 */
+export interface JobPostingSummaryResponse {
+  id: number
+  title: string
+  jobType: ApiJobType
+  thumbnailUrl: string | null
+  catchphrase: string | null
+  minCareerYears: number | null
+  sido: string
+  sigungu: string
+  workSchedule: ApiWorkSchedule | null
+  workDays: string
+  workStartTime: string
+  workEndTime: string
+  payType: ApiPayType
+  payAmount: number
+  careGrade: ApiCareGrade
+  elderGender: ApiElderGender
+  mobilityStatus: ApiMobilityStatus
+  duties: string[]
+  deadline: string | null
+  dDay: number | null
+  viewCount: number
+  applicantCount: number
+  status: JobPostingStatus
+  exposureType: ExposureType
+  isNew: boolean
+  isClosingSoon: boolean
+  isRecommended: boolean
+  facilityName: string
+  facilityType: ApiFacilityType | null
+  matchingScore: number | null
+  /** 로그인 회원의 찜 여부. 비로그인이면 null. */
+  scrapped: boolean | null
+  createdAt: string
+}
+
+/** GET /api/job-postings/{id} */
+export interface JobPostingDetailResponse {
+  id: number
+  title: string
+  jobType: ApiJobType
+  description: string | null
+  thumbnailUrl: string | null
+  catchphrase: string | null
+  requirements: string[]
+  preferences: string[]
+  benefits: string[]
+  minCareerYears: number | null
+  workType: ApiWorkType
+  workSchedule: ApiWorkSchedule | null
+  employmentType: ApiEmploymentType
+  employmentTypeNote: string | null
+  workDays: string
+  workStartTime: string
+  workEndTime: string
+  payType: ApiPayType
+  payAmount: number
+  recruitCount: number
+  deadline: string | null
+  dDay: number | null
+  sido: string
+  sigungu: string
+  addressDetail: string | null
+  latitude: number | null
+  longitude: number | null
+  careGrade: ApiCareGrade
+  elderGender: ApiElderGender
+  elderAgeRange: string | null
+  mobilityStatus: ApiMobilityStatus
+  mealStatus: ApiMealStatus
+  cognitiveStatus: ApiCognitiveStatus
+  elderNote: string | null
+  duties: string[]
+  requiredDocuments: string[]
+  status: JobPostingStatus
+  exposureType: ExposureType
+  isNew: boolean
+  isClosingSoon: boolean
+  isRecommended: boolean
+  viewCount: number
+  applicantCount: number
+  createdAt: string
+  updatedAt: string
+  facilityMemberId: number
+  facilityName: string
+  facilityType: ApiFacilityType | null
+  facilityPhone: string | null
+  managerName: string
+  matchingScore: number | null
+  matchingReasons: MatchReason[]
+  scrapped: boolean | null
+}
+
+/** GET /api/job-postings 등에 보내는 검색 파라미터 (모두 선택) */
+export interface JobPostingSearchParams {
+  /** 시·도 다중(OR). 좌측 필터 "지역" 체크박스가 여러 개 선택될 수 있다. */
+  sidos?: string[]
+  sigungu?: string
+  jobTypes?: ApiJobType[]
+  facilityTypes?: ApiFacilityType[]
+  workTypes?: ApiWorkType[]
+  workSchedules?: ApiWorkSchedule[]
+  employmentTypes?: ApiEmploymentType[]
+  payTypes?: ApiPayType[]
+  payMin?: number
+  payMax?: number
+  sort?: JobPostingSort
+  /** 제목·시설명 부분일치 자유 텍스트 검색 */
+  keyword?: string
+  page?: number
+  size?: number
+}
+
+/** GET /api/job-postings/facets — 좌측 필터 옵션별 결과 건수 (축 자신의 선택은 제외하고 센다) */
+export interface JobFacetsResponse {
+  sido: Record<string, number>
+  jobType: Record<string, number>
+  facilityType: Record<string, number>
+  workSchedule: Record<string, number>
+  payType: Record<string, number>
 }

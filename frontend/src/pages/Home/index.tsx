@@ -13,6 +13,7 @@ import {
   Users,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { LoadingState } from '@/components/common/loading-state'
 import { JobSearchBar } from '@/components/common/search-bar'
 import { JobCard } from '@/components/job/job-card'
 import { JobTable } from '@/components/job/job-table'
@@ -20,12 +21,13 @@ import { SpecialJobCard } from '@/components/job/special-job-card'
 import { Section } from '@/components/layout/section'
 import { TalentCard } from '@/components/talent/talent-card'
 import { buttonVariants } from '@/components/ui/button'
+import { getFeaturedJobPostings, getJobPostings } from '@/api/job-postings'
 import { getNotices } from '@/api/support'
 import { REGION_SHORTCUTS } from '@/data/filters'
-import { LATEST_JOBS, RECOMMENDED_JOBS, SPECIAL_JOBS } from '@/data/mock/jobs'
 import { LATEST_TALENTS } from '@/data/mock/talents'
 import { useApp } from '@/hooks/use-app'
 import { useAsync } from '@/hooks/use-async'
+import { summaryToJob } from '@/lib/job-adapter'
 import { CUSTOMER_SERVICE } from '@/lib/site'
 import { cn } from '@/lib/utils'
 import { formatServerDate } from '@/pages/Support/shared'
@@ -47,11 +49,7 @@ export function HomePage() {
         description="님의 희망조건과 가장 잘 맞는 일자리예요."
         moreHref="/jobs?sort=matching"
       >
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {RECOMMENDED_JOBS.map((job) => (
-            <JobCard key={job.id} job={job} />
-          ))}
-        </div>
+        <RecommendedJobs />
       </Section>
 
       {/* ---------------- 스페셜 채용정보 (3열) ---------------- */}
@@ -62,16 +60,12 @@ export function HomePage() {
         moreHref="/jobs?status=special"
         tone="tinted"
       >
-        <div className="grid gap-4 lg:grid-cols-3">
-          {SPECIAL_JOBS.map((job) => (
-            <SpecialJobCard key={job.id} job={job} />
-          ))}
-        </div>
+        <SpecialJobs />
       </Section>
 
       {/* ---------------- 최신 구인공고 (TABLE) ---------------- */}
       <Section icon={FileText} title="최신 구인공고" moreHref="/jobs">
-        <JobTable jobs={LATEST_JOBS} />
+        <LatestJobsTable />
       </Section>
 
       {/* ---------------- 최신 인재정보 (4열) ---------------- */}
@@ -142,10 +136,54 @@ function HeroBanner() {
   )
 }
 
+/** "회원님께 맞는 공고" 4열 — `sort=RECOMMENDED` 는 로그인 구직자면 희망조건 매칭점수 순, 그 외엔 노출등급순. */
+function RecommendedJobs() {
+  const { data, loading } = useAsync(() => getJobPostings({ sort: 'RECOMMENDED', size: 4 }), [])
+  const jobs = (data?.content ?? []).map(summaryToJob)
+
+  if (loading) return <LoadingState rows={4} variant="card" />
+  if (jobs.length === 0) return <p className="text-base text-fg-muted">등록된 구인공고가 없습니다.</p>
+
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {jobs.map((job) => (
+        <JobCard key={job.id} job={job} />
+      ))}
+    </div>
+  )
+}
+
+/** "스페셜 채용정보" 3열 — `GET /api/job-postings/featured` (만료 안 된 SPECIAL 상위 3). */
+function SpecialJobs() {
+  const { data, loading } = useAsync(() => getFeaturedJobPostings(), [])
+  const jobs = (data ?? []).map(summaryToJob)
+
+  if (loading) return <LoadingState rows={3} variant="card" />
+  if (jobs.length === 0) return <p className="text-base text-fg-muted">진행 중인 스페셜 채용이 없습니다.</p>
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-3">
+      {jobs.map((job) => (
+        <SpecialJobCard key={job.id} job={job} />
+      ))}
+    </div>
+  )
+}
+
+/** "최신 구인공고" TABLE — `sort=LATEST` 상위 6. */
+function LatestJobsTable() {
+  const { data, loading } = useAsync(() => getJobPostings({ sort: 'LATEST', size: 6 }), [])
+  const jobs = (data?.content ?? []).map(summaryToJob)
+
+  if (loading) return <LoadingState rows={6} />
+  if (jobs.length === 0) return <p className="text-base text-fg-muted">등록된 구인공고가 없습니다.</p>
+
+  return <JobTable jobs={jobs} />
+}
+
 /**
  * DESIGN_SYSTEM.md §23
- * 홈에서 유일하게 실 API 를 쓰는 섹션(`GET /api/support/notices`). 나머지 홈 섹션(공고·인재)은
- * 아직 mock 이라 이 카드만 로딩/에러 처리를 갖는다 — 실패해도 홈 전체는 깨지지 않도록
+ * `GET /api/support/notices`. 실패해도 홈 전체는 깨지지 않도록
  * 에러 메시지 대신 "등록된 공지가 없습니다." 로 조용히 대체한다.
  */
 function NoticeCard() {

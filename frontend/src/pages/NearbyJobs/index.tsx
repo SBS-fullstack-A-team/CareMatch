@@ -3,13 +3,15 @@ import { useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Breadcrumb } from '@/components/common/breadcrumb'
 import { EmptyState } from '@/components/common/empty-state'
+import { LoadingState } from '@/components/common/loading-state'
 import { Pagination } from '@/components/common/pagination'
 import { JobSearchBar, type SearchValues } from '@/components/common/search-bar'
-import { JobFilterPanel } from '@/components/job/job-filter-panel'
+import { EMPTY_JOB_FILTER_COUNTS, JobFilterPanel, type JobFilterCounts } from '@/components/job/job-filter-panel'
 import { JobListItem } from '@/components/job/job-list-item'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { Tag } from '@/components/ui/tag'
+import { getJobPostingFacets, getJobPostings } from '@/api/job-postings'
 import {
   CATEGORY_OPTIONS,
   FACILITY_TYPE_OPTIONS,
@@ -17,21 +19,23 @@ import {
   PAY_TYPE_OPTIONS,
   WORK_SCHEDULE_OPTIONS,
 } from '@/data/filters'
-import { JOBS } from '@/data/mock/jobs'
+import { payTypeFromApi } from '@/data/labels'
+import { useAsync } from '@/hooks/use-async'
+import { summaryToJob } from '@/lib/job-adapter'
 import {
-  applyFilters,
   EMPTY_JOB_FILTERS,
   EMPTY_JOB_SEARCH,
   isJobSort,
-  matchesSearch,
-  sortJobs,
   toRegionLabel,
+  toSearchParams,
   type JobFilterGroup,
   type JobFilterState,
   type JobSearchQuery,
   type JobSort,
 } from '@/lib/job-filters'
 import { formatNumber } from '@/lib/utils'
+import { LoadFailed } from '@/pages/Support/shared'
+import type { JobFacetsResponse } from '@/types/api'
 
 const PAGE_SIZE = 10
 
@@ -72,12 +76,29 @@ function toParams(search: JobSearchQuery, sort: JobSort) {
   return params
 }
 
+/** `GET /api/job-postings/facets` 응답을 좌측 필터 패널이 쓰는 형태로 옮긴다. (JobList 와 동일) */
+function toFilterCounts(facets: JobFacetsResponse | null): JobFilterCounts {
+  if (!facets) return EMPTY_JOB_FILTER_COUNTS
+  return {
+    regions: Object.fromEntries(
+      Object.entries(facets.sido).map(([sido, count]) => [toRegionLabel(sido), count]),
+    ),
+    categories: facets.jobType,
+    facilityTypes: facets.facilityType,
+    workSchedules: facets.workSchedule,
+    payTypes: Object.fromEntries(
+      Object.entries(facets.payType).map(([payType, count]) => [payTypeFromApi(payType), count]),
+    ),
+  }
+}
+
 /**
  * 내 주변 일자리 (/nearby)
  *
  * 프로젝트에 Geolocation·지도 SDK·좌표 데이터·거리 계산이 전혀 없으므로
  * "내 주변"은 **사용자가 직접 고른 지역**을 기준으로 처리한다.
- * GPS·지도·거리 표기·거리순 정렬은 만들지 않는다.
+ * GPS·지도·거리 표기·거리순 정렬은 만들지 않는다 — 백엔드 `GET /api/job-postings/nearby` 는
+ * lat/lng 가 필수라 이 화면과 맞지 않고, 구인공고 목록과 같은 `GET /api/job-postings`(sido/sigungu) 를 쓴다.
  *
  * 구인공고 목록(/jobs)과 같은 컴포넌트와 필터 규칙을 그대로 쓰고,
  * 지역 기준 안내 영역과 "OO 주변 일자리" 결과 문구로 페이지 목적을 구분한다.
@@ -97,13 +118,18 @@ export function NearbyJobsPage() {
   })
   const [page, setPage] = useState(1)
 
-  const searched = useMemo(() => JOBS.filter((job) => matchesSearch(job, search)), [search])
-  const filtered = useMemo(() => applyFilters(searched, filters), [searched, filters])
-  const sorted = useMemo(() => sortJobs(filtered, sort), [filtered, sort])
+  const params = useMemo(() => toSearchParams(search, filters, sort), [search, filters, sort])
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
-  const currentPage = Math.min(page, totalPages)
-  const pageJobs = sorted.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+  const { data, loading, error, reload } = useAsync(
+    () => getJobPostings({ ...params, page: page - 1, size: PAGE_SIZE }),
+    [params, page],
+  )
+  const { data: facets } = useAsync(() => getJobPostingFacets(params), [params])
+
+  const jobs = useMemo(() => (data?.content ?? []).map(summaryToJob), [data])
+  const totalElements = data?.totalElements ?? 0
+  const totalPages = Math.max(1, data?.totalPages ?? 1)
+  const counts = useMemo(() => toFilterCounts(facets ?? null), [facets])
 
   const hasSearch = Object.values(search).some(Boolean)
   const hasFilters = Object.values(filters).some((group) => group.length > 0)
@@ -223,7 +249,7 @@ export function NearbyJobsPage() {
         <p className="text-lg text-fg-muted">
           {regionLabel ? `${regionLabel} 주변 일자리` : '전체 구인공고'}{' '}
           <strong className="font-bold text-primary-deep tabular">
-            {formatNumber(sorted.length)}
+            {formatNumber(totalElements)}
           </strong>
           건
         </p>
@@ -278,13 +304,19 @@ export function NearbyJobsPage() {
           value={filters}
           onChange={handleFiltersChange}
           onReset={resetFilters}
-          jobs={searched}
+          counts={counts}
         />
 
         <section className="min-w-0 flex-1" aria-label="내 주변 구인공고 목록">
-          {pageJobs.length > 0 ? (
+          {loading ? (
+            <div className="overflow-hidden rounded-card border border-border">
+              <LoadingState rows={PAGE_SIZE} />
+            </div>
+          ) : error ? (
+            <LoadFailed message={error} onRetry={reload} />
+          ) : jobs.length > 0 ? (
             <ul className="overflow-hidden rounded-card border border-border">
-              {pageJobs.map((job) => (
+              {jobs.map((job) => (
                 <li key={job.id} className="border-b border-border last:border-b-0">
                   <JobListItem job={job} />
                 </li>
@@ -304,12 +336,7 @@ export function NearbyJobsPage() {
             </div>
           )}
 
-          <Pagination
-            page={currentPage}
-            totalPages={totalPages}
-            onChange={setPage}
-            className="mt-8"
-          />
+          <Pagination page={page} totalPages={totalPages} onChange={setPage} className="mt-8" />
         </section>
       </div>
     </div>

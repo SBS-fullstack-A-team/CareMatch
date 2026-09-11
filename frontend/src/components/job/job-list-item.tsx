@@ -52,10 +52,14 @@ export function JobListItem({
 
           <p className="mt-1 flex flex-wrap items-center gap-x-2 text-base">
             <span className="font-semibold text-primary-deep">{jobCategoryLabel(job.category)}</span>
-            <span aria-hidden className="text-border-strong">
-              |
-            </span>
-            <span className="text-fg-muted">{employmentTypeLabel(job.employmentType)}</span>
+            {job.employmentType && (
+              <>
+                <span aria-hidden className="text-border-strong">
+                  |
+                </span>
+                <span className="text-fg-muted">{employmentTypeLabel(job.employmentType)}</span>
+              </>
+            )}
           </p>
 
           <dl className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-base text-fg-muted">
@@ -105,7 +109,7 @@ export function JobListItem({
         </div>
 
         <div className="flex w-[176px] shrink-0 flex-col items-end justify-between gap-3 max-sm:hidden">
-          <ScrapButton />
+          <ScrapButton jobId={Number(job.id)} defaultScrapped={job.scrapped} />
           <div className="text-right">
             {hasMatching && (
               <MatchingScoreBadge score={job.matching!.score} size="md" className="mb-2" />
@@ -122,7 +126,7 @@ export function JobListItem({
         <p className="text-xl font-bold text-fg tabular">
           {formatPay(job.payType, job.payAmount)}
         </p>
-        <ScrapButton size="md" />
+        <ScrapButton jobId={Number(job.id)} defaultScrapped={job.scrapped} size="md" />
       </div>
     </article>
   )

@@ -1,5 +1,12 @@
 import { REGION_SHORTCUTS } from '@/data/filters'
-import { employmentTypeLabel, facilityTypeLabel, jobCategoryLabel, workScheduleLabel } from '@/data/labels'
+import {
+  employmentTypeLabel,
+  facilityTypeLabel,
+  jobCategoryLabel,
+  payTypeToApi,
+  workScheduleLabel,
+} from '@/data/labels'
+import type { ApiFacilityType, ApiJobType, ApiWorkSchedule, JobPostingSearchParams, JobPostingSort } from '@/types/api'
 import type { Job } from '@/types'
 
 /* =========================================================================
@@ -56,6 +63,52 @@ export function isJobSort(value: string | null): value is JobSort {
 /** "서울특별시" -> "서울". Job.region 이 짧은 라벨로 시작하므로 비교 기준을 맞춘다. */
 export function toRegionLabel(sido: string) {
   return REGION_SHORTCUTS.find((region) => region.sido === sido)?.label ?? sido
+}
+
+/** "서울" -> "서울특별시". 좌측 필터의 지역 체크박스(짧은 라벨) 값을 API sido 로 되돌린다. */
+function fromRegionLabel(label: string): string {
+  return REGION_SHORTCUTS.find((region) => region.label === label)?.sido ?? label
+}
+
+/** 정렬 값 변환. 프론트는 소문자 3종만 쓰고 나머지(RECOMMENDED/DEADLINE/VIEWS)는 API 전용. */
+const SORT_TO_API: Record<JobSort, JobPostingSort> = {
+  latest: 'LATEST',
+  payDesc: 'PAY_DESC',
+  payAsc: 'PAY_ASC',
+}
+
+/**
+ * 검색바(JobSearchQuery, 단일값)와 좌측 필터(JobFilterState, 다중값)를 합쳐 실 API 파라미터로 만든다.
+ * 지역만 두 입력이 겹칠 수 있어(검색바 sido 단일 + 필터 regions 다중) 합집합(OR)으로 합친다 —
+ * 기존 mock 클라이언트 필터(AND)와 달리 두 조건을 동시에 걸어도 결과가 사라지지 않는다.
+ */
+export function toSearchParams(
+  search: JobSearchQuery,
+  filters: JobFilterState,
+  sort: JobSort,
+): JobPostingSearchParams {
+  const sidos = new Set<string>()
+  if (search.sido) sidos.add(search.sido)
+  filters.regions.forEach((label) => sidos.add(fromRegionLabel(label)))
+
+  const jobTypes = new Set<string>()
+  if (search.category) jobTypes.add(search.category)
+  filters.categories.forEach((value) => jobTypes.add(value))
+
+  const facilityTypes = new Set<string>()
+  if (search.facilityType) facilityTypes.add(search.facilityType)
+  filters.facilityTypes.forEach((value) => facilityTypes.add(value))
+
+  return {
+    sidos: sidos.size > 0 ? [...sidos] : undefined,
+    sigungu: search.district || undefined,
+    jobTypes: jobTypes.size > 0 ? ([...jobTypes] as ApiJobType[]) : undefined,
+    facilityTypes: facilityTypes.size > 0 ? ([...facilityTypes] as ApiFacilityType[]) : undefined,
+    workSchedules: filters.workSchedules.length > 0 ? (filters.workSchedules as ApiWorkSchedule[]) : undefined,
+    payTypes: filters.payTypes.length > 0 ? filters.payTypes.map(payTypeToApi) : undefined,
+    keyword: search.keyword.trim() || undefined,
+    sort: SORT_TO_API[sort],
+  }
 }
 
 /** "서울 강남구" -> "서울" */

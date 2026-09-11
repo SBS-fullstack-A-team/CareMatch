@@ -1,13 +1,15 @@
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { EmptyState } from '@/components/common/empty-state'
+import { LoadingState } from '@/components/common/loading-state'
 import { Pagination } from '@/components/common/pagination'
 import { JobSearchBar, type SearchValues } from '@/components/common/search-bar'
-import { JobFilterPanel } from '@/components/job/job-filter-panel'
+import { EMPTY_JOB_FILTER_COUNTS, JobFilterPanel, type JobFilterCounts } from '@/components/job/job-filter-panel'
 import { JobListItem } from '@/components/job/job-list-item'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { Tag } from '@/components/ui/tag'
+import { getJobPostingFacets, getJobPostings } from '@/api/job-postings'
 import {
   CATEGORY_OPTIONS,
   FACILITY_TYPE_OPTIONS,
@@ -15,20 +17,23 @@ import {
   PAY_TYPE_OPTIONS,
   WORK_SCHEDULE_OPTIONS,
 } from '@/data/filters'
-import { JOBS } from '@/data/mock/jobs'
+import { payTypeFromApi } from '@/data/labels'
+import { useAsync } from '@/hooks/use-async'
+import { summaryToJob } from '@/lib/job-adapter'
 import {
-  applyFilters,
   EMPTY_JOB_FILTERS,
   EMPTY_JOB_SEARCH,
   isJobSort,
-  matchesSearch,
-  sortJobs,
+  toRegionLabel,
+  toSearchParams,
   type JobFilterGroup,
   type JobFilterState,
   type JobSearchQuery,
   type JobSort,
 } from '@/lib/job-filters'
 import { formatNumber } from '@/lib/utils'
+import { LoadFailed } from '@/pages/Support/shared'
+import type { JobFacetsResponse } from '@/types/api'
 
 const PAGE_SIZE = 10
 
@@ -70,13 +75,30 @@ function toParams(search: JobSearchQuery, sort: JobSort) {
   return params
 }
 
+/** `GET /api/job-postings/facets` 응답을 좌측 필터 패널이 쓰는 형태(지역=짧은 라벨, 급여=소문자)로 옮긴다. */
+function toFilterCounts(facets: JobFacetsResponse | null): JobFilterCounts {
+  if (!facets) return EMPTY_JOB_FILTER_COUNTS
+  return {
+    regions: Object.fromEntries(
+      Object.entries(facets.sido).map(([sido, count]) => [toRegionLabel(sido), count]),
+    ),
+    categories: facets.jobType,
+    facilityTypes: facets.facilityType,
+    workSchedules: facets.workSchedule,
+    payTypes: Object.fromEntries(
+      Object.entries(facets.payType).map(([payType, count]) => [payTypeFromApi(payType), count]),
+    ),
+  }
+}
+
 /**
  * 구인공고 목록 (COMPONENT_RULES.md §17 / DESIGN_SYSTEM.md §6)
  *
  * 페이지 타이틀 → 검색 → 결과 요약·정렬 → (좌) 필터 / (우) 목록 → 페이지네이션
  * 목적성이 높은 업무형 화면이라 메인과 달리 Hero 배너를 두지 않는다.
  *
- * 검색·필터·정렬·페이지네이션은 아직 API 가 없어 mock 데이터 위에서 동작한다.
+ * 검색·필터·정렬은 `GET /api/job-postings`(목록)·`/facets`(필터 옵션별 건수) 를 그대로 쓰고,
+ * 페이지네이션은 서버 `PageResponse`(0-base) 를 `Pagination`(1-base) 에 맞춰 변환한다.
  */
 export function JobListPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -91,13 +113,18 @@ export function JobListPage() {
   })
   const [page, setPage] = useState(1)
 
-  const searched = useMemo(() => JOBS.filter((job) => matchesSearch(job, search)), [search])
-  const filtered = useMemo(() => applyFilters(searched, filters), [searched, filters])
-  const sorted = useMemo(() => sortJobs(filtered, sort), [filtered, sort])
+  const params = useMemo(() => toSearchParams(search, filters, sort), [search, filters, sort])
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
-  const currentPage = Math.min(page, totalPages)
-  const pageJobs = sorted.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+  const { data, loading, error, reload } = useAsync(
+    () => getJobPostings({ ...params, page: page - 1, size: PAGE_SIZE }),
+    [params, page],
+  )
+  const { data: facets } = useAsync(() => getJobPostingFacets(params), [params])
+
+  const jobs = useMemo(() => (data?.content ?? []).map(summaryToJob), [data])
+  const totalElements = data?.totalElements ?? 0
+  const totalPages = Math.max(1, data?.totalPages ?? 1)
+  const counts = useMemo(() => toFilterCounts(facets ?? null), [facets])
 
   const hasSearch = Object.values(search).some(Boolean)
   const hasFilters = Object.values(filters).some((group) => group.length > 0)
@@ -165,7 +192,7 @@ export function JobListPage() {
         <p className="text-lg text-fg-muted">
           {hasCondition ? '검색 결과' : '전체 구인공고'}{' '}
           <strong className="font-bold text-primary-deep tabular">
-            {formatNumber(sorted.length)}
+            {formatNumber(totalElements)}
           </strong>
           건
         </p>
@@ -220,13 +247,19 @@ export function JobListPage() {
           value={filters}
           onChange={handleFiltersChange}
           onReset={resetFilters}
-          jobs={searched}
+          counts={counts}
         />
 
         <section className="min-w-0 flex-1" aria-label="구인공고 목록">
-          {pageJobs.length > 0 ? (
+          {loading ? (
+            <div className="overflow-hidden rounded-card border border-border">
+              <LoadingState rows={PAGE_SIZE} />
+            </div>
+          ) : error ? (
+            <LoadFailed message={error} onRetry={reload} />
+          ) : jobs.length > 0 ? (
             <ul className="overflow-hidden rounded-card border border-border">
-              {pageJobs.map((job) => (
+              {jobs.map((job) => (
                 <li key={job.id} className="border-b border-border last:border-b-0">
                   <JobListItem job={job} />
                 </li>
@@ -246,12 +279,7 @@ export function JobListPage() {
             </div>
           )}
 
-          <Pagination
-            page={currentPage}
-            totalPages={totalPages}
-            onChange={setPage}
-            className="mt-8"
-          />
+          <Pagination page={page} totalPages={totalPages} onChange={setPage} className="mt-8" />
         </section>
       </div>
     </div>
