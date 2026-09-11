@@ -52,9 +52,9 @@
 
 ### 4. 지원자 수(applicantCount) 공고 응답에 추가
 
-프론트 카드마다 "지원 N명" 표시. 백엔드 응답에 필드 없음.
+프론트 카드마다 "지원 N명" 표시.
 
-- [ ] `SummaryResponse` / `DetailResponse`에 `applicantCount` 추가 (`Application` 집계 조인, N+1 주의)
+- [x] `SummaryResponse` / `DetailResponse`에 `applicantCount` (취소 제외 집계, 목록은 배치 조회). #58
 
 ---
 
@@ -73,12 +73,13 @@
 
 ### 인재정보
 
-- [ ] **자격증(certificates) 필터** — 프론트 필터 축인데 `TalentSearchDtos.SearchCondition`에 없음
-- [ ] **경력 구간 필터** — 프론트 신입 / 1~3 / 3~5 / 5년+ 구간, 백엔드는 `minCareerYears`(하한)만. 구간(상한 포함) 매핑 또는 파라미터 추가
+- [x] **자격증(certificates) 필터** — 백엔드 `certificateTypes: CertificateType[]` 다중(OR). `certificate_type` enum 전환(자유 입력 정확일치 폐기), V9. 등록 시 종류 선택 필수. 상세 설계 [`ENUM_MAPPING.md`](./ENUM_MAPPING.md) §5. feature/be-certificate-type
+  - [ ] 프론트: 필터 체크박스 value → enum name, `/apply` 자격증 종류 select(+OTHER 이름칸)
+- [x] **경력 구간 필터** — 백엔드 `careerBuckets` 다중(OR). `ENTRY/Y1_3/Y3_5/Y5_PLUS`, 경력 미입력은 제외. feature/be-talent-search-filters (#deacd8b)
 - [x] **희망지역 다중** — 백엔드 `desiredRegions: [{sido, sigungu}]` 최대 3 (`jobseeker_desired_region` 테이블, V7). 매칭 지역 축은 "희망지역 중 best". 검색 `sido`/`sigungu` = 그 지역을 희망지역에 넣은 인재. (feature/be-talent-desired-regions)
   - [ ] 프론트: `/apply` 폼 다중 지역 입력 (현재 시/도+구/군 단일). `Talent.regions` 타입은 이미 배열
-- [ ] **정렬(경력 높은/낮은순)** — 프론트 `updated / careerDesc / careerAsc`. 백엔드는 "최근 갱신순 고정"(`sort` 파라미터 받지만 미사용). `CAREER_DESC/CAREER_ASC` 구현
-- [ ] **급여 필터 다중선택** — 공고와 동일 이슈 (`payType` 단일값)
+- [x] **정렬(경력 높은/낮은순)** — 백엔드 `sort=LATEST/CAREER_DESC/CAREER_ASC` (경력 미입력은 뒤). feature/be-talent-search-filters (#deacd8b)
+- [x] **급여 필터 다중선택** — 백엔드 `payTypes: PayType[]` 다중(OR). feature/be-talent-search-filters (#deacd8b)
 
 ---
 

@@ -9,7 +9,7 @@ import { TalentDetailHeader } from '@/components/talent/talent-detail-header'
 import { TalentListCard } from '@/components/talent/talent-list-card'
 import { buttonVariants } from '@/components/ui/button'
 import { Tag } from '@/components/ui/tag'
-import { jobCategoryLabel, workScheduleLabel } from '@/data/labels'
+import { certificateTypeLabel, jobCategoryLabel, workScheduleLabel } from '@/data/labels'
 import { getTalentById, TALENTS } from '@/data/mock/talents'
 import { cn, formatPay } from '@/lib/utils'
 import type { Talent } from '@/types'
@@ -85,7 +85,7 @@ export function TalentDetailPage() {
                   <ul className="flex flex-wrap gap-1.5">
                     {talent.certificates.map((certificate) => (
                       <li key={certificate}>
-                        <Tag>{certificate}</Tag>
+                        <Tag>{certificateTypeLabel(certificate)}</Tag>
                       </li>
                     ))}
                   </ul>

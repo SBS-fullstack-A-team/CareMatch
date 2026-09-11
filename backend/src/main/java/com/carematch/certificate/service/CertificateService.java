@@ -1,6 +1,7 @@
 package com.carematch.certificate.service;
 
 import com.carematch.certificate.domain.Certificate;
+import com.carematch.certificate.domain.CertificateType;
 import com.carematch.certificate.dto.CertificateDtos.CertificateDetailResponse;
 import com.carematch.certificate.dto.CertificateDtos.CreateCertificateRequest;
 import com.carematch.certificate.repository.CertificateRepository;
@@ -53,7 +54,8 @@ public class CertificateService {
 
         Certificate certificate = Certificate.builder()
                 .jobSeekerProfile(profile)
-                .certificateName(req.certificateName())
+                .certificateType(req.certificateType())
+                .certificateName(resolveName(req))
                 .certificateNumber(req.certificateNumber())
                 .fileKey(req.fileKey())
                 .build();
@@ -100,6 +102,19 @@ public class CertificateService {
         certificateRepository.delete(certificate);
     }
 
+    /** OTHER 는 사용자 입력 이름 필수, 그 외 정형 종류는 라벨을 표시명으로 쓴다. */
+    static String resolveName(CreateCertificateRequest req) {
+        if (req.certificateType() != CertificateType.OTHER) {
+            return req.certificateType().label();
+        }
+        String name = req.certificateName() == null ? "" : req.certificateName().trim();
+        if (name.isEmpty()) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT,
+                    "certificateType=OTHER 는 certificateName 이 필요합니다");
+        }
+        return name;
+    }
+
     private Certificate loadOwned(Long memberId, Long certificateId) {
         Certificate certificate = certificateRepository.findById(certificateId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "certificate " + certificateId));
@@ -113,7 +128,8 @@ public class CertificateService {
         Duration ttl = Duration.ofSeconds(storageProperties.presignExpirySeconds());
         String url = fileStorageService.issueDownloadUrl(c.getFileKey(), ttl);
         return new CertificateDetailResponse(
-                c.getId(), c.getCertificateName(), c.getCertificateNumber(), c.getStatus().name(),
+                c.getId(), c.getCertificateType().name(), c.getCertificateName(),
+                c.getCertificateNumber(), c.getStatus().name(),
                 c.getFileSize(), c.getContentType(), url, c.getRejectReason());
     }
 }

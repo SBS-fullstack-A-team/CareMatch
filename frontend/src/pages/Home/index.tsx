@@ -20,13 +20,15 @@ import { SpecialJobCard } from '@/components/job/special-job-card'
 import { Section } from '@/components/layout/section'
 import { TalentCard } from '@/components/talent/talent-card'
 import { buttonVariants } from '@/components/ui/button'
+import { getNotices } from '@/api/support'
 import { REGION_SHORTCUTS } from '@/data/filters'
 import { LATEST_JOBS, RECOMMENDED_JOBS, SPECIAL_JOBS } from '@/data/mock/jobs'
-import { NOTICES } from '@/data/mock/notices'
 import { LATEST_TALENTS } from '@/data/mock/talents'
 import { useApp } from '@/hooks/use-app'
+import { useAsync } from '@/hooks/use-async'
 import { CUSTOMER_SERVICE } from '@/lib/site'
-import { cn, formatDotDate } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+import { formatServerDate } from '@/pages/Support/shared'
 
 /** 메인 페이지 — DESIGN_SYSTEM.md §27 의 공식 구조를 따른다 */
 export function HomePage() {
@@ -140,8 +142,16 @@ function HeroBanner() {
   )
 }
 
-/** DESIGN_SYSTEM.md §23 */
+/**
+ * DESIGN_SYSTEM.md §23
+ * 홈에서 유일하게 실 API 를 쓰는 섹션(`GET /api/support/notices`). 나머지 홈 섹션(공고·인재)은
+ * 아직 mock 이라 이 카드만 로딩/에러 처리를 갖는다 — 실패해도 홈 전체는 깨지지 않도록
+ * 에러 메시지 대신 "등록된 공지가 없습니다." 로 조용히 대체한다.
+ */
 function NoticeCard() {
+  const { data, loading } = useAsync(() => getNotices(0, 3), [])
+  const notices = data?.content ?? []
+
   return (
     <section className="min-w-0 rounded-card border border-border bg-surface p-6">
       <div className="flex items-baseline justify-between gap-4">
@@ -158,21 +168,31 @@ function NoticeCard() {
         </Link>
       </div>
 
-      <ul className="mt-4 space-y-3">
-        {NOTICES.slice(0, 3).map((notice) => (
-          <li key={notice.id} className="flex items-baseline justify-between gap-4">
-            <Link
-              to={`/support/notice/${notice.id}`}
-              className="min-w-0 flex-1 truncate text-base text-fg hover:text-primary-deep hover:underline"
-            >
-              {notice.title}
-            </Link>
-            <span className="shrink-0 text-xs text-fg-subtle tabular">
-              {formatDotDate(notice.postedAt)}
-            </span>
-          </li>
-        ))}
-      </ul>
+      {loading ? (
+        <ul className="mt-4 space-y-3.5" aria-hidden>
+          {Array.from({ length: 3 }).map((_, index) => (
+            <li key={index} className="h-[18px] w-full animate-pulse rounded-input bg-surface-sunken" />
+          ))}
+        </ul>
+      ) : notices.length === 0 ? (
+        <p className="mt-4 text-base text-fg-muted">등록된 공지가 없습니다.</p>
+      ) : (
+        <ul className="mt-4 space-y-3">
+          {notices.map((notice) => (
+            <li key={notice.id} className="flex items-baseline justify-between gap-4">
+              <Link
+                to={`/support/notice/${notice.id}`}
+                className="min-w-0 flex-1 truncate text-base text-fg hover:text-primary-deep hover:underline"
+              >
+                {notice.title}
+              </Link>
+              <span className="shrink-0 text-xs text-fg-subtle tabular">
+                {formatServerDate(notice.createdAt)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   )
 }

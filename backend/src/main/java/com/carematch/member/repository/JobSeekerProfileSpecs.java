@@ -66,12 +66,12 @@ public final class JobSeekerProfileSpecs {
                 }
                 ps.add(cb.or(ranges.toArray(Predicate[]::new)));
             }
-            if (!CollectionUtils.isEmpty(c.certificateNames())) {
+            if (!CollectionUtils.isEmpty(c.certificateTypes())) {
                 Subquery<Long> sub = query.subquery(Long.class);
                 Root<Certificate> cert = sub.from(Certificate.class);
                 sub.select(cert.get("id")).where(
                         cb.equal(cert.get("jobSeekerProfile"), root),
-                        cert.get("certificateName").in(c.certificateNames()));
+                        cert.get("certificateType").in(c.certificateTypes()));
                 ps.add(cb.exists(sub));
             }
             if (c.updatedWithinDays() != null) {
