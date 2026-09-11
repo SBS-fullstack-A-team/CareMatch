@@ -31,7 +31,7 @@ export interface JobApplyDraft {
   /** Talent.careerYears 입력 보조 — 신입이면 경력 연수를 받지 않는다 */
   hasCareer: '' | 'yes' | 'no'
   careerYears: string
-  /** Talent.certificates */
+  /** Talent.certificates — CertificateType enum name 배열 (docs/ENUM_MAPPING.md §5) */
   certificates: string[]
   /** Talent.summary */
   summary: string

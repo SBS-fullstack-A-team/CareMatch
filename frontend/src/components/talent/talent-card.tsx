@@ -1,6 +1,6 @@
 import { UserRound } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { jobCategoryLabel } from '@/data/labels'
+import { certificateTypeLabel, jobCategoryLabel } from '@/data/labels'
 import { cn, formatDotDate, maskName } from '@/lib/utils'
 import type { Talent } from '@/types'
 
@@ -54,7 +54,9 @@ export function TalentCard({ talent, className }: { talent: Talent; className?: 
         <dl className="mt-2 space-y-1 text-base">
           <div className="flex gap-2">
             <dt className="shrink-0 text-fg-subtle">자격증</dt>
-            <dd className="truncate text-fg-muted">{talent.certificates.join(', ')}</dd>
+            <dd className="truncate text-fg-muted">
+              {talent.certificates.map(certificateTypeLabel).join(', ')}
+            </dd>
           </div>
           <div className="flex gap-2">
             <dt className="shrink-0 text-fg-subtle">갱신일</dt>

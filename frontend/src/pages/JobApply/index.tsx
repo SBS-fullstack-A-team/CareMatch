@@ -106,7 +106,7 @@ export function JobApplyPage() {
       age: Number(draft.age),
       category: draft.category as Talent['category'],
       regions: [region],
-      certificates: draft.certificates,
+      certificates: draft.certificates as Talent['certificates'],
       updatedAt: new Date().toISOString().slice(0, 10),
       careerLabel: careerLabelOf(draft),
       careerYears: draft.hasCareer === 'yes' ? Number(draft.careerYears || 0) : 0,

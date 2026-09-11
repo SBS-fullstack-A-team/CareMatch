@@ -12,6 +12,7 @@ import { Tag } from '@/components/ui/tag'
 import {
   CAREER_OPTIONS,
   CATEGORY_OPTIONS,
+  CERTIFICATE_OPTIONS,
   TALENT_SORT_OPTIONS,
   WORK_SCHEDULE_OPTIONS,
 } from '@/data/filters'
@@ -43,10 +44,12 @@ const SEARCH_FIELD_LABEL: Record<keyof TalentSearchQuery, string> = {
 
 /** 값('1-3', 'CAREGIVER', 'DAY')과 표기 라벨('1~3년', '요양보호사', '주간')이 다른 필터의 칩 표기용 라벨 */
 const FILTER_VALUE_LABEL = Object.fromEntries(
-  [...CAREER_OPTIONS, ...CATEGORY_OPTIONS, ...WORK_SCHEDULE_OPTIONS].map((option) => [
-    option.value,
-    option.label,
-  ]),
+  [
+    ...CAREER_OPTIONS,
+    ...CATEGORY_OPTIONS,
+    ...WORK_SCHEDULE_OPTIONS,
+    ...CERTIFICATE_OPTIONS,
+  ].map((option) => [option.value, option.label]),
 ) as Record<string, string>
 
 /** 검색 조건은 URL 로 공유할 수 있게 쿼리스트링과 주고받는다 */

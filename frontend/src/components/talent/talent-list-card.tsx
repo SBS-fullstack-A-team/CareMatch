@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
 import { Tag } from '@/components/ui/tag'
-import { jobCategoryLabel, workScheduleLabel } from '@/data/labels'
+import { certificateTypeLabel, jobCategoryLabel, workScheduleLabel } from '@/data/labels'
 import { cn, formatDotDate, maskName } from '@/lib/utils'
 import type { Talent } from '@/types'
 
@@ -96,7 +96,7 @@ export function TalentListCard({ talent, className }: { talent: Talent; classNam
         <ul className="mt-3 flex flex-wrap gap-1.5">
           {talent.certificates.map((certificate) => (
             <li key={certificate}>
-              <Tag>{certificate}</Tag>
+              <Tag>{certificateTypeLabel(certificate)}</Tag>
             </li>
           ))}
         </ul>

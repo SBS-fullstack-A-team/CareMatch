@@ -96,7 +96,7 @@ export function TalentSearchBar({
         <Field id={`${id}-keyword`} label="키워드를 입력하세요">
           <Input
             id={`${id}-keyword`}
-            placeholder="예) 자격증, 치매전문교육"
+            placeholder="예) 요양보호사, 방문요양"
             value={values.keyword}
             onChange={(event) => update({ keyword: event.target.value })}
           />
