@@ -59,6 +59,58 @@ export const DISTRICT_OPTIONS: Record<string, SelectOption[]> = {
     value: name,
     label: name,
   })),
+  부산광역시: ['해운대구', '수영구', '남구', '동래구', '부산진구', '사하구', '강서구'].map(
+    (name) => ({ value: name, label: name }),
+  ),
+  대구광역시: ['수성구', '중구', '동구', '서구', '남구', '북구', '달서구'].map((name) => ({
+    value: name,
+    label: name,
+  })),
+  대전광역시: ['서구', '유성구', '중구', '동구', '대덕구'].map((name) => ({
+    value: name,
+    label: name,
+  })),
+  광주광역시: ['북구', '서구', '남구', '동구', '광산구'].map((name) => ({
+    value: name,
+    label: name,
+  })),
+  울산광역시: ['남구', '중구', '동구', '북구', '울주군'].map((name) => ({
+    value: name,
+    label: name,
+  })),
+  세종특별자치시: ['조치원읍', '한솔동', '도담동', '새롬동'].map((name) => ({
+    value: name,
+    label: name,
+  })),
+  강원특별자치도: ['춘천시', '원주시', '강릉시', '속초시', '동해시'].map((name) => ({
+    value: name,
+    label: name,
+  })),
+  충청북도: ['청주시 흥덕구', '청주시 상당구', '충주시', '제천시'].map((name) => ({
+    value: name,
+    label: name,
+  })),
+  충청남도: ['천안시 서북구', '천안시 동남구', '아산시', '서산시'].map((name) => ({
+    value: name,
+    label: name,
+  })),
+  전북특별자치도: ['전주시 완산구', '전주시 덕진구', '군산시', '익산시'].map((name) => ({
+    value: name,
+    label: name,
+  })),
+  전라남도: ['목포시', '여수시', '순천시', '광양시'].map((name) => ({
+    value: name,
+    label: name,
+  })),
+  경상북도: ['포항시 남구', '포항시 북구', '경주시', '구미시', '안동시'].map((name) => ({
+    value: name,
+    label: name,
+  })),
+  경상남도: ['창원시 성산구', '창원시 의창구', '김해시', '진주시', '양산시'].map((name) => ({
+    value: name,
+    label: name,
+  })),
+  제주특별자치도: ['제주시', '서귀포시'].map((name) => ({ value: name, label: name })),
 }
 
 /** 지역별 바로가기 (DESIGN_SYSTEM.md §22) */
