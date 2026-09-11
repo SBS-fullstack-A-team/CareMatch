@@ -1,13 +1,19 @@
 # 프론트 연동 전 백엔드 TODO 체크리스트
 
-프론트가 붙인 화면(구인공고 목록/상세, 인재정보 목록/상세)은 현재 전부 mock 데이터다.
-실 API(`/api/job-postings`, `/api/jobseekers`)로 교체하려면 아래 항목을 먼저 정리해야 한다.
+프론트가 붙인 화면(구인공고 목록/상세, 인재정보 목록/상세)은 작성 당시(2026-09-10) 전부 mock
+데이터였다. 실 API(`/api/job-postings`, `/api/jobseekers`)로 교체하려면 아래 항목을 먼저 정리해야 한다.
 
 - 대조 기준: `frontend/src/types/index.ts`, `frontend/src/data/filters.ts`,
   `frontend/src/components/job/job-filter-panel.tsx`, `frontend/src/components/talent/talent-filter-panel.tsx`
 - 백엔드: `com.carematch.jobposting.*`, `com.carematch.member`(JobSeeker/TalentSearch)
 
 작성일 2026-09-10 · 담당 접두사 `feature/be-*`
+
+**2026-09-11 갱신**: 구인공고(job-posting) 쪽은 Phase A/B(PR #81/#82)로 **실 API 연동 완료**
+(`frontend/src/api/job-postings.ts`, `frontend/src/lib/job-adapter.ts`). 아래 표시가
+`[x]`인 항목은 그때 같이 반영됨. **인재정보(talent) 쪽은 여전히 전부 mock** —
+`frontend/src/pages/TalentList/index.tsx`/`TalentDetail/index.tsx`가 `@/data/mock/talents`를
+그대로 쓰고 `frontend/src/api/talents.ts` 자체가 없음(검색·필터·정렬·페이지네이션 전부 mock 위에서 동작).
 
 ---
 
@@ -47,7 +53,8 @@
 
 - 결정 (2026-09-10, 백엔드 경수): 인재 정보는 **승인 시설회원·관리자 전용**. 공개용 엔드포인트(b)는 안 만든다 — 집계 PII 노출 + 유료(연락처 열람) 기능 약화.
 - [x] 백엔드: 이름 마스킹 서버측 강제 (목록 항상 `홍*동`, 상세는 unlock 시 실명) — `TalentSummary` / `JobSeekerProfileQueryService`
-- [ ] **프론트 (feature/fe-*)**: `/talents`·`/talents/:id` 라우트 가드 — 비로그인 → 로그인 유도, 구직자/미승인 시설 → 접근 불가 안내. 클라이언트 `maskName()` 은 백엔드가 이미 마스킹하므로 제거
+- [x] **프론트**: `/talents`·`/talents/:id` 라우트 가드 — `TalentAccessGate`(`components/talent/talent-access-gate.tsx`)가 두 라우트 감쌈
+- [ ] 프론트: 클라이언트 `maskName()`(`lib/utils.ts`) 제거 — 백엔드가 이미 마스킹해 내려주는데 `talent-card.tsx`/`talent-list-card.tsx`/`talent-detail-header.tsx`가 아직도 호출 중(중복 처리, 지금은 talent 자체가 mock이라 안 드러남)
 - [x] `DESIGN_SYSTEM.md §21`(이름·연락처 마스킹) 정합성 — 백엔드 응답이 §21 기준을 만족
 
 ### 4. 지원자 수(applicantCount) 공고 응답에 추가
@@ -68,16 +75,18 @@
 - [x] **경력무관 / minCareerYears** — `minCareerYears` 목록·상세 응답. 나머지 카드 태그는 프론트 파생. feature/be-jobposting-fields
 - [x] **스페셜 카드 문구(`catchphrase`)** — 목록·상세 응답. feature/be-jobposting-fields (V8)
 - [x] **매칭 사유 구조화** — `matchingReasons: List<MatchReason{kind,label,matched,detail}>` (category/region/schedule/pay, 충족·미충족 모두). 상세 응답 전용. feature/be-match-reasons-structured
-  - [ ] 프론트: 문자열 변환 로직 제거하고 응답 구조체 직접 매핑
-- [ ] **페이지 크기** — 프론트가 목록 쿼리에 `?size=10` 명시 (백엔드 변경 없음). feature/fe-*
+  - [x] 프론트: `lib/job-adapter.ts`가 `ApiMatchReason` 구조체 직접 매핑 (문자열 변환 로직 없음)
+- [x] **페이지 크기** — `JobList/index.tsx`가 `PAGE_SIZE`로 목록 쿼리에 `size` 명시, 응답은 `PageResponse` 그대로 사용
 
 ### 인재정보
 
 - [x] **자격증(certificates) 필터** — 백엔드 `certificateTypes: CertificateType[]` 다중(OR). `certificate_type` enum 전환(자유 입력 정확일치 폐기), V9. 등록 시 종류 선택 필수. 상세 설계 [`ENUM_MAPPING.md`](./ENUM_MAPPING.md) §5. feature/be-certificate-type
-  - [ ] 프론트: 필터 체크박스 value → enum name, `/apply` 자격증 종류 select(+OTHER 이름칸)
+  - [x] 프론트: 필터 체크박스 value → enum name — `data/filters.ts`의 `CERTIFICATE_OPTIONS`가 이미 enum name(`CAREGIVER` 등) 사용
+  - [ ] 프론트: 자격증 **등록** 화면에 종류 select(+`OTHER` 이름칸) — `pages/MyPage/Certificates.tsx`는 아직 읽기 전용 목록뿐("자격증 추가·재확인은 파일 업로드 연동 후 제공될 예정입니다"). 2026-09-11 백엔드에 전화번호 인증 게이트(`CertificateService.register()`, PR #79)까지 붙었는데 붙일 프론트 화면이 아직 없는 상태
 - [x] **경력 구간 필터** — 백엔드 `careerBuckets` 다중(OR). `ENTRY/Y1_3/Y3_5/Y5_PLUS`, 경력 미입력은 제외. feature/be-talent-search-filters (#deacd8b)
 - [x] **희망지역 다중** — 백엔드 `desiredRegions: [{sido, sigungu}]` 최대 3 (`jobseeker_desired_region` 테이블, V7). 매칭 지역 축은 "희망지역 중 best". 검색 `sido`/`sigungu` = 그 지역을 희망지역에 넣은 인재. (feature/be-talent-desired-regions)
-  - [ ] 프론트: `/apply` 폼 다중 지역 입력 (현재 시/도+구/군 단일). `Talent.regions` 타입은 이미 배열
+  - [ ] 프론트: `/apply`(`JobApply/index.tsx`, 실제론 "내 구직 프로필 등록" 화면) 다중 지역 입력 — 현재 시·도+구·군 단일 선택. `Talent.regions` 타입은 이미 배열
+  - [ ] 이 화면 자체가 **저장 API 미연결** — 코드 주석: "저장 API 가 아직 연결되지 않아 등록은 화면 상의 완료 처리까지만 한다". 다중 지역보다 이게 선결 조건
 - [x] **정렬(경력 높은/낮은순)** — 백엔드 `sort=LATEST/CAREER_DESC/CAREER_ASC` (경력 미입력은 뒤). feature/be-talent-search-filters (#deacd8b)
 - [x] **급여 필터 다중선택** — 백엔드 `payTypes: PayType[]` 다중(OR). feature/be-talent-search-filters (#deacd8b)
 
@@ -85,6 +94,15 @@
 
 ## 🟢 참고 — 프론트가 밀린 항목 (백엔드는 준비됨)
 
-- 구직신청서 `/apply` : 백엔드(`POST /api/job-postings/{id}/applications`, `GET /api/members/me/applications` 등) 완비, 프론트는 placeholder
-- 공고 스크랩(찜) : 백엔드 `POST/DELETE /api/job-postings/{id}/scrap`, `GET /api/members/me/scraps` 완비. 프론트 하트는 화면 상태만 토글 중 (인증 필요 — 비로그인 노출 처리 확인)
-- 페이지네이션 응답 형식 : 백엔드 `PageResponse { content, page, size, totalElements, totalPages }`(0-base). 프론트 mock 은 단순 slice → 교체 시 형식 통일
+- **구직신청서 `/apply`** : 여전히 밀림. 백엔드(`POST /api/job-postings/{id}/applications`,
+  `GET /api/members/me/applications` 등)는 완비 — 지원 내역 **조회**는 `MyPage/Applications.tsx`가
+  붙음(`api/applications.ts`). 근데 정작 **"이 공고에 지원하기" 자체가 없음** —
+  `job-apply-panel.tsx`의 "온라인으로 지원하기" 버튼은 `/apply?jobId=...`로 이동만 하고,
+  그 `/apply` 화면(`JobApply/index.tsx`)은 jobId 쿼리를 읽지도 않는 별개의 "프로필 등록" 화면
+  (코드 주석: "특정 공고 지원은 이 화면에서 다루지 않으며, jobId 쿼리도 읽지 않는다"). 즉 지원
+  액션을 시작할 방법 자체가 없음
+- [x] **공고 스크랩(찜)** : 프론트 연동 완료 — `scrap-button.tsx`가 `api/scraps.ts`의
+  `addScrap`/`removeScrap` 실제 호출
+- [x] **페이지네이션 응답 형식** : 구인공고 쪽은 통일됨 — `api/job-postings.ts`가 `PageResponse`
+  그대로 사용. 인재정보 쪽은 위에서 적었듯 API 자체가 없어 여전히 `TALENTS.slice()`(mock, 클라이언트
+  페이지네이션)
