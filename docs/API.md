@@ -245,7 +245,7 @@ GET /api/terms
 | `careerBuckets` | enum[] | 경력 구간 다중(OR). `ENTRY`(신입) / `Y1_3`(1~3년) / `Y3_5`(3~5년) / `Y5_PLUS`(5년+). 경력 미입력 인재는 제외 |
 | `availableTasks` | enum[] | 가능 업무 다중. 하나라도 겹치면 매칭 (`?availableTasks=MEAL_SUPPORT&availableTasks=BATH_SUPPORT`) |
 | `desiredEmploymentTypes` | enum[] | 희망 고용형태 다중. 하나라도 겹치면 매칭 |
-| `certificateNames` | string[] | 자격증명 다중(OR). `certificate_name` 정확 일치, 하나라도 보유하면 매칭. 상태(검증 여부) 무관 |
+| `certificateTypes` | enum[] | 자격증 종류 다중(OR). `certificate_type` 일치, 하나라도 보유하면 매칭. 상태(검증 여부) 무관. `CertificateType` = `CAREGIVER/NURSE_AIDE/SOCIAL_WORKER_1/SOCIAL_WORKER_2/CARE_ASSISTANT/DRIVER_LICENSE/OTHER` ([`ENUM_MAPPING.md`](./ENUM_MAPPING.md) §5) |
 | `seekingOnly` | bool | 생략/true = 구직중(SEEKING)만. false = 취업완료 포함 |
 | `updatedWithinDays` | int | 최근 N일 내 프로필 갱신 |
 | `sort` | string | `LATEST`(기본, 최근 갱신순) / `CAREER_DESC` / `CAREER_ASC`(경력 정렬, 미입력은 뒤). 매칭점수 정렬은 SQL 불가로 미지원 |
@@ -254,7 +254,7 @@ GET /api/terms
 enum `JobType` = `CAREGIVER/CARE_ATTENDANT/NURSE_AIDE/SOCIAL_WORKER/LIFE_SUPPORT/HOUSEKEEPER/ETC` (한글 라벨·정의는 [`ENUM_MAPPING.md`](./ENUM_MAPPING.md) §1),
 `CareTask` = `DAILY_LIFE_SUPPORT/MEAL_SUPPORT/BATH_SUPPORT/MOBILITY_SUPPORT/COGNITIVE_ACTIVITY/PERSONAL_HYGIENE/HOUSEWORK/HOSPITAL_ESCORT`,
 `EmploymentType` = `FULL_TIME/CONTRACT/TEMPORARY/PART_TIME`, `Gender` = `MALE/FEMALE`, `EducationLevel` = `MIDDLE_SCHOOL/HIGH_SCHOOL/ASSOCIATE/BACHELOR/GRADUATE`,
-`CareerBucket` = `ENTRY/Y1_3/Y5_PLUS`.
+`CareerBucket` = `ENTRY/Y1_3/Y3_5/Y5_PLUS`, `CertificateType` = `CAREGIVER/NURSE_AIDE/SOCIAL_WORKER_1/SOCIAL_WORKER_2/CARE_ASSISTANT/DRIVER_LICENSE/OTHER`.
 
 - `TalentSummary`: `profileId, memberId, name, employmentStatus, gender, age, photoUrl, careerYears, education, desiredJobType, desiredWorkType, desiredWorkSchedule, desiredRegions[], desiredPayType, desiredMinPay, desiredWorkDays, desiredWorkStartTime, desiredWorkEndTime, certificateNames[], updatedAt, matchingScore`
 - `desiredRegions`: `[{ "sido": "...", "sigungu": "..." | null }]` — 희망 근무지역 다중(최대 3). `sigungu` 가 null 이면 그 시/도 전체. 한글 라벨 조합은 프론트 담당
@@ -359,12 +359,21 @@ POST /api/jobseekers/42/contact/unlock    (Authorization: Bearer <FACILITY>)
 | GET | `/api/certificates/me` | JOBSEEKER | 내 자격증 목록(서명 URL) |
 | DELETE | `/api/certificates/{id}` | JOBSEEKER | 삭제 |
 
+- `certificateType` (필수, enum): `CAREGIVER/NURSE_AIDE/SOCIAL_WORKER_1/SOCIAL_WORKER_2/CARE_ASSISTANT/DRIVER_LICENSE/OTHER` ([`ENUM_MAPPING.md`](./ENUM_MAPPING.md) §5)
+- `certificateName`: `OTHER` 일 때만 필수(자유 입력). 그 외 종류는 무시되고 표준 라벨로 저장된다. 공백으로 `OTHER` 등록 시 400 `COMMON_001`
+- 응답의 `certificateName` 은 표시용(정형 종류는 라벨, `OTHER` 는 입력값)
+
 ```http
 POST /api/certificates
-{ "certificateName": "요양보호사 1급", "certificateNumber": "2020-12345",
+{ "certificateType": "CAREGIVER", "certificateNumber": "2020-12345",
   "fileKey": "certificate/2026/09/uuid.jpg" }
-201 { "id": 5, "certificateName": "요양보호사 1급", "status": "PENDING",
+201 { "id": 5, "certificateType": "CAREGIVER", "certificateName": "요양보호사", "status": "PENDING",
       "downloadUrl": "https://.../_stub-download/certificate/...?expires=...", ... }
+
+POST /api/certificates
+{ "certificateType": "OTHER", "certificateName": "치매전문교육 이수",
+  "fileKey": "certificate/2026/09/uuid2.jpg" }
+201 { "id": 6, "certificateType": "OTHER", "certificateName": "치매전문교육 이수", "status": "PENDING", ... }
 ```
 
 ## 8. 고객센터 (공개 조회)

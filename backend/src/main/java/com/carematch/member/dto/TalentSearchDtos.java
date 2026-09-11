@@ -1,5 +1,6 @@
 package com.carematch.member.dto;
 
+import com.carematch.certificate.domain.CertificateType;
 import com.carematch.common.masking.MaskingUtil;
 import com.carematch.jobposting.domain.EmploymentType;
 import com.carematch.jobposting.domain.JobType;
@@ -45,8 +46,8 @@ public final class TalentSearchDtos {
             List<CareTask> availableTasks,
             /** 이 고용형태들 중 하나라도 희망하는 인재. */
             List<EmploymentType> desiredEmploymentTypes,
-            /** 이 자격증명 중 하나라도 보유한 인재 (certificate_name 정확 일치, 상태 무관). */
-            List<String> certificateNames,
+            /** 이 자격증 종류 중 하나라도 보유한 인재 (certificate_type 일치, 상태 무관). docs/ENUM_MAPPING.md §5 */
+            List<CertificateType> certificateTypes,
             /** null 또는 true 면 구직중(SEEKING)만. false 면 취업완료 포함. */
             Boolean seekingOnly,
             /** 최근 N일 이내에 프로필이 갱신된 인재만. */

@@ -38,6 +38,7 @@
         jobseeker_profile_id bigint not null,
         updated_at timestamp(6) not null,
         status varchar(20) not null check (status in ('PENDING','VERIFIED','REJECTED')),
+        certificate_type varchar(30) not null check (certificate_type in ('CAREGIVER','NURSE_AIDE','SOCIAL_WORKER_1','SOCIAL_WORKER_2','CARE_ASSISTANT','DRIVER_LICENSE','OTHER')),
         certificate_name varchar(100) not null,
         certificate_number varchar(100),
         content_type varchar(100),
