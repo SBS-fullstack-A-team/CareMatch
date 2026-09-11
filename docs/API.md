@@ -46,6 +46,7 @@ POST /api/verifications/verify
 | GET | `/api/members/me` | 인증 | 마이페이지 요약(포인트/유형) |
 | GET | `/api/members/me/display-preference` | 인증 | 내 화면 표시 설정 (쉬운 화면 모드 / 글자 크기) |
 | PUT | `/api/members/me/display-preference` | 인증 | 화면 표시 설정 변경 |
+| PUT | `/api/members/me/phone` | 인증 | 내 전화번호 등록/변경(저장만, 인증은 별도) |
 
 ```http
 GET /api/members/exists?loginId=hong123&email=hong@example.com
@@ -126,6 +127,18 @@ GET /api/members/me/display-preference   (Authorization: Bearer ...)
 PUT /api/members/me/display-preference    (Authorization: Bearer ...)
 { "easyMode": true, "fontScale": "XLARGE" }
 200 { "easyMode": true, "fontScale": "XLARGE" }
+```
+
+### 전화번호 등록/변경 (`/api/members/me/phone`)
+
+소셜(카카오 등) 가입자는 가입 시 전화번호가 없다 — 이 API로 나중에 채운다. **저장만 하고 인증은 안 됨.**
+실제 인증은 이 번호로 `/api/verifications/send` → `/api/verifications/verify`를 거쳐야 하고,
+그 인증 여부는 자격증 최초 등록(§7, 요양보호사 등록 시점)에서 확인한다 — 회원가입 시점이 아니다.
+
+```http
+PUT /api/members/me/phone     (Authorization: Bearer ...)
+{ "phone": "010-1234-5678" }
+204
 ```
 
 ## 3. 로그인 / 토큰
@@ -354,10 +367,15 @@ POST /api/jobseekers/42/contact/unlock    (Authorization: Bearer <FACILITY>)
 
 | 메서드 | 경로 | 권한 | 설명 |
 |---|---|---|---|
-| POST | `/api/certificates` | JOBSEEKER | 자격증 등록(fileKey) |
+| POST | `/api/certificates` | JOBSEEKER | 자격증 등록(fileKey) — **전화번호 인증 필수** |
 | POST | `/api/certificates/{id}/verify` | JOBSEEKER | 업로드 완료 검증(스텁 메타) |
 | GET | `/api/certificates/me` | JOBSEEKER | 내 자격증 목록(서명 URL) |
 | DELETE | `/api/certificates/{id}` | JOBSEEKER | 삭제 |
+
+**요양보호사 등록(=자격증 최초 등록) 시점에 전화번호 인증을 요구한다.** 가입 시가 아니다 — 소셜
+가입자는 가입 시 전화번호가 없기 때문. 순서: `PUT /api/members/me/phone`로 번호 입력 →
+`/api/verifications/send`·`/verify`로 그 번호 인증 → 그제서야 `POST /api/certificates` 성공.
+미인증 상태로 호출하면 `400 MEMBER_005 VERIFICATION_REQUIRED`.
 
 - `certificateType` (필수, enum): `CAREGIVER/NURSE_AIDE/SOCIAL_WORKER_1/SOCIAL_WORKER_2/CARE_ASSISTANT/DRIVER_LICENSE/OTHER` ([`ENUM_MAPPING.md`](./ENUM_MAPPING.md) §5)
 - `certificateName`: `OTHER` 일 때만 필수(자유 입력). 그 외 종류는 무시되고 표준 라벨로 저장된다. 공백으로 `OTHER` 등록 시 400 `COMMON_001`
