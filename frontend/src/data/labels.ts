@@ -71,7 +71,6 @@ export function facilityTypeLabel(type: FacilityType | string): string {
   return FACILITY_TYPE_LABELS[type as FacilityType] ?? String(type)
 }
 
-feature/fe-phase-a-integration
 /* ---------------------------------------------------------------------------
    구인공고 상세 전용 — 어르신 정보 (ElderlyInfoCard). API 는 flat enum 으로 내려주고
    화면은 한글 문장으로 표시하므로 여기서 변환한다. (docs/API.md §11, JOBPOSTING_FIELDS.md)
@@ -144,7 +143,8 @@ const LOCAL_PAY_TYPE_TO_API: Record<string, 'HOURLY' | 'DAILY' | 'MONTHLY'> = {
 /** 필터 패널 체크박스 값(hourly 등)을 검색 API 파라미터(HOURLY 등)로 되돌린다. */
 export function payTypeToApi(payType: string): 'HOURLY' | 'DAILY' | 'MONTHLY' {
   return LOCAL_PAY_TYPE_TO_API[payType] ?? 'MONTHLY'
-=======
+}
+
 /** 자격증 종류 (docs/ENUM_MAPPING.md §5) */
 export const CERTIFICATE_TYPE_LABELS: Record<CertificateType, string> = {
   CAREGIVER: '요양보호사',
@@ -161,5 +161,4 @@ export const CERTIFICATE_TYPE_LABELS: Record<CertificateType, string> = {
  */
 export function certificateTypeLabel(type: CertificateType | string): string {
   return CERTIFICATE_TYPE_LABELS[type as CertificateType] ?? String(type)
- main
 }
