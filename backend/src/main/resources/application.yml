@@ -80,6 +80,20 @@ management:
       probes:
         enabled: true
       show-details: never
+  info:
+    # info.* 프로퍼티를 /actuator/info 로 노출하는 env 컨트리뷰터. Spring Boot 2.6+ 는 기본 off.
+    env:
+      enabled: true
+
+# 배포된 커밋 식별용. Render 가 런타임에 주입하는 RENDER_GIT_* 환경변수를 그대로 노출한다.
+# Docker 빌드 컨텍스트(backend/)에 .git 이 없어 gradle git-properties 플러그인은 못 쓰므로
+# 빌드타임 대신 런타임 값으로 채운다. 로컬(env 미설정)에서는 unknown 으로 뜬다.
+info:
+  git:
+    commit: ${RENDER_GIT_COMMIT:unknown}
+    branch: ${RENDER_GIT_BRANCH:unknown}
+  deploy:
+    repo: ${RENDER_GIT_REPO_SLUG:unknown}
 
 # ----- 애플리케이션 커스텀 설정 -----
 carematch:

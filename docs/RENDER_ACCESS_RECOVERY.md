@@ -43,10 +43,24 @@ Cloudflare 대시보드 → R2 → `carematch-prod` → Settings → CORS policy
 - [ ] `feature/be-jobposting-fields` 등 아직 PR 안 올라온 브랜치가 있다면, 머지
       후 실제로 배포까지 이어지는지 한 번 더 크로스체크
 
-## 5. (여유 있으면) 재발 방지
+## 5. 재발 방지 — `/actuator/info`에 배포 커밋 노출 (적용 완료)
 
-`/actuator/info`에 git 커밋 정보를 노출하도록 설정하면(현재는 빈 값 `{}`),
 다음에 "배포가 실제로 반영됐나?" 의심될 때 Render 대시보드에 들어가지 않고도
-`curl https://carematch-gtke.onrender.com/actuator/info` 로 바로 확인할 수
-있다. Spring Boot `management.info.git.mode: full` + Gradle
-`git-properties` 플러그인 조합으로 가능.
+`curl https://carematch-gtke.onrender.com/actuator/info` 로 배포된 커밋을 바로
+확인할 수 있게 함.
+
+- 처음 계획은 Gradle `git-properties` 플러그인이었으나, Docker 빌드 컨텍스트가
+  `backend/` 라 `.git` 이 없어 빌드타임엔 커밋을 못 읽음
+- 대신 Render 가 **런타임에 주입하는** `RENDER_GIT_COMMIT` / `RENDER_GIT_BRANCH` /
+  `RENDER_GIT_REPO_SLUG` 를 `application.yml` 의 `info.*` 로 매핑
+  (`management.info.env.enabled: true` 로 env 컨트리뷰터 활성화)
+- 로컬에선 해당 env 가 없어 `unknown` 으로 뜸 — 정상. 로컬은 그냥 `git log` 쓰면 됨
+
+검증: 이 변경이 배포된 뒤
+
+```bash
+curl https://carematch-gtke.onrender.com/actuator/info
+# → {"git":{"commit":"<해시>","branch":"main"},"deploy":{"repo":"SBS-fullstack-A-team/CareMatch"}}
+```
+
+의 `git.commit` 이 `git log -1 --oneline origin/main` 과 일치하면 배포 반영된 것.
