@@ -11,9 +11,12 @@
 
 **2026-09-11 갱신**: 구인공고(job-posting) 쪽은 Phase A/B(PR #81/#82)로 **실 API 연동 완료**
 (`frontend/src/api/job-postings.ts`, `frontend/src/lib/job-adapter.ts`). 아래 표시가
-`[x]`인 항목은 그때 같이 반영됨. **인재정보(talent) 쪽은 여전히 전부 mock** —
-`frontend/src/pages/TalentList/index.tsx`/`TalentDetail/index.tsx`가 `@/data/mock/talents`를
-그대로 쓰고 `frontend/src/api/talents.ts` 자체가 없음(검색·필터·정렬·페이지네이션 전부 mock 위에서 동작).
+`[x]`인 항목은 그때 같이 반영됨.
+
+**2026-09-11 오후 갱신**: 인재정보(talent) 쪽도 PR #86/#87로 **실 API 연동 완료** —
+`frontend/src/api/jobseekers.ts`의 `getTalents`/`getTalentFacets`/`getTalent`, 다중 지역·직종
+필터 + 옵션별 인원수(facets)까지 같이 붙음. `/apply`(구직자 프로필 등록) 저장도 같은 PR로
+`PUT /api/jobseekers/me`에 연결됨. 이 문서 전체를 mock 기준 최신 상태로 다시 훑어서 갱신.
 
 ---
 
@@ -54,7 +57,7 @@
 - 결정 (2026-09-10, 백엔드 경수): 인재 정보는 **승인 시설회원·관리자 전용**. 공개용 엔드포인트(b)는 안 만든다 — 집계 PII 노출 + 유료(연락처 열람) 기능 약화.
 - [x] 백엔드: 이름 마스킹 서버측 강제 (목록 항상 `홍*동`, 상세는 unlock 시 실명) — `TalentSummary` / `JobSeekerProfileQueryService`
 - [x] **프론트**: `/talents`·`/talents/:id` 라우트 가드 — `TalentAccessGate`(`components/talent/talent-access-gate.tsx`)가 두 라우트 감쌈
-- [ ] 프론트: 클라이언트 `maskName()`(`lib/utils.ts`) 제거 — 백엔드가 이미 마스킹해 내려주는데 `talent-card.tsx`/`talent-list-card.tsx`/`talent-detail-header.tsx`가 아직도 호출 중(중복 처리, 지금은 talent 자체가 mock이라 안 드러남)
+- [x] 프론트: 클라이언트 `maskName()` 중복 처리 제거 — `talent-card.tsx`/`talent-list-card.tsx`/`talent-detail-header.tsx`에서 더는 안 씀(백엔드 마스킹만 사용). `lib/utils.ts`의 `maskName()` 자체는 남아있지만 `data/mock/talents.ts`(안 쓰이는 mock) 말곤 호출부 없음
 - [x] `DESIGN_SYSTEM.md §21`(이름·연락처 마스킹) 정합성 — 백엔드 응답이 §21 기준을 만족
 
 ### 4. 지원자 수(applicantCount) 공고 응답에 추가
@@ -82,11 +85,11 @@
 
 - [x] **자격증(certificates) 필터** — 백엔드 `certificateTypes: CertificateType[]` 다중(OR). `certificate_type` enum 전환(자유 입력 정확일치 폐기), V9. 등록 시 종류 선택 필수. 상세 설계 [`ENUM_MAPPING.md`](./ENUM_MAPPING.md) §5. feature/be-certificate-type
   - [x] 프론트: 필터 체크박스 value → enum name — `data/filters.ts`의 `CERTIFICATE_OPTIONS`가 이미 enum name(`CAREGIVER` 등) 사용
-  - [ ] 프론트: 자격증 **등록** 화면에 종류 select(+`OTHER` 이름칸) — `pages/MyPage/Certificates.tsx`는 아직 읽기 전용 목록뿐("자격증 추가·재확인은 파일 업로드 연동 후 제공될 예정입니다"). 2026-09-11 백엔드에 전화번호 인증 게이트(`CertificateService.register()`, PR #79)까지 붙었는데 붙일 프론트 화면이 아직 없는 상태
+  - [ ] 프론트: 자격증 **등록** 화면에 종류 select(+`OTHER` 이름칸) — `pages/MyPage/Certificates.tsx`는 아직 읽기 전용 목록뿐("자격증 추가·재확인은 파일 업로드 연동 후 제공될 예정입니다"). 2026-09-11 백엔드에 전화번호 인증 게이트(`CertificateService.register()`, PR #79)까지 붙었는데 붙일 프론트 화면이 아직 없는 상태. 신영이 작업 착수함(크레딧 이슈로 중단, 2026-09-14 재개 예정 — `share` 브랜치 공유 메모 참고)
 - [x] **경력 구간 필터** — 백엔드 `careerBuckets` 다중(OR). `ENTRY/Y1_3/Y3_5/Y5_PLUS`, 경력 미입력은 제외. feature/be-talent-search-filters (#deacd8b)
 - [x] **희망지역 다중** — 백엔드 `desiredRegions: [{sido, sigungu}]` 최대 3 (`jobseeker_desired_region` 테이블, V7). 매칭 지역 축은 "희망지역 중 best". 검색 `sido`/`sigungu` = 그 지역을 희망지역에 넣은 인재. (feature/be-talent-desired-regions)
-  - [ ] 프론트: `/apply`(`JobApply/index.tsx`, 실제론 "내 구직 프로필 등록" 화면) 다중 지역 입력 — 현재 시·도+구·군 단일 선택. `Talent.regions` 타입은 이미 배열
-  - [ ] 이 화면 자체가 **저장 API 미연결** — 코드 주석: "저장 API 가 아직 연결되지 않아 등록은 화면 상의 완료 처리까지만 한다". 다중 지역보다 이게 선결 조건
+  - [x] `/apply`(`JobApply/index.tsx`, 실제론 "내 구직 프로필 등록" 화면) 저장이 `PUT /api/jobseekers/me`(`updateMyJobSeekerProfile`)에 연결됨(PR #86/#87) — "저장 API 미연결"이었던 선결 조건 해소
+  - [ ] 프론트: 그 화면의 지역 입력 자체는 아직 시·도+구·군 **단일** 선택. `Talent.regions` 타입은 이미 배열이라 다중 입력 UI만 붙이면 됨
 - [x] **정렬(경력 높은/낮은순)** — 백엔드 `sort=LATEST/CAREER_DESC/CAREER_ASC` (경력 미입력은 뒤). feature/be-talent-search-filters (#deacd8b)
 - [x] **급여 필터 다중선택** — 백엔드 `payTypes: PayType[]` 다중(OR). feature/be-talent-search-filters (#deacd8b)
 
@@ -103,6 +106,5 @@
   액션을 시작할 방법 자체가 없음
 - [x] **공고 스크랩(찜)** : 프론트 연동 완료 — `scrap-button.tsx`가 `api/scraps.ts`의
   `addScrap`/`removeScrap` 실제 호출
-- [x] **페이지네이션 응답 형식** : 구인공고 쪽은 통일됨 — `api/job-postings.ts`가 `PageResponse`
-  그대로 사용. 인재정보 쪽은 위에서 적었듯 API 자체가 없어 여전히 `TALENTS.slice()`(mock, 클라이언트
-  페이지네이션)
+- [x] **페이지네이션 응답 형식** : 구인공고·인재정보 둘 다 통일됨 — `api/job-postings.ts`,
+  `api/jobseekers.ts` 모두 `PageResponse` 그대로 사용
