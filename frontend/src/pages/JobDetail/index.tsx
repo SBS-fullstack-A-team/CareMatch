@@ -13,6 +13,7 @@ import { Link, useParams } from 'react-router-dom'
 import { Breadcrumb } from '@/components/common/breadcrumb'
 import { DetailRow, DetailSection } from '@/components/common/detail-section'
 import { EmptyState } from '@/components/common/empty-state'
+import { LoadingState } from '@/components/common/loading-state'
 import { JobCard } from '@/components/job/job-card'
 import { ElderlyInfoCard } from '@/components/job/elderly-info-card'
 import { JobApplyPanel } from '@/components/job/job-apply-panel'
@@ -21,8 +22,10 @@ import { SectionHeader } from '@/components/common/section-header'
 import { MatchingScore } from '@/components/matching/matching-score'
 import { Tag } from '@/components/ui/tag'
 import { buttonVariants } from '@/components/ui/button'
+import { getJobPosting, getSimilarJobPostings } from '@/api/job-postings'
 import { employmentTypeLabel, facilityTypeLabel, jobCategoryLabel, workScheduleLabel } from '@/data/labels'
-import { getJobById, getRelatedJobs } from '@/data/mock/jobs'
+import { useAsync } from '@/hooks/use-async'
+import { detailToJob, summaryToJob } from '@/lib/job-adapter'
 import { JOB_APPLY_NOTICES } from '@/lib/site'
 import { cn, formatDotDate, formatPay } from '@/lib/utils'
 import type { Job } from '@/types'
@@ -38,11 +41,30 @@ import type { Job } from '@/types'
  */
 export function JobDetailPage() {
   const { jobId } = useParams()
-  const job = jobId ? getJobById(jobId) : undefined
+  const numericId = jobId && /^\d+$/.test(jobId) ? Number(jobId) : null
 
-  if (!job) return <JobNotFound />
+  const { data: detail, loading, error } = useAsync(
+    () => (numericId != null ? getJobPosting(numericId) : Promise.resolve(null)),
+    [numericId],
+  )
+  const { data: similar } = useAsync(
+    () => (numericId != null ? getSimilarJobPostings(numericId) : Promise.resolve([])),
+    [numericId],
+  )
 
-  const relatedJobs = getRelatedJobs(job.id)
+  if (numericId == null || (!loading && (error || !detail))) {
+    return <JobNotFound description={error ?? undefined} />
+  }
+  if (loading || !detail) {
+    return (
+      <div className="container-page py-10">
+        <LoadingState rows={4} />
+      </div>
+    )
+  }
+
+  const job = detailToJob(detail)
+  const relatedJobs = (similar ?? []).map(summaryToJob)
 
   return (
     <div className="container-page py-6 lg:py-8">
@@ -288,13 +310,13 @@ function BulletList({ items }: { items: readonly string[] }) {
 }
 
 /** 존재하지 않는 공고 ID (COMPONENT_RULES.md §31 EmptyState 재사용) */
-function JobNotFound() {
+function JobNotFound({ description }: { description?: string }) {
   return (
     <div className="container-page py-20">
       <div className="mx-auto max-w-[520px] rounded-card border border-border bg-surface">
         <EmptyState
           title="구인공고를 찾을 수 없습니다."
-          description="요청하신 구인공고가 삭제되었거나 존재하지 않는 공고입니다."
+          description={description ?? '요청하신 구인공고가 삭제되었거나 존재하지 않는 공고입니다.'}
           action={
             <Link to="/jobs" className={cn(buttonVariants({ variant: 'secondary' }))}>
               구인공고 목록으로 돌아가기

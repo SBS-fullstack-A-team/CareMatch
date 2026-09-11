@@ -1,5 +1,5 @@
 import { ChevronDown } from 'lucide-react'
-import { useMemo, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import type { SelectOption } from '@/components/ui/select'
@@ -10,9 +10,8 @@ import {
   REGION_SHORTCUTS,
   WORK_SCHEDULE_OPTIONS,
 } from '@/data/filters'
-import { countByOption, type JobFilterGroup, type JobFilterState } from '@/lib/job-filters'
+import type { JobFilterGroup, JobFilterState } from '@/lib/job-filters'
 import { cn, formatNumber } from '@/lib/utils'
-import type { Job } from '@/types'
 
 /** 좌측 필터 (COMPONENT_RULES.md §17) */
 const REGION_OPTIONS: SelectOption[] = REGION_SHORTCUTS.map((region) => ({
@@ -23,29 +22,34 @@ const REGION_OPTIONS: SelectOption[] = REGION_SHORTCUTS.map((region) => ({
 /** 지역은 17개를 한 번에 펼치지 않고 주요 지역 + 더보기로 나눈다 */
 const REGION_VISIBLE_COUNT = 8
 
+/** 그룹별 옵션 결과 건수. 자기 그룹의 선택은 제외하고 센 값이라 다른 항목을 추가로 켜도 0으로 사라지지 않는다. */
+export interface JobFilterCounts {
+  regions: Record<string, number>
+  categories: Record<string, number>
+  facilityTypes: Record<string, number>
+  workSchedules: Record<string, number>
+  payTypes: Record<string, number>
+}
+
+export const EMPTY_JOB_FILTER_COUNTS: JobFilterCounts = {
+  regions: {},
+  categories: {},
+  facilityTypes: {},
+  workSchedules: {},
+  payTypes: {},
+}
+
 interface JobFilterPanelProps {
   value: JobFilterState
   onChange: (next: JobFilterState) => void
-  /** 건수 집계 대상 — 상단 검색 조건까지 적용된 공고 */
-  jobs: Job[]
+  /** `GET /api/job-postings/facets` 응답을 옮긴 옵션별 결과 건수 */
+  counts: JobFilterCounts
   onReset: () => void
   className?: string
 }
 
-export function JobFilterPanel({ value, onChange, jobs, onReset, className }: JobFilterPanelProps) {
+export function JobFilterPanel({ value, onChange, counts, onReset, className }: JobFilterPanelProps) {
   const [regionExpanded, setRegionExpanded] = useState(false)
-
-  /** 그룹별 결과 건수는 한 번만 계산해 각 체크박스에 나눠 준다 */
-  const counts = useMemo(
-    () => ({
-      regions: countByOption(jobs, value, 'regions'),
-      categories: countByOption(jobs, value, 'categories'),
-      facilityTypes: countByOption(jobs, value, 'facilityTypes'),
-      workSchedules: countByOption(jobs, value, 'workSchedules'),
-      payTypes: countByOption(jobs, value, 'payTypes'),
-    }),
-    [jobs, value],
-  )
 
   const toggle = (group: JobFilterGroup, option: string) => {
     const current = value[group]

@@ -101,7 +101,11 @@ export interface Job {
   /** ex) "역삼동" */
   district?: string
   category: JobCategory
-  employmentType: EmploymentType
+  /**
+   * 고용형태. 백엔드 목록 응답(SummaryResponse)에는 없는 필드라 목록 카드에서는 undefined —
+   * 상세 응답(DetailResponse)에만 채워진다. 목록 화면은 값이 없으면 관련 UI를 렌더링하지 않는다.
+   */
+  employmentType?: EmploymentType
   /** 근무 시간대. 입주형 등 미지정이면 null (시각만 노출) */
   workSchedule: WorkSchedule | null
   /** 근무 시간 ex) "09:00~13:00" */
@@ -125,6 +129,8 @@ export interface Job {
   viewCount: number
   applicantCount: number
   matching?: Matching
+  /** 로그인 회원의 찜 여부. 비로그인이면 null/undefined (ScrapButton 이 로그인 유도로 처리). */
+  scrapped?: boolean | null
   /** 목록/상세에서 사용하는 우대 조건 태그 */
   tags?: string[]
   /** 방문요양·간병처럼 담당 어르신이 특정되는 공고에만 존재한다 */

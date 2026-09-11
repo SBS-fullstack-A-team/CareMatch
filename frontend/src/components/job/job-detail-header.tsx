@@ -72,7 +72,7 @@ export function JobDetailHeader({ job, className }: { job: Job; className?: stri
 
         {/* 핵심 액션 */}
         <div className="flex shrink-0 items-center gap-2">
-          <ScrapButton showLabel label="관심공고" />
+          <ScrapButton jobId={Number(job.id)} defaultScrapped={job.scrapped} showLabel label="관심공고" />
           <Link
             to={`/apply?jobId=${job.id}`}
             className={cn(buttonVariants({ variant: 'primary', size: 'sm' }), 'px-8')}
