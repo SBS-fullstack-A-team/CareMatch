@@ -169,13 +169,13 @@ export const CAREER_OPTIONS: SelectOption[] = [
   { value: '5+', label: '5년 이상' },
 ]
 
-/** 자격증 — Talent.certificates 에 실제로 들어 있는 값들 */
+/** 자격증 — value 는 API enum name(CertificateType), label 은 한글 (docs/ENUM_MAPPING.md §5) */
 export const CERTIFICATE_OPTIONS: SelectOption[] = [
-  { value: '요양보호사 1급', label: '요양보호사 1급' },
-  { value: '요양보호사 2급', label: '요양보호사 2급' },
-  { value: '간호조무사', label: '간호조무사' },
-  { value: '사회복지사 2급', label: '사회복지사 2급' },
-  { value: '간병사', label: '간병사' },
-  { value: '치매전문교육 이수', label: '치매전문교육 이수' },
-  { value: '운전면허 2종', label: '운전면허 2종' },
+  { value: 'CAREGIVER', label: '요양보호사' },
+  { value: 'NURSE_AIDE', label: '간호조무사' },
+  { value: 'SOCIAL_WORKER_1', label: '사회복지사 1급' },
+  { value: 'SOCIAL_WORKER_2', label: '사회복지사 2급' },
+  { value: 'CARE_ASSISTANT', label: '간병사' },
+  { value: 'DRIVER_LICENSE', label: '운전면허' },
+  { value: 'OTHER', label: '기타' },
 ]

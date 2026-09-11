@@ -39,6 +39,19 @@ export type EmploymentType =
   | 'PART_TIME' // 파트타임(시간제)
 
 /**
+ * 자격증 종류. 값은 API enum name (docs/ENUM_MAPPING.md §5). 한글 라벨은 CERTIFICATE_TYPE_LABELS.
+ * 인재 검색 필터의 자격증 축(certificateTypes) 값이기도 하다.
+ */
+export type CertificateType =
+  | 'CAREGIVER' // 요양보호사
+  | 'NURSE_AIDE' // 간호조무사
+  | 'SOCIAL_WORKER_1' // 사회복지사 1급
+  | 'SOCIAL_WORKER_2' // 사회복지사 2급
+  | 'CARE_ASSISTANT' // 간병사
+  | 'DRIVER_LICENSE' // 운전면허
+  | 'OTHER' // 기타
+
+/**
  * 공고 상태 배지 (DESIGN_SYSTEM.md §14)
  * 카드에서는 special / premium 만 노출하고,
  * 메인 최신 구인공고 TABLE 에서는 5종을 모두 노출한다.
@@ -149,7 +162,11 @@ export interface Talent {
   category: JobCategory
   /** 희망 근무 지역 */
   regions: string[]
-  certificates: string[]
+  /**
+   * 보유 자격증 종류 (docs/ENUM_MAPPING.md §5). 검색 필터의 자격증 축과 같은 값 체계.
+   * 표시는 certificateTypeLabel() 을 거친다. (OTHER 의 자유 입력 이름은 목록 응답에 없음)
+   */
+  certificates: CertificateType[]
   /** 프로필 사진 경로. 없으면 동일 크기의 원형 placeholder */
   photoUrl?: string
   /** 갱신일 ISO date */

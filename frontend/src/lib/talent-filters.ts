@@ -1,4 +1,4 @@
-import { jobCategoryLabel, workScheduleLabel } from '@/data/labels'
+import { certificateTypeLabel, jobCategoryLabel, workScheduleLabel } from '@/data/labels'
 import { toRegionLabel } from '@/lib/job-filters'
 import type { Talent } from '@/types'
 
@@ -101,7 +101,7 @@ export function matchesSearch(talent: Talent, query: TalentSearchQuery) {
       talent.preferredHours,
       talent.summary,
       ...talent.regions,
-      ...talent.certificates,
+      ...talent.certificates.map(certificateTypeLabel),
     ]
       .filter(Boolean)
       .join(' ')
