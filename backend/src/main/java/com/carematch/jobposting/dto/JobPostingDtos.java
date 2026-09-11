@@ -57,7 +57,8 @@ public final class JobPostingDtos {
      * 지정하지 않으면 시급·월급이 섞여 비교되니 프론트에서 함께 보내는 것을 권장.
      */
     public record SearchCondition(
-            String sido,
+            /** 시·도 다중(OR). 좌측 필터의 "지역" 체크박스가 여러 시·도를 동시에 선택할 수 있다. */
+            List<String> sidos,
             String sigungu,
             List<JobType> jobTypes,
             List<FacilityType> facilityTypes,
@@ -71,7 +72,54 @@ public final class JobPostingDtos {
             Integer payMin,
             Integer payMax,
             /** RECOMMENDED(기본) / LATEST / DEADLINE / PAY_DESC / PAY_ASC / VIEWS */
-            String sort
+            String sort,
+            /** 자유 텍스트 검색. 공고 제목·시설명에 대소문자 구분 없이 부분일치(LIKE). 선택. */
+            String keyword
+    ) {
+        /** 같은 조건에서 특정 필터 축만 비운 사본을 만든다 (좌측 필터 옵션별 결과 건수 계산용). */
+        public SearchCondition withoutSidos() {
+            return new SearchCondition(null, sigungu, jobTypes, facilityTypes, workTypes, workSchedules,
+                    employmentTypes, careGrades, mobilityStatuses, payTypes, payMin, payMax, sort, keyword);
+        }
+
+        public SearchCondition withoutJobTypes() {
+            return new SearchCondition(sidos, sigungu, null, facilityTypes, workTypes, workSchedules,
+                    employmentTypes, careGrades, mobilityStatuses, payTypes, payMin, payMax, sort, keyword);
+        }
+
+        public SearchCondition withoutFacilityTypes() {
+            return new SearchCondition(sidos, sigungu, jobTypes, null, workTypes, workSchedules,
+                    employmentTypes, careGrades, mobilityStatuses, payTypes, payMin, payMax, sort, keyword);
+        }
+
+        public SearchCondition withoutWorkSchedules() {
+            return new SearchCondition(sidos, sigungu, jobTypes, facilityTypes, workTypes, null,
+                    employmentTypes, careGrades, mobilityStatuses, payTypes, payMin, payMax, sort, keyword);
+        }
+
+        public SearchCondition withoutPayTypes() {
+            return new SearchCondition(sidos, sigungu, jobTypes, facilityTypes, workTypes, workSchedules,
+                    employmentTypes, careGrades, mobilityStatuses, null, payMin, payMax, sort, keyword);
+        }
+    }
+
+    /**
+     * 좌측 필터 패널의 옵션별 결과 건수 ({@code GET /api/job-postings/facets}).
+     * 각 맵은 "그 축 자신의 선택은 제외한 나머지 조건"으로 세므로, 같은 그룹에서 다른 항목을
+     * 추가로 켜도 이미 선택된 항목의 건수가 0으로 사라지지 않는다 (프론트 countByOption 과 동일 규칙).
+     * 값이 0인 항목은 맵에서 생략한다.
+     */
+    public record FacetsResponse(
+            /** key = sido 전체 표기(예: "서울특별시") */
+            java.util.Map<String, Long> sido,
+            /** key = JobType enum name */
+            java.util.Map<String, Long> jobType,
+            /** key = FacilityType enum name */
+            java.util.Map<String, Long> facilityType,
+            /** key = WorkSchedule enum name */
+            java.util.Map<String, Long> workSchedule,
+            /** key = PayType enum name */
+            java.util.Map<String, Long> payType
     ) {
     }
 
@@ -358,7 +406,9 @@ public final class JobPostingDtos {
             FacilityType facilityType,
             Integer matchingScore,
             /** 로그인 회원의 찜 여부. 비로그인이면 null. */
-            Boolean scrapped
+            Boolean scrapped,
+            /** 등록일. 카드/목록의 "등록일" 표기용. */
+            LocalDateTime createdAt
     ) {
         public static SummaryResponse from(JobPosting jp) {
             return from(jp, null, null, 0L);
@@ -387,7 +437,7 @@ public final class JobPostingDtos {
                     jp.getDuties(), jp.getDeadline(), dDay, jp.getViewCount(), applicantCount,
                     jp.getStatus(), jp.getExposureType(),
                     calcNew(jp), calcClosingSoon(jp, dDay), calcRecommended(matchingScore),
-                    fp.getFacilityName(), fp.getFacilityType(), matchingScore, scrapped);
+                    fp.getFacilityName(), fp.getFacilityType(), matchingScore, scrapped, jp.getCreatedAt());
         }
     }
 
