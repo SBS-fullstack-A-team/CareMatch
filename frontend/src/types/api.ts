@@ -226,3 +226,72 @@ export interface InquiryResponse {
   createdAt: string
   replies: InquiryReplyResponse[]
 }
+
+/* ---------------------------------------------------------------------------
+   마이페이지 — 지원 / 스크랩 / 자격증
+   구인공고·인재 화면 전체의 타입은 아직 없다(mock 사용, Phase B/C).
+   여기 있는 타입은 마이페이지가 직접 쓰는 응답 필드만 옮긴 것이라 SummaryResponse 의 부분집합이다.
+   --------------------------------------------------------------------------- */
+
+/**
+ * 구인공고/인재 목록 계열 API 의 페이지 응답. 0-base.
+ * 고객센터의 {@link SpringPage} 와는 다른 커스텀 포맷 (docs/API.md).
+ */
+export interface PageResponse<T> {
+  content: T[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+}
+
+export type ApplicationStatus = 'APPLIED' | 'ACCEPTED' | 'REJECTED' | 'CANCELED'
+
+/** GET /api/members/me/applications 목록 항목 (ApplicationDtos.MyApplicationResponse) */
+export interface MyApplicationResponse {
+  applicationId: number
+  status: ApplicationStatus
+  appliedAt: string
+  processedAt: string | null
+  message: string | null
+  jobPostingId: number
+  title: string
+  facilityName: string
+  sido: string
+  sigungu: string
+  deadline: string | null
+  dDay: number | null
+  postingStatus: 'OPEN' | 'CLOSED'
+}
+
+/**
+ * GET /api/members/me/scraps 목록 항목.
+ * 백엔드 SummaryResponse 전체가 아니라 마이페이지가 쓰는 필드만 옮겼다.
+ */
+export interface JobPostingSummary {
+  id: number
+  title: string
+  facilityName: string
+  facilityType: string | null
+  sido: string
+  sigungu: string
+  payType: 'HOURLY' | 'DAILY' | 'MONTHLY'
+  payAmount: number | null
+  deadline: string | null
+  dDay: number | null
+  status: 'OPEN' | 'CLOSED'
+}
+
+export type CertificateStatus = 'PENDING' | 'VERIFIED' | 'REJECTED'
+
+/** GET /api/certificates/me 항목 (CertificateDtos.CertificateDetailResponse) */
+export interface CertificateDetailResponse {
+  id: number
+  certificateName: string
+  certificateNumber: string | null
+  status: CertificateStatus
+  fileSize: number | null
+  contentType: string | null
+  downloadUrl: string | null
+  rejectReason: string | null
+}

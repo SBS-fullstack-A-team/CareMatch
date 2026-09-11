@@ -2,7 +2,6 @@ import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useToast } from '@/components/ui/toast'
 import { useApp } from '@/hooks/use-app'
 import { API_BASE_URL, ApiError } from '@/lib/api-client'
 
@@ -18,7 +17,6 @@ const SOCIAL = [
  */
 export function LoginPage() {
   const { login } = useApp()
-  const { toast } = useToast()
   const navigate = useNavigate()
   const location = useLocation()
   const redirectTo = (location.state as { from?: string } | null)?.from ?? '/'
@@ -38,14 +36,7 @@ export function LoginPage() {
     setSubmitting(true)
     try {
       const res = await login(loginId.trim(), password)
-      if (!res.roleSelected) {
-        toast({
-          variant: 'info',
-          title: '회원 유형 선택이 필요합니다.',
-          description: '유형 선택 화면은 준비 중입니다.',
-        })
-      }
-      navigate(redirectTo, { replace: true })
+      navigate(res.roleSelected ? redirectTo : '/oauth/select-role', { replace: true })
     } catch (err) {
       setError(
         err instanceof ApiError

@@ -6,11 +6,19 @@ import { HomePage } from '@/pages/Home'
 import { JobApplyPage } from '@/pages/JobApply'
 import { JobDetailPage } from '@/pages/JobDetail'
 import { JobListPage } from '@/pages/JobList'
+import { LegalPage } from '@/pages/Legal'
 import { NearbyJobsPage } from '@/pages/NearbyJobs'
 import { TalentDetailPage } from '@/pages/TalentDetail'
 import { TalentListPage } from '@/pages/TalentList'
 import { LoginPage } from '@/pages/Login'
+import { MyPageApplicationsPage } from '@/pages/MyPage/Applications'
+import { MyPageCertificatesPage } from '@/pages/MyPage/Certificates'
+import { MyPageLayout } from '@/pages/MyPage/MyPageLayout'
+import { MyPageOverviewPage } from '@/pages/MyPage/Overview'
+import { MyPageScrapsPage } from '@/pages/MyPage/Scraps'
+import { MyPageSettingsPage } from '@/pages/MyPage/Settings'
 import { OAuthCallbackPage } from '@/pages/OAuthCallback'
+import { OAuthSelectRolePage } from '@/pages/OAuthSelectRole'
 import { SignupPage } from '@/pages/Signup'
 import { SupportHomePage } from '@/pages/Support'
 import { SupportFaqPage } from '@/pages/Support/Faq'
@@ -54,13 +62,25 @@ export const router = createBrowserRouter([
       { path: '/support/inquiries/:inquiryId', element: <SupportInquiryDetailPage /> },
       { path: '/login', element: <LoginPage /> },
       { path: '/oauth/callback', element: <OAuthCallbackPage /> },
+      { path: '/oauth/select-role', element: <OAuthSelectRolePage /> },
       { path: '/signup', element: <SignupPage /> },
       { path: '/notifications', element: <PlaceholderPage title="알림" /> },
-      { path: '/mypage/*', element: <PlaceholderPage title="마이페이지" /> },
-      { path: '/mypage', element: <PlaceholderPage title="마이페이지" /> },
+      {
+        path: '/mypage',
+        element: <MyPageLayout />,
+        children: [
+          { index: true, element: <MyPageOverviewPage /> },
+          { path: 'applications', element: <MyPageApplicationsPage /> },
+          { path: 'scraps', element: <MyPageScrapsPage /> },
+          { path: 'certificates', element: <MyPageCertificatesPage /> },
+          { path: 'settings', element: <MyPageSettingsPage /> },
+          // 등록한 공고(시설)/포인트/알림설정 등 아직 없는 하위 화면
+          { path: '*', element: <PlaceholderPage title="마이페이지" /> },
+        ],
+      },
       { path: '/about', element: <PlaceholderPage title="회사소개" /> },
-      { path: '/terms', element: <PlaceholderPage title="이용약관" /> },
-      { path: '/privacy', element: <PlaceholderPage title="개인정보처리방침" /> },
+      { path: '/terms', element: <LegalPage type="SERVICE" /> },
+      { path: '/privacy', element: <LegalPage type="PRIVACY" /> },
       {
         path: '*',
         element: (
