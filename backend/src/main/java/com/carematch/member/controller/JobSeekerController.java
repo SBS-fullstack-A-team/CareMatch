@@ -1,5 +1,6 @@
 package com.carematch.member.controller;
 
+import com.carematch.certificate.domain.CertificateType;
 import com.carematch.contact.dto.ContactUnlockResponse;
 import com.carematch.contact.service.ContactUnlockService;
 import com.carematch.jobposting.domain.EmploymentType;
@@ -82,7 +83,7 @@ public class JobSeekerController {
             @RequestParam(required = false) java.util.List<CareerBucket> careerBuckets,
             @RequestParam(required = false) java.util.List<CareTask> availableTasks,
             @RequestParam(required = false) java.util.List<EmploymentType> desiredEmploymentTypes,
-            @RequestParam(required = false) java.util.List<String> certificateNames,
+            @RequestParam(required = false) java.util.List<CertificateType> certificateTypes,
             @RequestParam(required = false) Boolean seekingOnly,
             @RequestParam(required = false) Integer updatedWithinDays,
             @RequestParam(required = false) String sort,
@@ -92,7 +93,7 @@ public class JobSeekerController {
                 .anyMatch(a -> a.getAuthority().equals("ROLE_FACILITY"));
         SearchCondition cond = new SearchCondition(
                 desiredJobType, desiredWorkType, desiredWorkSchedules, sido, sigungu, payTypes, payMax,
-                gender, careerBuckets, availableTasks, desiredEmploymentTypes, certificateNames,
+                gender, careerBuckets, availableTasks, desiredEmploymentTypes, certificateTypes,
                 seekingOnly, updatedWithinDays, sort);
         return talentSearchService.search(cond, page, size, principal.getMemberId(), isFacility);
     }

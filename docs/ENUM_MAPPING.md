@@ -157,11 +157,54 @@
 
 ---
 
+## 5. 자격증 종류 (CertificateType)
+
+구직자가 자격증 등록 시 선택. 인재 검색 필터의 자격증 축(`certificateTypes`, 다중 OR).
+등록 전엔 `certificate_name` 자유 입력 + 정확 일치 검색이라 표기 흔들림(`요양보호사` vs `요양보호사 1급`)으로
+필터가 사실상 무력했음 → enum 으로 전환.
+
+| 한글 | enum name |
+|---|---|
+| 요양보호사 | `CAREGIVER` |
+| 간호조무사 | `NURSE_AIDE` |
+| 사회복지사 1급 | `SOCIAL_WORKER_1` |
+| 사회복지사 2급 | `SOCIAL_WORKER_2` |
+| 간병사 | `CARE_ASSISTANT` |
+| 운전면허 | `DRIVER_LICENSE` |
+| 기타 | `OTHER` |
+
+> ⚠️ 최종 목록(사회복지사 급수 분리·운전면허 포함 여부)은 팀장 승인 항목.
+
+### 이 축만의 예외: 라벨을 백엔드가 보유
+
+다른 enum 과 달리 한글 라벨을 `CertificateType.label()` 이 갖는다. 등록 시 `certificate.certificate_name`
+(표시용 컬럼, `nullable=false`)을 이 라벨로 채우기 때문. `OTHER` 는 사용자가 입력한 이름을 그대로 저장한다.
+프론트도 라벨맵을 별도로 두되(필터 UI), 응답의 `certificateName` 을 그대로 표시해도 된다.
+
+### 작업 (백엔드) — 구현: `feature/be-certificate-type`
+
+- [x] `CertificateType` enum 신설 (라벨 포함)
+- [x] `certificate.certificate_type` 컬럼(`not null`) + `V9__certificate_type.sql`. 기존 행은 `OTHER` 백필(이름 보존)
+- [x] `CreateCertificateRequest.certificateType` `@NotNull`. `certificateName` 은 `OTHER` 일 때만 필수(공백이면 400 `COMMON_001`)
+- [x] 검색 필터 `certificateNames: string[]` → `certificateTypes: CertificateType[]` (`JobSeekerProfileSpecs` EXISTS 서브쿼리 `certificate_type in`)
+- [x] `CertificateDetailResponse` / `CertificateResponse` 에 `certificateType` 노출
+- [x] `docs/API.md` §6·§7 갱신
+
+### 작업 (프론트) — feature/fe-*
+
+- [ ] `CertificateType` 타입 enum name 유니온 + `CERTIFICATE_TYPE_LABELS` 라벨맵
+- [ ] 자격증 필터 체크박스 value → enum name (`data/filters.ts`), 인재 검색 쿼리 `certificateTypes` 반복 파라미터
+- [ ] `/apply` 자격증 입력: 종류 select + `OTHER` 선택 시 이름 입력칸
+- [ ] `Talent`·자격증 표시 컴포넌트 — 응답 `certificateName`/`certificateType` 매핑
+
+---
+
 ## 진행 상태
 
 - §1 직종 — **머지 완료** (#52 백 / #53 프)
 - §2 근무 시간대 — **머지 완료** (#55 백 / #56 프 / #59 검증). 매칭 이전은 후속 PR
 - §3 고용형태 — **머지 완료** (#57 프)
 - §4 시설유형 — 백엔드 **머지 완료** (#58), 프론트 **리뷰 대기** (#61)
+- §5 자격증 종류 — 백엔드 **PR 대기** (`feature/be-certificate-type`), 프론트 미착수
 - 남은 것: 매칭(`MatchScoreCalculator`)을 `WorkSchedule` 기준으로 이전 + `JobSeekerProfile.desiredWorkSchedule` + 프론트 프로필 폼 → 별도 PR
 - `docs/API.md` 는 각 PR 에서 함께 갱신됨
