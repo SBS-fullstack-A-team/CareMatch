@@ -29,11 +29,13 @@ public final class TalentSearchDtos {
      * (해당 값 미설정 구직자는 그 필터에서 제외된다).
      */
     public record SearchCondition(
-            JobType desiredJobType,
+            /** 희망 직종 다중(OR). 좌측 필터 체크박스가 여러 직종을 동시에 선택할 수 있다. */
+            List<JobType> desiredJobTypes,
             WorkType desiredWorkType,
             /** 희망 근무 시간대 다중(OR). 미설정(null desiredWorkSchedule) 구직자는 제외. docs/ENUM_MAPPING.md §2 */
             List<WorkSchedule> desiredWorkSchedules,
-            String sido,
+            /** 희망지역 시·도 다중(OR). 좌측 필터 체크박스가 여러 시·도를 동시에 선택할 수 있다. */
+            List<String> sidos,
             String sigungu,
             /** 희망 급여유형 다중(OR). */
             List<PayType> payTypes,
@@ -54,6 +56,48 @@ public final class TalentSearchDtos {
             Integer updatedWithinDays,
             /** LATEST(기본, 최근 갱신순) / CAREER_DESC / CAREER_ASC. */
             String sort
+    ) {
+        /** 같은 조건에서 특정 필터 축만 비운 사본을 만든다 (좌측 필터 옵션별 결과 건수 계산용). */
+        public SearchCondition withoutSidos() {
+            return new SearchCondition(desiredJobTypes, desiredWorkType, desiredWorkSchedules, null, sigungu,
+                    payTypes, payMax, gender, careerBuckets, availableTasks, desiredEmploymentTypes,
+                    certificateTypes, seekingOnly, updatedWithinDays, sort);
+        }
+
+        public SearchCondition withoutDesiredJobTypes() {
+            return new SearchCondition(null, desiredWorkType, desiredWorkSchedules, sidos, sigungu,
+                    payTypes, payMax, gender, careerBuckets, availableTasks, desiredEmploymentTypes,
+                    certificateTypes, seekingOnly, updatedWithinDays, sort);
+        }
+
+        public SearchCondition withoutDesiredWorkSchedules() {
+            return new SearchCondition(desiredJobTypes, desiredWorkType, null, sidos, sigungu,
+                    payTypes, payMax, gender, careerBuckets, availableTasks, desiredEmploymentTypes,
+                    certificateTypes, seekingOnly, updatedWithinDays, sort);
+        }
+
+        public SearchCondition withoutCareerBuckets() {
+            return new SearchCondition(desiredJobTypes, desiredWorkType, desiredWorkSchedules, sidos, sigungu,
+                    payTypes, payMax, gender, null, availableTasks, desiredEmploymentTypes,
+                    certificateTypes, seekingOnly, updatedWithinDays, sort);
+        }
+    }
+
+    /**
+     * 좌측 필터 패널의 옵션별 결과 인원수 ({@code GET /api/jobseekers/facets}).
+     * 각 맵은 그 축 자신의 선택은 제외한 나머지 조건으로 센다 (JobPostingDtos.FacetsResponse 와 동일 규칙).
+     * 자격증 축은 별도 관계(Certificate) 조인이 필요해 이번 범위에서는 제공하지 않는다 — 체크박스는
+     * 그대로 동작하고 옆 숫자만 비어 있다.
+     */
+    public record FacetsResponse(
+            /** key = sido 전체 표기(예: "서울특별시") */
+            java.util.Map<String, Long> sido,
+            /** key = JobType enum name */
+            java.util.Map<String, Long> desiredJobType,
+            /** key = WorkSchedule enum name */
+            java.util.Map<String, Long> desiredWorkSchedule,
+            /** key = CareerBucket enum name (ENTRY/Y1_3/Y3_5/Y5_PLUS) */
+            java.util.Map<String, Long> careerBucket
     ) {
     }
 
@@ -106,12 +150,15 @@ public final class TalentSearchDtos {
             LocalTime desiredWorkStartTime,
             LocalTime desiredWorkEndTime,
             List<String> certificateNames,
+            /** certificateNames 와 같은 순서 대응. enum name(docs/ENUM_MAPPING.md §5) — 필터·표시용. */
+            List<String> certificateTypes,
             /** "마지막 확인일" 표기용. */
             java.time.LocalDateTime updatedAt,
             /** 이 시설의 OPEN 공고들 중 최고 매칭 점수. 시설 아님 / 공고 없음 / 인재 희망조건 미설정이면 null. */
             Integer matchingScore
     ) {
-        public static TalentSummary from(JobSeekerProfile p, List<String> certificateNames, Integer matchingScore) {
+        public static TalentSummary from(JobSeekerProfile p, List<String> certificateNames,
+                                         List<String> certificateTypes, Integer matchingScore) {
             Integer age = p.getBirthYear() == null ? null : Year.now().getValue() - p.getBirthYear();
             return new TalentSummary(
                     p.getId(), p.getMember().getId(), MaskingUtil.maskName(p.getMember().getName()),
@@ -122,7 +169,7 @@ public final class TalentSearchDtos {
                     p.getDesiredRegions().stream().map(RegionDto::from).toList(),
                     name(p.getDesiredPayType()), p.getDesiredMinPay(),
                     p.getDesiredWorkDays(), p.getDesiredWorkStartTime(), p.getDesiredWorkEndTime(),
-                    certificateNames, p.getUpdatedAt(), matchingScore);
+                    certificateNames, certificateTypes, p.getUpdatedAt(), matchingScore);
         }
 
         private static String name(Enum<?> e) {
