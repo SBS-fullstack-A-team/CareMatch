@@ -187,6 +187,17 @@ public class MemberService {
         return member;
     }
 
+    /**
+     * 내 전화번호 등록/변경. 소셜 가입자는 가입 시 전화번호가 없어 이걸로 나중에 채운다.
+     * 인증은 별도(/api/verifications) — 여기선 값만 저장한다.
+     */
+    @Transactional
+    public void updatePhone(Long memberId, String phone) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+        member.changePhone(phone);
+    }
+
     // ---------------------------------------------------------------------
     // 마이페이지 요약
     // ---------------------------------------------------------------------

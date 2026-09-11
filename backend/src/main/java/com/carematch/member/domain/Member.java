@@ -128,6 +128,16 @@ public class Member extends BaseTimeEntity {
         this.password = encodedPassword;
     }
 
+    /**
+     * 전화번호 등록/변경. 가입 시엔 선택(소셜 회원은 비어있을 수 있음) —
+     * 요양보호사 등록(자격증 최초 등록) 시점에 인증까지 거쳐야 한다.
+     * 번호가 바뀌면 이전 인증 이력은 새 번호와 무관해지므로 verified 로 되돌리지 않는다
+     * (호출부인 CertificateService.register 가 최신 번호의 인증 여부를 그때그때 재확인).
+     */
+    public void changePhone(String phone) {
+        this.phone = phone;
+    }
+
     /** 소셜 간편가입 회원이 유형 선택을 마칠 때 호출. */
     public void assignRole(Role role) {
         this.role = role;

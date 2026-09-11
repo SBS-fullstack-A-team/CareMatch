@@ -11,6 +11,8 @@ import com.carematch.member.repository.JobSeekerProfileRepository;
 import com.carematch.storage.FileMetadata;
 import com.carematch.storage.FileStorageService;
 import com.carematch.storage.StorageProperties;
+import com.carematch.verification.domain.VerificationChannel;
+import com.carematch.verification.service.VerificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,11 +37,19 @@ public class CertificateService {
     private final JobSeekerProfileRepository jobSeekerProfileRepository;
     private final FileStorageService fileStorageService;
     private final StorageProperties storageProperties;
+    private final VerificationService verificationService;
 
+    /**
+     * 자격증 등록 = 요양보호사로 등록하는 시점. 가입 시가 아니라 여기서 전화번호 인증을 요구한다
+     * (소셜 가입자는 가입 시 전화번호가 아예 없으므로 — PUT /api/members/me/phone 으로 먼저 입력받고,
+     * POST /api/verifications/{send,verify} 로 그 번호를 인증한 뒤에야 자격증을 등록할 수 있다).
+     * 미인증이면 VERIFICATION_REQUIRED.
+     */
     @Transactional
     public CertificateDetailResponse register(Long memberId, CreateCertificateRequest req) {
         JobSeekerProfile profile = jobSeekerProfileRepository.findByMemberId(memberId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "jobseeker profile of member " + memberId));
+        verificationService.assertVerified(VerificationChannel.PHONE, profile.getMember().getPhone());
 
         Certificate certificate = Certificate.builder()
                 .jobSeekerProfile(profile)

@@ -4,6 +4,7 @@ import com.carematch.member.dto.DisplayPreferenceDtos;
 import com.carematch.member.dto.FacilitySignupRequest;
 import com.carematch.member.dto.JobSeekerSignupRequest;
 import com.carematch.member.dto.MyPageResponse;
+import com.carematch.member.dto.PhoneUpdateRequest;
 import com.carematch.member.dto.SignupResponse;
 import com.carematch.member.service.MemberDisplayPreferenceService;
 import com.carematch.member.service.MemberService;
@@ -77,5 +78,17 @@ public class MemberController {
             @AuthenticationPrincipal CustomUserDetails principal,
             @Valid @RequestBody DisplayPreferenceDtos.UpdateRequest request) {
         return ResponseEntity.ok(displayPreferenceService.update(principal.getMemberId(), request));
+    }
+
+    /**
+     * 내 전화번호 등록/변경. 소셜(카카오 등) 가입자는 가입 시 전화번호가 없어 여기서 나중에 입력한다.
+     * 저장만 할 뿐 인증은 안 됨 — 인증은 /api/verifications/{send,verify}를 이 번호로 별도 진행.
+     */
+    @PutMapping("/me/phone")
+    public ResponseEntity<Void> updatePhone(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @Valid @RequestBody PhoneUpdateRequest request) {
+        memberService.updatePhone(principal.getMemberId(), request.phone());
+        return ResponseEntity.noContent().build();
     }
 }
