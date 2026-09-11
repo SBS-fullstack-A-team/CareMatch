@@ -29,14 +29,7 @@ export function OAuthCallbackPage() {
     }
 
     tokenStore.set(accessToken, refreshToken)
-    if (!roleSelected) {
-      toast({
-        variant: 'info',
-        title: '회원 유형 선택이 필요합니다.',
-        description: '유형 선택 화면은 준비 중입니다.',
-      })
-    }
-    navigate('/', { replace: true })
+    navigate(roleSelected ? '/' : '/oauth/select-role', { replace: true })
   }, [params, navigate, toast])
 
   return (
