@@ -1,43 +1,43 @@
-import { payTypeFromApi, payTypeToApi } from '@/data/labels'
 import type { PayType } from '@/lib/utils'
-import type { ApiGender, JobSeekerProfileResponseDto, JobSeekerProfileUpdateRequestDto } from '@/types/api'
 
 /**
  * 구직신청 폼 값.
  *
- * 필드 이름은 Talent 타입에 맞추되, 희망 지역만 백엔드(`PUT /api/jobseekers/me`)의
- * desiredSido / desiredSigungu 와 이어지도록 시·도 + 구·군 단일 값으로 둔다.
- * (Talent.regions 는 배열이지만 이 폼은 한 곳만 받는다)
+ * 필드 이름은 Talent 타입에 맞추고, 서버 프로필(`GET/PUT /api/jobseekers/me`)과의 변환은
+ * `profile-mapper.ts` 가 맡는다. 희망 지역은 서버 desiredRegions 의 첫 번째 한 곳만 편집한다.
  *
  * 입력 중에는 숫자도 문자열로 들고 있다가 제출 시점에 변환한다.
  */
 export interface JobApplyDraft {
-  /** Talent.gender */
+  /** Talent.gender — 서버 gender(FEMALE/MALE) */
   gender: '' | '여' | '남'
-  /** Talent.age */
+  /** Talent.age — 서버는 응답 age / 요청 birthYear */
   age: string
-  /** Talent.category — 희망 직종 */
+  /** Talent.category — 서버 desiredJobType */
   category: string
-  /** 백엔드 desiredSido */
+  /** 서버 desiredRegions[0].sido */
   sido: string
-  /** 백엔드 desiredSigungu */
+  /** 서버 desiredRegions[0].sigungu (빈 값이면 시·도 전체) */
   district: string
-  /** Talent.workSchedule (WorkSchedule enum name) */
+  /** Talent.workSchedule (WorkSchedule enum name) — 서버 desiredWorkSchedule */
   workSchedule: string
-  /** Talent.preferredHours */
+  /** Talent.preferredHours — 서버 desiredWorkDays + desiredWorkStartTime/EndTime 을 합친 표시용 문자열 */
   preferredHours: string
-  /** Talent.payType */
+  /** Talent.payType — 서버 desiredPayType (대문자) */
   payType: '' | PayType
-  /** Talent.payAmount (원 단위) */
+  /** Talent.payAmount (원 단위) — 서버 desiredMinPay */
   payAmount: string
-  /** Talent.careerYears 입력 보조 — 신입이면 경력 연수를 받지 않는다 */
+  /** Talent.careerYears 입력 보조 — 신입이면 경력 연수를 받지 않는다 (서버로는 보내지 않음) */
   hasCareer: '' | 'yes' | 'no'
   careerYears: string
-  /** Talent.certificates — CertificateType enum name 배열 (docs/ENUM_MAPPING.md §5) */
+  /**
+   * Talent.certificates — CertificateType enum name 배열 (docs/ENUM_MAPPING.md §5).
+   * 서버에 등록된 자격증을 보여주기만 한다 (등록/관리는 마이페이지, PUT 에 포함하지 않음).
+   */
   certificates: string[]
-  /** Talent.summary */
+  /** Talent.summary — 서버 introduction */
   summary: string
-  /** Talent.availableNow */
+  /** Talent.availableNow — 서버에 대응 필드가 없어 저장되지 않는다 */
   availableNow: boolean
 }
 
@@ -58,10 +58,14 @@ export const EMPTY_DRAFT: JobApplyDraft = {
   availableNow: false,
 }
 
-/** localStorage 키 — use-app 의 `carematch.fontScale` / `carematch.easyMode` 규칙을 따른다 */
+/**
+ * localStorage 키 — use-app 의 `carematch.fontScale` / `carematch.easyMode` 규칙을 따른다.
+ * 서버 프로필과 동등한 원본이 아니라 "임시저장" 전용이다. 자동으로 폼에 적용하지 않고,
+ * 사용자가 불러오기를 눌렀을 때만 쓴다. 서버 저장에 성공하면 지운다.
+ */
 export const DRAFT_KEY = 'carematch.jobApply.draft'
 
-/** 임시저장 불러오기. 값이 깨져 있으면 무시하고 빈 폼으로 시작한다. */
+/** 임시저장 불러오기. 값이 깨져 있으면 무시한다. */
 export function loadDraft(): JobApplyDraft | null {
   try {
     const raw = localStorage.getItem(DRAFT_KEY)
@@ -95,79 +99,55 @@ export function clearDraft() {
   }
 }
 
-/** 필수 항목 — 이 셋이 없으면 인재정보 검색·필터에서 아예 걸리지 않는다 */
-export type RequiredField = 'category' | 'sido' | 'workSchedule'
+/**
+ * 에러를 표시할 수 있는 필드.
+ * category · sido · workSchedule 은 필수 — 이 셋이 없으면 인재정보 검색·필터에서 아예 걸리지 않는다.
+ * 나머지는 입력했을 때만 형식을 확인한다 (preferredHours · summary 는 서버 검증 에러 표시용).
+ */
+export type DraftField =
+  | 'category'
+  | 'sido'
+  | 'workSchedule'
+  | 'age'
+  | 'careerYears'
+  | 'payAmount'
+  | 'preferredHours'
+  | 'summary'
+
+/** 서버 desiredMinPay 는 Integer 라 이 값을 넘으면 요청 자체가 거절된다 */
+const MAX_INT = 2_147_483_647
+
+const isInteger = (value: string) => /^\d+$/.test(value.trim())
 
 export function validateDraft(draft: JobApplyDraft) {
-  const errors: Partial<Record<RequiredField, string>> = {}
+  const errors: Partial<Record<DraftField, string>> = {}
   if (!draft.category) errors.category = '희망 직종을 선택해 주세요.'
   if (!draft.sido) errors.sido = '희망 지역을 선택해 주세요.'
   if (!draft.workSchedule) errors.workSchedule = '근무 시간대를 선택해 주세요.'
+
+  // 서버는 출생연도 범위를 검사하지 않아 여기서 막는다
+  if (draft.age.trim()) {
+    const age = Number(draft.age)
+    if (!isInteger(draft.age) || age < 19 || age > 99) {
+      errors.age = '나이는 19~99 사이의 숫자로 입력해 주세요.'
+    }
+  }
+
+  // "경력 있음"인데 연수가 비거나 0이면 저장 후 다시 불러올 때 경력 여부가 달라진다
+  if (draft.hasCareer === 'yes') {
+    const years = Number(draft.careerYears)
+    if (!isInteger(draft.careerYears) || years < 1 || years > 50) {
+      errors.careerYears = '경력 연수를 1~50년 사이로 입력해 주세요.'
+    }
+  }
+
+  // 서버 desiredMinPay 는 양수만 허용한다
+  if (draft.payAmount.trim()) {
+    const pay = Number(draft.payAmount)
+    if (!isInteger(draft.payAmount) || pay < 1 || pay > MAX_INT) {
+      errors.payAmount = '희망 최소 급여는 1원 이상의 숫자로 입력해 주세요.'
+    }
+  }
+
   return errors
-}
-
-const GENDER_TO_API: Record<'여' | '남', ApiGender> = { 여: 'FEMALE', 남: 'MALE' }
-const GENDER_FROM_API: Record<ApiGender, '여' | '남'> = { FEMALE: '여', MALE: '남' }
-
-/**
- * 폼 값을 `PUT /api/jobseekers/me` 요청으로 바꾼다.
- * 이 화면은 "구직 프로필 작성"이라 employmentStatus 는 항상 SEEKING 으로 저장한다
- * (재직 중으로 바꾸는 화면은 없다 — 필요하면 마이페이지에 별도로 추가).
- * 자격증(certificates)은 여기서 저장되지 않는다 — 별도 API(POST /api/certificates, 파일 업로드
- * 필요)라 이 폼의 체크박스는 미리보기 용도로만 쓰인다.
- */
-export function toUpdateRequest(draft: JobApplyDraft): JobSeekerProfileUpdateRequestDto {
-  return {
-    employmentStatus: 'SEEKING',
-    gender: draft.gender ? GENDER_TO_API[draft.gender] : undefined,
-    birthYear: draft.age ? new Date().getFullYear() - Number(draft.age) : undefined,
-    careerYears: draft.hasCareer === 'no' ? 0 : draft.hasCareer === 'yes' && draft.careerYears
-      ? Number(draft.careerYears)
-      : undefined,
-    desiredJobType: (draft.category || undefined) as JobSeekerProfileUpdateRequestDto['desiredJobType'],
-    desiredWorkSchedule: (draft.workSchedule || undefined) as JobSeekerProfileUpdateRequestDto['desiredWorkSchedule'],
-    desiredRegions: draft.sido ? [{ sido: draft.sido, sigungu: draft.district || null }] : undefined,
-    desiredPayType: draft.payType ? payTypeToApi(draft.payType) : undefined,
-    desiredMinPay: draft.payAmount ? Number(draft.payAmount) : undefined,
-    introduction: draft.summary || undefined,
-  }
-}
-
-/**
- * 서버에 저장된 내 프로필을 폼 값으로 되돌린다 (재방문 시 이어서 작성).
- * availableNow 는 백엔드에 대응 필드가 없어 항상 false 로 시작한다.
- * 희망지역은 최대 3개까지 저장되지만 이 폼은 하나만 받으므로 첫 번째 것만 보여준다.
- */
-export function fromProfile(profile: JobSeekerProfileResponseDto): JobApplyDraft {
-  const region = profile.desiredRegions[0]
-  return {
-    gender: profile.gender ? GENDER_FROM_API[profile.gender] : '',
-    age: profile.age != null ? String(profile.age) : '',
-    category: profile.desiredJobType ?? '',
-    sido: region?.sido ?? '',
-    district: region?.sigungu ?? '',
-    workSchedule: profile.desiredWorkSchedule ?? '',
-    preferredHours:
-      profile.desiredWorkDays && profile.desiredWorkStartTime && profile.desiredWorkEndTime
-        ? `${profile.desiredWorkDays} (${profile.desiredWorkStartTime.slice(0, 5)} ~ ${profile.desiredWorkEndTime.slice(0, 5)})`
-        : '',
-    payType: profile.desiredPayType ? payTypeFromApi(profile.desiredPayType) : '',
-    payAmount: profile.desiredMinPay != null ? String(profile.desiredMinPay) : '',
-    hasCareer: profile.careerYears == null ? '' : profile.careerYears > 0 ? 'yes' : 'no',
-    careerYears: profile.careerYears ? String(profile.careerYears) : '',
-    certificates: profile.certificates.map((c) => c.certificateType),
-    summary: profile.introduction ?? '',
-    availableNow: false,
-  }
-}
-
-/** 저장된 희망조건이 하나라도 있는지 — "서버에서 불러왔다"고 판단하는 기준. */
-export function hasSavedConditions(profile: JobSeekerProfileResponseDto): boolean {
-  return Boolean(
-    profile.desiredJobType ||
-      profile.desiredWorkSchedule ||
-      profile.desiredRegions.length > 0 ||
-      profile.careerYears != null ||
-      profile.introduction,
-  )
 }
