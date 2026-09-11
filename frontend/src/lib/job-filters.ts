@@ -66,7 +66,7 @@ export function toRegionLabel(sido: string) {
 }
 
 /** "서울" -> "서울특별시". 좌측 필터의 지역 체크박스(짧은 라벨) 값을 API sido 로 되돌린다. */
-function fromRegionLabel(label: string): string {
+export function fromRegionLabel(label: string): string {
   return REGION_SHORTCUTS.find((region) => region.label === label)?.sido ?? label
 }
 

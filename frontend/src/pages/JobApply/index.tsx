@@ -22,14 +22,19 @@ import {
   SIDO_OPTIONS,
   WORK_SCHEDULE_OPTIONS,
 } from '@/data/filters'
+import { getMyJobSeekerProfile, updateMyJobSeekerProfile } from '@/api/jobseekers'
 import { useApp } from '@/hooks/use-app'
+import { ApiError } from '@/lib/api-client'
 import { cn, formatPay, type PayType } from '@/lib/utils'
 import type { Talent } from '@/types'
 import {
   clearDraft,
   EMPTY_DRAFT,
+  fromProfile,
+  hasSavedConditions,
   loadDraft,
   saveDraft,
+  toUpdateRequest,
   validateDraft,
   type JobApplyDraft,
   type RequiredField,
@@ -41,8 +46,9 @@ import {
  * "내 구직 프로필 등록/수정" 화면이다. 특정 공고 지원(`POST /api/job-postings/{id}/applications`)은
  * 성격이 달라 이 화면에서 다루지 않으며, jobId 쿼리도 읽지 않는다.
  *
- * 저장 API 가 아직 연결되지 않아 등록은 화면 상의 완료 처리까지만 한다.
- * 임시저장은 localStorage 로 실제 동작한다.
+ * "구직신청 등록" 은 `PUT /api/jobseekers/me` 로 실제 저장된다. 재방문 시 서버에 저장된 값이
+ * 있으면 그걸 우선 불러오고, 없으면(아직 한 번도 등록 안 함) localStorage 임시저장을 복원한다.
+ * 자격증 체크박스는 미리보기용일 뿐 저장되지 않는다 — 별도 API(파일 업로드 필요)라 범위 밖.
  * 폼 상태는 Login 화면과 같이 useState 로 관리한다 (공유 UI 가 forwardRef 가 아니라 RHF 미사용).
  */
 export function JobApplyPage() {
@@ -52,17 +58,48 @@ export function JobApplyPage() {
 
   const [draft, setDraft] = useState<JobApplyDraft>(EMPTY_DRAFT)
   const [errors, setErrors] = useState<Partial<Record<RequiredField, string>>>({})
-  const [restored, setRestored] = useState(false)
+  const [restoredFrom, setRestoredFrom] = useState<'server' | 'local' | null>(null)
+  const [loadingProfile, setLoadingProfile] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
 
-  /** 임시저장 복원 — 새로고침해도 이어서 작성할 수 있다 */
+  /** 서버에 저장된 프로필을 우선 불러오고, 없으면 임시저장(localStorage)을 복원한다. */
   useEffect(() => {
-    const saved = loadDraft()
-    if (saved) {
-      setDraft(saved)
-      setRestored(true)
+    if (!authReady || !user) {
+      setLoadingProfile(false)
+      return
     }
-  }, [])
+    let alive = true
+    getMyJobSeekerProfile()
+      .then((profile) => {
+        if (!alive) return
+        if (hasSavedConditions(profile)) {
+          setDraft(fromProfile(profile))
+          setRestoredFrom('server')
+          return
+        }
+        const saved = loadDraft()
+        if (saved) {
+          setDraft(saved)
+          setRestoredFrom('local')
+        }
+      })
+      .catch(() => {
+        if (!alive) return
+        const saved = loadDraft()
+        if (saved) {
+          setDraft(saved)
+          setRestoredFrom('local')
+        }
+      })
+      .finally(() => {
+        if (alive) setLoadingProfile(false)
+      })
+    return () => {
+      alive = false
+    }
+  }, [authReady, user])
 
   const update = (patch: Partial<JobApplyDraft>) => setDraft((prev) => ({ ...prev, ...patch }))
 
@@ -127,7 +164,7 @@ export function JobApplyPage() {
     }
   }
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     const nextErrors = validateDraft(draft)
     setErrors(nextErrors)
@@ -138,8 +175,19 @@ export function JobApplyPage() {
       return
     }
 
-    saveDraft(draft)
-    setDone(true)
+    setSubmitError(null)
+    setSubmitting(true)
+    try {
+      await updateMyJobSeekerProfile(toUpdateRequest(draft))
+      clearDraft()
+      setDone(true)
+    } catch (err) {
+      setSubmitError(
+        err instanceof ApiError ? err.message : '구직신청 등록에 실패했습니다. 잠시 후 다시 시도해 주세요.',
+      )
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   /** 완료 후 "맞춤 일자리 보기" — JobListPage 가 실제로 읽는 파라미터만 넘긴다 */
@@ -152,7 +200,7 @@ export function JobApplyPage() {
   }, [draft.sido, draft.district, draft.category])
 
   // ---------------- 세션 확인 ----------------
-  if (!authReady) {
+  if (!authReady || (user && loadingProfile)) {
     return (
       <div className="container-page py-10">
         <LoadingState rows={2} />
@@ -173,9 +221,11 @@ export function JobApplyPage() {
         </p>
       </header>
 
-      {restored && (
+      {restoredFrom && (
         <p className="mt-4 rounded-card border border-border bg-surface px-4 py-3 text-base text-fg-muted">
-          임시저장한 내용을 불러왔습니다.
+          {restoredFrom === 'server'
+            ? '이미 등록해 두신 구직 프로필을 불러왔습니다.'
+            : '임시저장한 내용을 불러왔습니다.'}
         </p>
       )}
 
@@ -420,10 +470,15 @@ export function JobApplyPage() {
           </section>
 
           <div className="space-y-2">
-            <Button type="submit" block>
-              구직신청 등록
+            {submitError && (
+              <p className="text-sm text-danger" role="alert">
+                {submitError}
+              </p>
+            )}
+            <Button type="submit" block disabled={submitting}>
+              {submitting ? '등록 중…' : restoredFrom === 'server' ? '구직신청 수정' : '구직신청 등록'}
             </Button>
-            <Button type="button" variant="secondary" block onClick={handleSaveDraft}>
+            <Button type="button" variant="secondary" block onClick={handleSaveDraft} disabled={submitting}>
               임시저장
             </Button>
           </div>
@@ -434,8 +489,8 @@ export function JobApplyPage() {
       <Modal
         open={done}
         onClose={() => setDone(false)}
-        title="구직 프로필이 작성되었습니다."
-        description="아직 서버에 저장되는 단계는 아니며, 작성한 내용은 이 브라우저에만 보관됩니다."
+        title="구직 프로필이 저장되었습니다."
+        description="인재정보에 반영되어 시설 담당자가 확인할 수 있습니다."
         size="sm"
         footer={
           <>
@@ -467,7 +522,7 @@ export function JobApplyPage() {
           onClick={() => {
             clearDraft()
             setDraft(EMPTY_DRAFT)
-            setRestored(false)
+            setRestoredFrom(null)
             setDone(false)
             toast({ title: '작성 내용을 지웠습니다.' })
           }}

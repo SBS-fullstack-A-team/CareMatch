@@ -1,5 +1,5 @@
 import { ChevronDown } from 'lucide-react'
-import { useMemo, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import type { SelectOption } from '@/components/ui/select'
@@ -10,13 +10,8 @@ import {
   REGION_SHORTCUTS,
   WORK_SCHEDULE_OPTIONS,
 } from '@/data/filters'
-import {
-  countByOption,
-  type TalentFilterGroup,
-  type TalentFilterState,
-} from '@/lib/talent-filters'
+import type { TalentFilterGroup, TalentFilterState } from '@/lib/talent-filters'
 import { cn, formatNumber } from '@/lib/utils'
-import type { Talent } from '@/types'
 
 /** 좌측 필터 (COMPONENT_RULES.md §17) — 구인공고 필터 패널과 같은 레이아웃 언어를 쓴다 */
 const REGION_OPTIONS: SelectOption[] = REGION_SHORTCUTS.map((region) => ({
@@ -27,11 +22,32 @@ const REGION_OPTIONS: SelectOption[] = REGION_SHORTCUTS.map((region) => ({
 /** 지역은 17개를 한 번에 펼치지 않고 주요 지역 + 더보기로 나눈다 */
 const REGION_VISIBLE_COUNT = 8
 
+/**
+ * 그룹별 옵션 결과 인원수. `GET /api/jobseekers/facets` 응답을 옮긴 것이라
+ * 자격증(certificates) 축은 서버가 제공하지 않아 항상 빈 값이다 — 체크박스는 그대로 동작하고
+ * 옆 숫자만 비어 있다 (백엔드 Certificate 조인 집계가 이번 범위 밖).
+ */
+export interface TalentFilterCounts {
+  regions: Record<string, number>
+  categories: Record<string, number>
+  workSchedules: Record<string, number>
+  careers: Record<string, number>
+  certificates: Record<string, number>
+}
+
+export const EMPTY_TALENT_FILTER_COUNTS: TalentFilterCounts = {
+  regions: {},
+  categories: {},
+  workSchedules: {},
+  careers: {},
+  certificates: {},
+}
+
 interface TalentFilterPanelProps {
   value: TalentFilterState
   onChange: (next: TalentFilterState) => void
-  /** 인원수 집계 대상 — 상단 검색 조건까지 적용된 인재 */
-  talents: Talent[]
+  /** `GET /api/jobseekers/facets` 응답을 옮긴 옵션별 결과 인원수 */
+  counts: TalentFilterCounts
   onReset: () => void
   className?: string
 }
@@ -39,23 +55,11 @@ interface TalentFilterPanelProps {
 export function TalentFilterPanel({
   value,
   onChange,
-  talents,
+  counts,
   onReset,
   className,
 }: TalentFilterPanelProps) {
   const [regionExpanded, setRegionExpanded] = useState(false)
-
-  /** 그룹별 인원수는 한 번만 계산해 각 체크박스에 나눠 준다 */
-  const counts = useMemo(
-    () => ({
-      regions: countByOption(talents, value, 'regions'),
-      categories: countByOption(talents, value, 'categories'),
-      workSchedules: countByOption(talents, value, 'workSchedules'),
-      careers: countByOption(talents, value, 'careers'),
-      certificates: countByOption(talents, value, 'certificates'),
-    }),
-    [talents, value],
-  )
 
   const toggle = (group: TalentFilterGroup, option: string) => {
     const current = value[group]

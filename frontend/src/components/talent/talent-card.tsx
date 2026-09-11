@@ -1,13 +1,13 @@
 import { UserRound } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { certificateTypeLabel, jobCategoryLabel } from '@/data/labels'
-import { cn, formatDotDate, maskName } from '@/lib/utils'
+import { cn, formatDotDate } from '@/lib/utils'
 import type { Talent } from '@/types'
 
 /**
  * 최신 인재정보 카드 (DESIGN_SYSTEM.md §21)
  * 매칭 점수 / 급여 / 스크랩 버튼 / 태그는 노출하지 않는다.
- * 이름은 마스킹해서 표시한다.
+ * 이름은 서버가 이미 마스킹해서 내려준다 — 클라이언트에서 다시 마스킹하지 않는다.
  */
 export function TalentCard({ talent, className }: { talent: Talent; className?: string }) {
   return (
@@ -37,16 +37,18 @@ export function TalentCard({ talent, className }: { talent: Talent; className?: 
       <div className="min-w-0 flex-1">
         <h3 className="text-lg font-bold text-fg">
           <Link to={`/talents/${talent.id}`} className="after:absolute after:inset-0">
-            {maskName(talent.name)}
+            {talent.name}
           </Link>
-          <span className="ml-1.5 text-sm font-normal text-fg-muted">
-            ({talent.gender} · {talent.age}세)
-          </span>
+          {(talent.gender || talent.age != null) && (
+            <span className="ml-1.5 text-sm font-normal text-fg-muted">
+              ({[talent.gender, talent.age != null ? `${talent.age}세` : null].filter(Boolean).join(' · ')})
+            </span>
+          )}
         </h3>
 
         <p className="mt-1 text-base text-fg">
-          <span className="font-bold">{jobCategoryLabel(talent.category)}</span>
-          <span className="ml-1 text-fg-muted">희망</span>
+          <span className="font-bold">{talent.category ? jobCategoryLabel(talent.category) : '희망직종 미기재'}</span>
+          {talent.category && <span className="ml-1 text-fg-muted">희망</span>}
         </p>
 
         <p className="mt-2 truncate text-base text-fg-muted">{talent.regions.join(' · ')}</p>
@@ -58,10 +60,12 @@ export function TalentCard({ talent, className }: { talent: Talent; className?: 
               {talent.certificates.map(certificateTypeLabel).join(', ')}
             </dd>
           </div>
-          <div className="flex gap-2">
-            <dt className="shrink-0 text-fg-subtle">갱신일</dt>
-            <dd className="text-fg-muted tabular">{formatDotDate(talent.updatedAt)}</dd>
-          </div>
+          {talent.updatedAt && (
+            <div className="flex gap-2">
+              <dt className="shrink-0 text-fg-subtle">갱신일</dt>
+              <dd className="text-fg-muted tabular">{formatDotDate(talent.updatedAt)}</dd>
+            </div>
+          )}
         </dl>
       </div>
     </article>

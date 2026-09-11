@@ -1,6 +1,12 @@
 import { certificateTypeLabel, jobCategoryLabel, workScheduleLabel } from '@/data/labels'
-import { toRegionLabel } from '@/lib/job-filters'
-import type { Talent } from '@/types'
+import { fromRegionLabel, toRegionLabel } from '@/lib/job-filters'
+import type {
+  ApiJobType,
+  CareerBucket as ApiCareerBucket,
+  ApiWorkSchedule,
+  TalentSearchParams,
+} from '@/types/api'
+import type { CertificateType, Talent } from '@/types'
 
 /* =========================================================================
    인재정보 목록의 검색 / 필터 / 정렬 규칙.
@@ -73,7 +79,7 @@ export function careerBucket(years: number | undefined) {
 /** 그룹별 비교 값 추출기 — 필터링과 건수 집계가 같은 기준을 쓰도록 한다 */
 const GROUP_VALUES: Record<TalentFilterGroup, (talent: Talent) => string[]> = {
   regions: regionLabelsOf,
-  categories: (talent) => [talent.category],
+  categories: (talent) => (talent.category ? [talent.category] : []),
   workSchedules: (talent) => (talent.workSchedule ? [talent.workSchedule] : []),
   careers: (talent) => {
     const bucket = careerBucket(talent.careerYears)
@@ -95,7 +101,7 @@ export function matchesSearch(talent: Talent, query: TalentSearchQuery) {
     const keyword = query.keyword.trim().toLowerCase()
     // 실명은 마스킹해서 노출하므로 검색 대상에 넣지 않는다 (DESIGN_SYSTEM.md §21)
     const haystack = [
-      jobCategoryLabel(talent.category),
+      talent.category ? jobCategoryLabel(talent.category) : null,
       workScheduleLabel(talent.workSchedule),
       talent.careerLabel,
       talent.preferredHours,
@@ -157,7 +163,7 @@ export function sortTalents(talents: Talent[], sort: TalentSort) {
 
   if (sort === 'updated') {
     return sorted.sort(
-      (a, b) => b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id),
+      (a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? '') || a.id.localeCompare(b.id),
     )
   }
 
@@ -168,6 +174,56 @@ export function sortTalents(talents: Talent[], sort: TalentSort) {
     if (careerA === undefined) return 1
     if (careerB === undefined) return -1
     const diff = sort === 'careerDesc' ? careerB - careerA : careerA - careerB
-    return diff || b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id)
+    return diff || (b.updatedAt ?? '').localeCompare(a.updatedAt ?? '') || a.id.localeCompare(b.id)
   })
+}
+
+/** 정렬 값 변환. 프론트는 3종만 쓰고 CAREER_DESC/ASC 외 나머지 표현은 API 전용. */
+const SORT_TO_API: Record<TalentSort, TalentSearchParams['sort']> = {
+  updated: 'LATEST',
+  careerDesc: 'CAREER_DESC',
+  careerAsc: 'CAREER_ASC',
+}
+
+/** CAREER_OPTIONS 의 구간 키('entry' 등)를 API CareerBucket enum name 으로 바꾼다. */
+const CAREER_BUCKET_TO_API: Record<string, ApiCareerBucket> = {
+  entry: 'ENTRY',
+  '1-3': 'Y1_3',
+  '3-5': 'Y3_5',
+  '5+': 'Y5_PLUS',
+}
+
+/**
+ * 검색바(TalentSearchQuery, 단일값)와 좌측 필터(TalentFilterState, 다중값)를 합쳐 실 API
+ * 파라미터로 만든다. job-filters.ts의 toSearchParams 와 같은 방식 — 지역은 검색바 sido 단일 +
+ * 필터 regions 다중을 합집합(OR)으로 합친다.
+ *
+ * 키워드 검색(query.keyword)은 백엔드 인재 검색 API 에 대응 파라미터가 없어 반영되지 않는다 —
+ * 검색창은 남아 있지만 이 축만 조용히 무시된다 (추후 백엔드에 추가 요청 필요).
+ */
+export function toTalentSearchParams(
+  search: TalentSearchQuery,
+  filters: TalentFilterState,
+  sort: TalentSort,
+): TalentSearchParams {
+  const sidos = new Set<string>()
+  if (search.sido) sidos.add(search.sido)
+  filters.regions.forEach((label) => sidos.add(fromRegionLabel(label)))
+
+  const jobTypes = new Set<string>()
+  if (search.category) jobTypes.add(search.category)
+  filters.categories.forEach((value) => jobTypes.add(value))
+
+  const workSchedules = new Set<string>()
+  if (search.workSchedule) workSchedules.add(search.workSchedule)
+  filters.workSchedules.forEach((value) => workSchedules.add(value))
+
+  return {
+    sidos: sidos.size > 0 ? [...sidos] : undefined,
+    desiredJobTypes: jobTypes.size > 0 ? ([...jobTypes] as ApiJobType[]) : undefined,
+    desiredWorkSchedules: workSchedules.size > 0 ? ([...workSchedules] as ApiWorkSchedule[]) : undefined,
+    careerBuckets: filters.careers.length > 0 ? filters.careers.map((c) => CAREER_BUCKET_TO_API[c]) : undefined,
+    certificateTypes: filters.certificates.length > 0 ? (filters.certificates as CertificateType[]) : undefined,
+    sort: SORT_TO_API[sort],
+  }
 }
