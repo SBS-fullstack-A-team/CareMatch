@@ -288,6 +288,8 @@ export type CertificateStatus = 'PENDING' | 'VERIFIED' | 'REJECTED'
 /** GET /api/certificates/me 항목 (CertificateDtos.CertificateDetailResponse) */
 export interface CertificateDetailResponse {
   id: number
+  /** CertificateType enum name (docs/ENUM_MAPPING.md §5) */
+  certificateType: string
   certificateName: string
   certificateNumber: string | null
   status: CertificateStatus
@@ -295,6 +297,56 @@ export interface CertificateDetailResponse {
   contentType: string | null
   downloadUrl: string | null
   rejectReason: string | null
+}
+
+/**
+ * 자격증 등록 (POST /api/certificates). fileKey 는 먼저
+ * POST /api/files/upload-url (purpose=CERTIFICATE) 로 발급받아 업로드까지 마친 값.
+ * certificateName 은 certificateType === 'OTHER' 일 때만 필요.
+ */
+export interface CreateCertificateRequest {
+  certificateType: string
+  certificateName?: string
+  certificateNumber?: string
+  fileKey: string
+}
+
+/* ---------------------------------------------------------------------------
+   파일 업로드 (docs/API.md, FileController) — 백엔드는 파일 바이트를 직접 받지 않는다.
+   1) POST /api/files/upload-url 로 임시 업로드 URL 발급
+   2) 클라이언트가 그 URL 로 파일을 직접 PUT
+   3) POST /api/files/confirm 으로 존재/크기/타입 확인
+   --------------------------------------------------------------------------- */
+
+/** FilePurpose.java 와 동일 — 스토리지 키의 최상위 prefix 결정 */
+export type FilePurpose =
+  | 'BUSINESS_LICENSE'
+  | 'CERTIFICATE'
+  | 'INQUIRY_ATTACHMENT'
+  | 'JOB_POSTING_IMAGE'
+
+export interface IssueUploadUrlRequest {
+  purpose: FilePurpose
+  originalFilename: string
+  contentType: string
+}
+
+export interface UploadUrlResponse {
+  fileKey: string
+  uploadUrl: string
+  httpMethod: string
+  /** ISO offset date-time */
+  expiresAt: string
+}
+
+export interface ConfirmUploadRequest {
+  fileKey: string
+}
+
+export interface FileMetadata {
+  exists: boolean
+  sizeBytes: number
+  contentType: string
 }
 
 /* ---------------------------------------------------------------------------

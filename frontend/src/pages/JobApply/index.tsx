@@ -1,4 +1,4 @@
-import { Award, Check, ClipboardList, FileText, LogIn, Minus, UserRound } from 'lucide-react'
+import { Award, Check, ClipboardList, FileText, LogIn, Minus, Plus, UserRound } from 'lucide-react'
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Breadcrumb } from '@/components/common/breadcrumb'
@@ -6,6 +6,7 @@ import { DetailSection } from '@/components/common/detail-section'
 import { EmptyState } from '@/components/common/empty-state'
 import { LoadingState } from '@/components/common/loading-state'
 import { TalentListCard } from '@/components/talent/talent-list-card'
+import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -14,6 +15,8 @@ import { SegmentedControl } from '@/components/ui/segmented-control'
 import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/ui/toast'
+import { CertificateFormModal } from '@/components/certificate/certificate-form'
+import { getMyCertificates } from '@/api/certificates'
 import {
   CATEGORY_OPTIONS,
   CERTIFICATE_OPTIONS,
@@ -25,6 +28,7 @@ import {
 import { useApp } from '@/hooks/use-app'
 import { cn, formatPay, type PayType } from '@/lib/utils'
 import type { Talent } from '@/types'
+import type { CertificateDetailResponse } from '@/types/api'
 import {
   clearDraft,
   EMPTY_DRAFT,
@@ -55,6 +59,9 @@ export function JobApplyPage() {
   const [restored, setRestored] = useState(false)
   const [done, setDone] = useState(false)
 
+  const [myCertificates, setMyCertificates] = useState<CertificateDetailResponse[]>([])
+  const [certFormOpen, setCertFormOpen] = useState(false)
+
   /** 임시저장 복원 — 새로고침해도 이어서 작성할 수 있다 */
   useEffect(() => {
     const saved = loadDraft()
@@ -64,7 +71,30 @@ export function JobApplyPage() {
     }
   }, [])
 
+  /** 이미 등록해 둔 자격증 파일이 있으면 함께 보여준다. 없어도 화면은 그대로 동작해야 한다. */
+  useEffect(() => {
+    if (!user || user.role !== 'JOBSEEKER') return
+    let alive = true
+    getMyCertificates()
+      .then((list) => {
+        if (alive) setMyCertificates(list)
+      })
+      .catch(() => {
+        // 목록을 못 가져와도 자격증 체크박스 자체는 그대로 쓸 수 있어야 하니 조용히 무시한다
+      })
+    return () => {
+      alive = false
+    }
+  }, [user])
+
   const update = (patch: Partial<JobApplyDraft>) => setDraft((prev) => ({ ...prev, ...patch }))
+
+  const handleCertificateRegistered = (certificate: CertificateDetailResponse) => {
+    setMyCertificates((prev) => [certificate, ...prev.filter((item) => item.id !== certificate.id)])
+    if (!draft.certificates.includes(certificate.certificateType)) {
+      update({ certificates: [...draft.certificates, certificate.certificateType] })
+    }
+  }
 
   /**
    * 이미 표시된 에러는 값이 채워지는 즉시 지운다.
@@ -358,6 +388,42 @@ export function JobApplyPage() {
                     />
                   ))}
                 </div>
+
+                <div className="mt-4 rounded-card border border-border bg-surface-sunken p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-fg">자격증 파일 등록</p>
+                    <Button type="button" variant="secondary" size="sm" onClick={() => setCertFormOpen(true)}>
+                      <Plus className="size-4" aria-hidden />
+                      자격증 추가
+                    </Button>
+                  </div>
+                  {myCertificates.length === 0 ? (
+                    <p className="mt-2 text-sm text-fg-muted">
+                      위 체크박스는 보유 여부만 표시합니다. 자격증 사진이나 PDF 파일을 첨부하면
+                      인증 상태로 등록돼 인재정보에 신뢰도가 더 높게 표시됩니다.
+                    </p>
+                  ) : (
+                    <ul className="mt-2 space-y-1.5">
+                      {myCertificates.map((cert) => (
+                        <li key={cert.id} className="flex items-center gap-2 text-sm text-fg">
+                          <Award className="size-4 shrink-0 text-fg-muted" aria-hidden />
+                          <span className="min-w-0 truncate">{cert.certificateName}</span>
+                          <Badge
+                            variant={
+                              cert.status === 'VERIFIED'
+                                ? 'new'
+                                : cert.status === 'REJECTED'
+                                  ? 'closing'
+                                  : 'normal'
+                            }
+                          >
+                            {cert.status === 'VERIFIED' ? '인증완료' : cert.status === 'REJECTED' ? '반려' : '확인중'}
+                          </Badge>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </Field>
             </div>
           </DetailSection>
@@ -476,6 +542,12 @@ export function JobApplyPage() {
           작성 내용 지우기
         </button>
       </Modal>
+
+      <CertificateFormModal
+        open={certFormOpen}
+        onClose={() => setCertFormOpen(false)}
+        onRegistered={handleCertificateRegistered}
+      />
     </div>
   )
 }

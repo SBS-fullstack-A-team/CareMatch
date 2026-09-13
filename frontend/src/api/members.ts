@@ -48,3 +48,12 @@ export function signupJobSeeker(req: JobSeekerSignupRequest): Promise<SignupResp
     body: req,
   })
 }
+
+/**
+ * 내 전화번호 등록/변경. 소셜 가입자처럼 가입 시 전화번호가 없던 경우나, 자격증 등록에
+ * 필요한 휴대폰 인증 전에 번호를 (재)등록할 때 쓴다. 등록만으로 인증되지는 않는다 —
+ * 이어서 /api/verifications/{send,verify} 로 별도 인증해야 한다.
+ */
+export function updateMyPhone(phone: string): Promise<void> {
+  return apiFetch<void>('/api/members/me/phone', { method: 'PUT', body: { phone } })
+}

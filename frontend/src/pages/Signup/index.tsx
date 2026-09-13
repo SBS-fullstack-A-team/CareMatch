@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/toast'
 import { checkExists, signupJobSeeker } from '@/api/members'
 import { getTerms, getTermsDetail } from '@/api/terms'
 import { sendVerificationCode, verifyCode } from '@/api/verifications'
+import { useApp } from '@/hooks/use-app'
 import { ApiError } from '@/lib/api-client'
 import { cn } from '@/lib/utils'
 import type {
@@ -71,6 +72,7 @@ function passwordError(value: string) {
 export function SignupPage() {
   const { toast } = useToast()
   const navigate = useNavigate()
+  const { login } = useApp()
 
   const [memberKind, setMemberKind] = useState<MemberKind>('personal')
 
@@ -102,6 +104,8 @@ export function SignupPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState<string | null>(null)
+  const [autoLoggingIn, setAutoLoggingIn] = useState(false)
+  const [autoLoginError, setAutoLoginError] = useState<string | null>(null)
 
   /** 인증 대상은 선택한 채널에 따라 이메일/휴대폰 입력값을 그대로 쓴다 */
   const verificationTarget = channel === 'EMAIL' ? email.trim() : phone.trim()
@@ -326,6 +330,24 @@ export function SignupPage() {
       }
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  /**
+   * 가입 직후엔 토큰이 없어 인증이 필요한 화면(자격증 등록)에 바로 갈 수 없다.
+   * 방금 입력한 아이디/비밀번호로 대신 로그인해 그 자리에서 자격증 등록창까지 이어준다.
+   */
+  const handleGoRegisterCertificate = async () => {
+    setAutoLoginError(null)
+    setAutoLoggingIn(true)
+    try {
+      await login(loginId.trim(), password)
+      setDone(null)
+      navigate('/mypage/certificates', { state: { openCertificateForm: true } })
+    } catch {
+      setAutoLoginError('자동 로그인에 실패했습니다. 로그인 화면에서 다시 시도해 주세요.')
+    } finally {
+      setAutoLoggingIn(false)
     }
   }
 
@@ -677,18 +699,34 @@ export function SignupPage() {
         description={done ?? undefined}
         size="sm"
         footer={
-          <button
-            type="button"
-            className={cn(buttonVariants({ variant: 'primary', size: 'sm' }))}
-            onClick={() => navigate('/login', { replace: true })}
-          >
-            로그인하러 가기
-          </button>
+          <>
+            <button
+              type="button"
+              className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }))}
+              disabled={autoLoggingIn}
+              onClick={handleGoRegisterCertificate}
+            >
+              {autoLoggingIn ? '이동 중…' : '지금 자격증 등록하기'}
+            </button>
+            <button
+              type="button"
+              className={cn(buttonVariants({ variant: 'primary', size: 'sm' }))}
+              onClick={() => navigate('/login', { replace: true })}
+            >
+              로그인하러 가기
+            </button>
+          </>
         }
       >
         <p className="text-base text-fg-muted">
-          가입하신 아이디로 로그인하면 서비스를 이용할 수 있습니다.
+          가입하신 아이디로 로그인하면 서비스를 이용할 수 있습니다. 요양보호사 등 자격증이 있다면
+          지금 바로 사진이나 PDF 파일로 등록할 수 있어요.
         </p>
+        {autoLoginError && (
+          <p className="mt-3 text-sm text-danger" role="alert">
+            {autoLoginError}
+          </p>
+        )}
       </Modal>
     </div>
   )
