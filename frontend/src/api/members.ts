@@ -3,6 +3,8 @@ import { apiFetch } from '@/lib/api-client'
 import type {
   DisplayPreference,
   ExistsResponse,
+  FacilitySignupRequest,
+  GeneralSignupRequest,
   JobSeekerSignupRequest,
   MyPageResponse,
   SignupResponse,
@@ -43,6 +45,27 @@ export function checkExists(params: { loginId?: string; email?: string }): Promi
  */
 export function signupJobSeeker(req: JobSeekerSignupRequest): Promise<SignupResponse> {
   return apiFetch<SignupResponse>('/api/members/jobseekers', {
+    method: 'POST',
+    auth: false,
+    body: req,
+  })
+}
+
+/**
+ * 시설(기업)회원가입. 사업자등록증 fileKey 는 먼저 @/lib/file-upload 의 uploadFile()로
+ * 업로드까지 마친 값. 가입 직후 승인상태 PENDING — 관리자 승인 후 인재 열람/공고 등록 가능.
+ */
+export function signupFacility(req: FacilitySignupRequest): Promise<SignupResponse> {
+  return apiFetch<SignupResponse>('/api/members/facilities', {
+    method: 'POST',
+    auth: false,
+    body: req,
+  })
+}
+
+/** 일반(소비자) 회원가입. 구직 의사 없이 개인적으로 요양보호사 등을 찾는 계정 — 자격증 불필요. */
+export function signupGeneral(req: GeneralSignupRequest): Promise<SignupResponse> {
+  return apiFetch<SignupResponse>('/api/members/general', {
     method: 'POST',
     auth: false,
     body: req,
