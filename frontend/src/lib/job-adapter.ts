@@ -56,6 +56,27 @@ function deriveStatus(dto: {
   return 'normal'
 }
 
+/** 노출등급 우선순위(낮을수록 먼저) — 프리미엄 > 스페셜 > 나머지. "돈 낸 만큼 먼저 보인다". */
+const PROMOTION_RANK: Record<JobStatus, number> = {
+  premium: 0,
+  special: 1,
+  new: 2,
+  normal: 2,
+  closing: 2,
+}
+
+/**
+ * 거리순 등으로 이미 정렬된 목록을 노출등급 우선으로 재정렬한다. Array.sort 는 안정 정렬이라
+ * 동일 등급 안에서는 원래 순서(거리순)가 그대로 유지된다. `Job` 을 직접 담은 배열이 아니라면
+ * (예: 지도 마커 `{ job, lat, lng }`) `getStatus` 로 상태를 꺼내는 방법을 알려준다.
+ */
+export function sortByPromotion<T>(
+  items: T[],
+  getStatus: (item: T) => JobStatus = (item) => (item as { status: JobStatus }).status,
+): T[] {
+  return [...items].sort((a, b) => PROMOTION_RANK[getStatus(a)] - PROMOTION_RANK[getStatus(b)])
+}
+
 /** 매칭 정보. matchingScore 가 없으면(비로그인·희망조건 미설정) 아예 undefined. */
 function toMatching(matchingScore: number | null, reasons?: ApiMatchReason[]): Matching | undefined {
   if (matchingScore == null) return undefined

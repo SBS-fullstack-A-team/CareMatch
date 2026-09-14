@@ -16,7 +16,7 @@ import { useToast } from '@/components/ui/toast'
 import { CATEGORY_OPTIONS, FACILITY_TYPE_OPTIONS, PAY_TYPE_OPTIONS, WORK_SCHEDULE_OPTIONS } from '@/data/filters'
 import { useAsync } from '@/hooks/use-async'
 import { useGeolocation } from '@/hooks/use-geolocation'
-import { summaryToJob } from '@/lib/job-adapter'
+import { sortByPromotion, summaryToJob } from '@/lib/job-adapter'
 import {
   applyFilters,
   countByOption,
@@ -132,7 +132,7 @@ export function NearbyJobsPage() {
   )
 
   const jobs = useMemo(
-    () => (data ?? []).map((result) => withDistanceTag(summaryToJob(result.posting), result.distanceKm)),
+    () => sortByPromotion((data ?? []).map((result) => withDistanceTag(summaryToJob(result.posting), result.distanceKm))),
     [data],
   )
   const filtered = useMemo(() => applyFilters(jobs, filters), [jobs, filters])

@@ -5,9 +5,10 @@ import { CustomOverlayMap, Map, useKakaoLoader } from 'react-kakao-maps-sdk'
 import { getJobPostingsInBounds } from '@/api/job-postings'
 import heroBannerImage from '@/assets/hero-banner.png'
 import { ScrapButton } from '@/components/common/scrap-button'
+import { JobBadge } from '@/components/job/job-badge'
 import { JobListItem } from '@/components/job/job-list-item'
 import { useToast } from '@/components/ui/toast'
-import { summaryToJob } from '@/lib/job-adapter'
+import { sortByPromotion, summaryToJob } from '@/lib/job-adapter'
 import { applyFilters, type JobFilterState } from '@/lib/job-filters'
 import { cn, formatDistanceKm, formatPay } from '@/lib/utils'
 import type { Job } from '@/types'
@@ -113,7 +114,10 @@ export function NearbyMap({
   }, [rawMarkers, filters])
 
   /** 내 위치와 가까운 순으로 — 리스트에서 위쪽부터 훑어보면 가까운 공고부터 보이게 한다. */
-  const nearestFirst = useMemo(() => [...markers].sort((a, b) => a.distanceKm - b.distanceKm), [markers])
+  const nearestFirst = useMemo(
+    () => sortByPromotion([...markers].sort((a, b) => a.distanceKm - b.distanceKm), (item) => item.job.status),
+    [markers],
+  )
 
   const selectedJob = useMemo(
     () => markers.find((m) => m.job.id === selectedJobId)?.job ?? null,
@@ -261,7 +265,13 @@ export function NearbyMap({
           </CustomOverlayMap>
 
           {markers.map(({ job, lat, lng, matched }) => (
-            <CustomOverlayMap key={job.id} position={{ lat, lng }} yAnchor={1} clickable zIndex={matched ? 30 : 10}>
+            <CustomOverlayMap
+              key={job.id}
+              position={{ lat, lng }}
+              yAnchor={1}
+              clickable
+              zIndex={job.status === 'premium' ? 40 : job.status === 'special' ? 35 : matched ? 30 : 10}
+            >
               {/* 팝업은 absolute 로 띄운다 — flow 안에 넣으면 열고 닫을 때 이 박스의 높이가
                * 바뀌어서, yAnchor(바닥 기준 좌표 고정)가 팝업 높이만큼 매번 다시 계산돼 핀이
                * 튀어 보인다. absolute 로 빼면 이 박스 높이는 핀 하나로 항상 고정된다. */}
@@ -280,7 +290,10 @@ export function NearbyMap({
                     >
                       <X className="size-4" aria-hidden />
                     </button>
-                    <p className="pr-8 font-bold text-fg">{job.facilityName}</p>
+                    <div className="flex items-center gap-1.5 pr-8">
+                      <JobBadge status={job.status} className="shrink-0" />
+                      <p className="truncate font-bold text-fg">{job.facilityName}</p>
+                    </div>
                     <p className="mt-0.5 text-fg-muted">{formatPay(job.payType, job.payAmount)}</p>
                     <div className="mt-2 flex items-center gap-1.5">
                       <Link
@@ -349,17 +362,27 @@ export function NearbyMap({
                 >
                   <span
                     className={cn(
-                      'mb-0.5 max-w-[130px] truncate rounded-full px-2 py-0.5 text-xs font-bold text-white shadow',
-                      matched ? 'bg-primary' : 'bg-fg-subtle',
+                      'mb-0.5 max-w-[130px] truncate rounded-full px-2 py-0.5 text-xs font-bold shadow',
+                      job.status === 'special' && 'bg-accent text-white',
+                      job.status === 'premium' && 'border border-accent bg-surface text-accent-deep',
+                      job.status !== 'special' &&
+                        job.status !== 'premium' &&
+                        (matched ? 'bg-primary text-white' : 'bg-fg-subtle text-white'),
                     )}
                   >
                     {job.facilityName}
                   </span>
                   <MapPin
-                    className={cn('size-8 drop-shadow-md', matched ? 'text-primary' : 'text-fg-subtle')}
-                    fill="currentColor"
-                    stroke="white"
-                    strokeWidth={1.5}
+                    className={cn(
+                      job.status === 'premium' ? 'size-10 drop-shadow-lg' : 'size-8 drop-shadow-md',
+                      (job.status === 'special' || job.status === 'premium') && 'text-accent',
+                      job.status !== 'special' &&
+                        job.status !== 'premium' &&
+                        (matched ? 'text-primary' : 'text-fg-subtle'),
+                    )}
+                    fill={job.status === 'premium' ? 'white' : 'currentColor'}
+                    stroke={job.status === 'premium' ? 'currentColor' : 'white'}
+                    strokeWidth={job.status === 'premium' ? 2 : 1.5}
                     aria-hidden
                   />
                 </button>
