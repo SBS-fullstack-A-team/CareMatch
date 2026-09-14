@@ -10,6 +10,12 @@ export function formatNumber(value: number) {
   return value.toLocaleString('ko-KR')
 }
 
+/** 0.5 -> "500m", 1 -> "1km", 10 -> "10km" — 반경/거리 표기 공통 규칙 (내 주변 일자리) */
+export function formatDistanceKm(km: number): string {
+  if (km < 1) return `${Math.round(km * 1000)}m`
+  return `${km}km`
+}
+
 /**
  * 급여 표기를 서비스 전역에서 동일한 규칙으로 만든다.
  * ex) { type: 'hourly', amount: 13500 } -> "시급 13,500원"

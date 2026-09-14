@@ -45,10 +45,19 @@ interface JobFilterPanelProps {
   /** `GET /api/job-postings/facets` 응답을 옮긴 옵션별 결과 건수 */
   counts: JobFilterCounts
   onReset: () => void
+  /** 위치 기준으로 이미 좁혀진 화면(내 주변 일자리)처럼 지역 선택이 의미 없는 곳에서 숨긴다. */
+  hideRegions?: boolean
   className?: string
 }
 
-export function JobFilterPanel({ value, onChange, counts, onReset, className }: JobFilterPanelProps) {
+export function JobFilterPanel({
+  value,
+  onChange,
+  counts,
+  onReset,
+  hideRegions = false,
+  className,
+}: JobFilterPanelProps) {
   const [regionExpanded, setRegionExpanded] = useState(false)
 
   const toggle = (group: JobFilterGroup, option: string) => {
@@ -71,36 +80,38 @@ export function JobFilterPanel({ value, onChange, counts, onReset, className }: 
     <aside className={cn('rounded-card border border-border bg-surface', className)}>
       <h2 className="border-b border-border px-5 py-4 text-lg font-bold text-fg">상세 필터</h2>
 
-      <FilterGroup title="지역">
-        <div className="grid grid-cols-2 gap-x-3">
-          {regionOptions.map((option) => (
-            <FilterCheckbox
-              key={option.value}
-              option={option}
-              group="regions"
-              value={value}
-              counts={counts.regions}
-              onToggle={toggle}
-            />
-          ))}
-        </div>
-        {REGION_OPTIONS.length > REGION_VISIBLE_COUNT && (
-          <button
-            type="button"
-            onClick={() => setRegionExpanded((prev) => !prev)}
-            aria-expanded={regionExpanded}
-            className="mt-1 inline-flex h-11 items-center gap-1 text-base text-fg-muted hover:text-primary-deep"
-          >
-            {regionExpanded
-              ? '지역 접기'
-              : `지역 더보기 (${REGION_OPTIONS.length - REGION_VISIBLE_COUNT})`}
-            <ChevronDown
-              className={cn('size-[18px] transition-transform', regionExpanded && 'rotate-180')}
-              aria-hidden
-            />
-          </button>
-        )}
-      </FilterGroup>
+      {!hideRegions && (
+        <FilterGroup title="지역">
+          <div className="grid grid-cols-2 gap-x-3">
+            {regionOptions.map((option) => (
+              <FilterCheckbox
+                key={option.value}
+                option={option}
+                group="regions"
+                value={value}
+                counts={counts.regions}
+                onToggle={toggle}
+              />
+            ))}
+          </div>
+          {REGION_OPTIONS.length > REGION_VISIBLE_COUNT && (
+            <button
+              type="button"
+              onClick={() => setRegionExpanded((prev) => !prev)}
+              aria-expanded={regionExpanded}
+              className="mt-1 inline-flex h-11 items-center gap-1 text-base text-fg-muted hover:text-primary-deep"
+            >
+              {regionExpanded
+                ? '지역 접기'
+                : `지역 더보기 (${REGION_OPTIONS.length - REGION_VISIBLE_COUNT})`}
+              <ChevronDown
+                className={cn('size-[18px] transition-transform', regionExpanded && 'rotate-180')}
+                aria-hidden
+              />
+            </button>
+          )}
+        </FilterGroup>
+      )}
 
       <FilterGroup title="직종">
         {CATEGORY_OPTIONS.map((option) => (

@@ -1,344 +1,295 @@
 import { MapPin } from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { getNearbyJobPostings } from '@/api/job-postings'
 import { Breadcrumb } from '@/components/common/breadcrumb'
 import { EmptyState } from '@/components/common/empty-state'
 import { LoadingState } from '@/components/common/loading-state'
 import { Pagination } from '@/components/common/pagination'
-import { JobSearchBar, type SearchValues } from '@/components/common/search-bar'
 import { EMPTY_JOB_FILTER_COUNTS, JobFilterPanel, type JobFilterCounts } from '@/components/job/job-filter-panel'
 import { JobListItem } from '@/components/job/job-list-item'
+import { NearbyMap } from '@/components/job/nearby-map'
 import { Button } from '@/components/ui/button'
-import { Select } from '@/components/ui/select'
+import { SegmentedControl } from '@/components/ui/segmented-control'
 import { Tag } from '@/components/ui/tag'
-import { getJobPostingFacets, getJobPostings } from '@/api/job-postings'
-import {
-  CATEGORY_OPTIONS,
-  FACILITY_TYPE_OPTIONS,
-  JOB_SORT_OPTIONS,
-  PAY_TYPE_OPTIONS,
-  WORK_SCHEDULE_OPTIONS,
-} from '@/data/filters'
-import { payTypeFromApi } from '@/data/labels'
+import { CATEGORY_OPTIONS, FACILITY_TYPE_OPTIONS, PAY_TYPE_OPTIONS, WORK_SCHEDULE_OPTIONS } from '@/data/filters'
 import { useAsync } from '@/hooks/use-async'
+import { useGeolocation } from '@/hooks/use-geolocation'
 import { summaryToJob } from '@/lib/job-adapter'
 import {
+  applyFilters,
+  countByOption,
   EMPTY_JOB_FILTERS,
-  EMPTY_JOB_SEARCH,
-  isJobSort,
-  toRegionLabel,
-  toSearchParams,
   type JobFilterGroup,
   type JobFilterState,
-  type JobSearchQuery,
-  type JobSort,
 } from '@/lib/job-filters'
-import { formatNumber } from '@/lib/utils'
+import { cn, formatDistanceKm, formatNumber } from '@/lib/utils'
 import { LoadFailed } from '@/pages/Support/shared'
-import type { JobFacetsResponse } from '@/types/api'
+import type { Job } from '@/types'
 
 const PAGE_SIZE = 10
-
-const SEARCH_FIELD_LABEL: Record<keyof JobSearchQuery, string> = {
-  sido: '지역',
-  district: '구·군',
-  category: '직종',
-  facilityType: '시설유형',
-  keyword: '키워드',
-}
+/** 리스트 반경 — 통근 가능 거리 기준이라 km 단위로 넓게 잡는다. */
+const RADIUS_OPTIONS_KM = [1, 3, 5, 10, 20] as const
+type RadiusKm = (typeof RADIUS_OPTIONS_KM)[number]
+/** 지도 반경 — 지도에서 한눈에 비교하기엔 도보권이 더 유용해 m 단위로 좁게 잡는다. */
+const MAP_RADIUS_OPTIONS_KM = [0.1, 0.25, 0.5, 1] as const
+type MapRadiusKm = (typeof MAP_RADIUS_OPTIONS_KM)[number]
 
 /** 값(CAREGIVER, hourly)과 표기 라벨(요양보호사, 시급)이 다른 필터의 칩 표기용 라벨 */
 const FILTER_VALUE_LABEL = Object.fromEntries(
-  [
-    ...PAY_TYPE_OPTIONS,
-    ...CATEGORY_OPTIONS,
-    ...FACILITY_TYPE_OPTIONS,
-    ...WORK_SCHEDULE_OPTIONS,
-  ].map((option) => [option.value, option.label]),
+  [...PAY_TYPE_OPTIONS, ...CATEGORY_OPTIONS, ...FACILITY_TYPE_OPTIONS, ...WORK_SCHEDULE_OPTIONS].map(
+    (option) => [option.value, option.label],
+  ),
 ) as Record<string, string>
 
-function readSearch(params: URLSearchParams): JobSearchQuery {
-  return {
-    sido: params.get('sido') ?? '',
-    district: params.get('district') ?? '',
-    category: params.get('category') ?? '',
-    facilityType: params.get('facilityType') ?? '',
-    keyword: params.get('keyword') ?? '',
-  }
-}
-
-function toParams(search: JobSearchQuery, sort: JobSort) {
-  const params = new URLSearchParams()
-  Object.entries(search).forEach(([key, value]) => {
-    if (value) params.set(key, value)
-  })
-  if (sort !== 'latest') params.set('sort', sort)
-  return params
-}
-
-/** `GET /api/job-postings/facets` 응답을 좌측 필터 패널이 쓰는 형태로 옮긴다. (JobList 와 동일) */
-function toFilterCounts(facets: JobFacetsResponse | null): JobFilterCounts {
-  if (!facets) return EMPTY_JOB_FILTER_COUNTS
-  return {
-    regions: Object.fromEntries(
-      Object.entries(facets.sido).map(([sido, count]) => [toRegionLabel(sido), count]),
-    ),
-    categories: facets.jobType,
-    facilityTypes: facets.facilityType,
-    workSchedules: facets.workSchedule,
-    payTypes: Object.fromEntries(
-      Object.entries(facets.payType).map(([payType, count]) => [payTypeFromApi(payType), count]),
-    ),
-  }
+/** 목록 카드 맨 앞에 거리를 태그로 붙인다 (Job 타입엔 거리 필드가 없어 tags 로 흡수) */
+function withDistanceTag(job: Job, distanceKm: number): Job {
+  return { ...job, tags: [formatDistanceKm(distanceKm), ...(job.tags ?? [])] }
 }
 
 /**
  * 내 주변 일자리 (/nearby)
  *
- * 프로젝트에 Geolocation·지도 SDK·좌표 데이터·거리 계산이 전혀 없으므로
- * "내 주변"은 **사용자가 직접 고른 지역**을 기준으로 처리한다.
- * GPS·지도·거리 표기·거리순 정렬은 만들지 않는다 — 백엔드 `GET /api/job-postings/nearby` 는
- * lat/lng 가 필수라 이 화면과 맞지 않고, 구인공고 목록과 같은 `GET /api/job-postings`(sido/sigungu) 를 쓴다.
- *
- * 구인공고 목록(/jobs)과 같은 컴포넌트와 필터 규칙을 그대로 쓰고,
- * 지역 기준 안내 영역과 "OO 주변 일자리" 결과 문구로 페이지 목적을 구분한다.
+ * 브라우저 GPS 로 현재 위치를 받아 `GET /api/job-postings/nearby`(반경 내 가까운 순)로
+ * 목록을, `/in-bounds`(지도 뷰포트)로 지도 마커를 보여준다. 목록 결과가 이미 제한적인
+ * 범위(최대 100건)라 좌측 필터는 서버 재조회 없이 클라이언트에서 적용한다.
  */
 export function NearbyJobsPage() {
-  const [searchParams, setSearchParams] = useSearchParams()
-  /** [지역 변경] 에서 검색 패널의 지역 필드로 이동하기 위한 참조 */
-  const searchRef = useRef<HTMLDivElement>(null)
+  const { status, coords, request } = useGeolocation()
+  const requestedRef = useRef(false)
+  useEffect(() => {
+    if (!requestedRef.current) {
+      requestedRef.current = true
+      request()
+    }
+  }, [request])
 
-  const [search, setSearch] = useState<JobSearchQuery>(() => readSearch(searchParams))
-  /** 칩 삭제·초기화로 검색값이 바뀌면 검색 패널을 다시 그려 값을 맞춘다 */
-  const [searchFormKey, setSearchFormKey] = useState(0)
+  const [radiusKm, setRadiusKm] = useState<RadiusKm>(10)
+  const [mapRadiusKm, setMapRadiusKm] = useState<MapRadiusKm>(1)
+  const [view, setView] = useState<'list' | 'map'>('list')
   const [filters, setFilters] = useState<JobFilterState>(EMPTY_JOB_FILTERS)
-  const [sort, setSort] = useState<JobSort>(() => {
-    const value = searchParams.get('sort')
-    return isJobSort(value) ? value : 'latest'
-  })
   const [page, setPage] = useState(1)
-
-  const params = useMemo(() => toSearchParams(search, filters, sort), [search, filters, sort])
+  /** 지도가 지금 자기 반경 안에서 들고 있는 원본 공고 — 지도 뷰에서는 필터 건수 배지를
+   * 리스트(jobs)가 아니라 이걸 기준으로 계산해야 실제로 지도에 뜬 마커 수와 맞는다. */
+  const [mapJobs, setMapJobs] = useState<Job[]>([])
 
   const { data, loading, error, reload } = useAsync(
-    () => getJobPostings({ ...params, page: page - 1, size: PAGE_SIZE }),
-    [params, page],
+    () =>
+      coords
+        ? getNearbyJobPostings({ lat: coords.lat, lng: coords.lng, radiusKm })
+        : Promise.resolve([]),
+    [coords?.lat, coords?.lng, radiusKm],
   )
-  const { data: facets } = useAsync(() => getJobPostingFacets(params), [params])
 
-  const jobs = useMemo(() => (data?.content ?? []).map(summaryToJob), [data])
-  const totalElements = data?.totalElements ?? 0
-  const totalPages = Math.max(1, data?.totalPages ?? 1)
-  const counts = useMemo(() => toFilterCounts(facets ?? null), [facets])
+  const jobs = useMemo(
+    () => (data ?? []).map((result) => withDistanceTag(summaryToJob(result.posting), result.distanceKm)),
+    [data],
+  )
+  const filtered = useMemo(() => applyFilters(jobs, filters), [jobs, filters])
+  /** 좌측 필터 패널은 리스트/지도 뷰가 같이 쓰지만, 건수 배지의 기준 데이터는 뷰마다 다르다 —
+   * 리스트는 jobs(리스트 반경), 지도는 mapJobs(지도 반경 + 뷰포트)로 따로 셈해야 실제로
+   * 화면에 보이는 개수와 배지 숫자가 맞는다. */
+  const countsBaseJobs = view === 'map' ? mapJobs : jobs
+  const counts: JobFilterCounts = useMemo(
+    () =>
+      countsBaseJobs.length === 0
+        ? EMPTY_JOB_FILTER_COUNTS
+        : {
+            regions: countByOption(countsBaseJobs, filters, 'regions'),
+            categories: countByOption(countsBaseJobs, filters, 'categories'),
+            facilityTypes: countByOption(countsBaseJobs, filters, 'facilityTypes'),
+            workSchedules: countByOption(countsBaseJobs, filters, 'workSchedules'),
+            payTypes: countByOption(countsBaseJobs, filters, 'payTypes'),
+          },
+    [countsBaseJobs, filters],
+  )
 
-  const hasSearch = Object.values(search).some(Boolean)
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const pageJobs = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
   const hasFilters = Object.values(filters).some((group) => group.length > 0)
-  const hasCondition = hasSearch || hasFilters
-
-  /** 검색 패널의 지역 선택을 우선하고, 없으면 좌측 필터의 지역 선택을 쓴다 */
-  const regionLabel = useMemo(() => {
-    if (search.sido && search.district) return `${toRegionLabel(search.sido)} ${search.district}`
-    if (search.sido) return toRegionLabel(search.sido)
-    if (filters.regions.length > 0) return filters.regions.join(' · ')
-    return ''
-  }, [search.sido, search.district, filters.regions])
-
-  const applySearch = (next: JobSearchQuery, nextSort: JobSort = sort) => {
-    setSearch(next)
-    setPage(1)
-    setSearchParams(toParams(next, nextSort), { replace: true })
-  }
-
-  const handleSearch = (values: SearchValues) => applySearch(values)
-
-  const handleSortChange = (value: string) => {
-    const nextSort = isJobSort(value) ? value : 'latest'
-    setSort(nextSort)
-    setPage(1)
-    setSearchParams(toParams(search, nextSort), { replace: true })
-  }
 
   const handleFiltersChange = (next: JobFilterState) => {
     setFilters(next)
     setPage(1)
   }
-
-  const removeSearchField = (field: keyof JobSearchQuery) => {
-    const next = { ...search, [field]: '' }
-    // 지역을 지우면 그 아래 구·군도 함께 지운다
-    if (field === 'sido') next.district = ''
-    setSearchFormKey((prev) => prev + 1)
-    applySearch(next)
-  }
-
   const removeFilterValue = (group: JobFilterGroup, value: string) => {
     handleFiltersChange({ ...filters, [group]: filters[group].filter((item) => item !== value) })
   }
-
   const resetFilters = () => handleFiltersChange(EMPTY_JOB_FILTERS)
-
-  const resetAll = () => {
-    setFilters(EMPTY_JOB_FILTERS)
-    setSearchFormKey((prev) => prev + 1)
-    applySearch(EMPTY_JOB_SEARCH)
+  const handleRadiusChange = (value: string) => {
+    setRadiusKm(Number(value) as RadiusKm)
+    setPage(1)
   }
+  const handleMapRadiusChange = (value: string) => setMapRadiusKm(Number(value) as MapRadiusKm)
 
-  /** 지역 변경 — 검색 패널로 이동해 지역 셀렉트에 포커스를 준다 */
-  const focusRegionField = () => {
-    const container = searchRef.current
-    if (!container) return
-    container.scrollIntoView({ block: 'center' })
-    container.querySelector('select')?.focus()
-  }
+  const located = status === 'granted' && coords != null
 
   return (
     <div className="container-page py-6 lg:py-8">
       <Breadcrumb items={[{ label: '홈', to: '/' }, { label: '내 주변 일자리' }]} />
 
-      {/* ---------------- 페이지 타이틀 ---------------- */}
       <header className="mt-3">
         <h1 className="text-3xl font-bold text-fg">내 주변 일자리</h1>
-        <p className="mt-2 text-base text-fg-muted">
-          내가 선택한 지역을 기준으로 가까운 일자리를 찾아보세요.
-        </p>
+        <p className="mt-2 text-base text-fg-muted">현재 위치를 기준으로 가까운 일자리를 찾아드려요.</p>
       </header>
 
-      {/* ---------------- 검색 ---------------- */}
-      <div ref={searchRef}>
-        <JobSearchBar
-          key={searchFormKey}
-          variant="compact"
-          className="mt-5"
-          defaultValues={search}
-          onSearch={handleSearch}
-        />
-      </div>
-
-      {/* ---------------- 지역 기준 안내 ---------------- */}
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-card border border-primary/35 bg-primary-light/60 px-5 py-4">
+      {/* ---------------- 위치 상태 안내 ---------------- */}
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-card border border-primary/35 bg-primary-light/60 px-5 py-4">
         <div className="flex items-start gap-2.5">
           <MapPin className="mt-0.5 size-5 shrink-0 text-primary-deep" aria-hidden />
           <div>
-            {regionLabel ? (
+            {located && (
               <>
-                <p className="text-base font-bold text-fg">
-                  {regionLabel} 기준으로 찾고 있어요
-                </p>
+                <p className="text-base font-bold text-fg">현재 위치 기준으로 찾고 있어요</p>
                 <p className="mt-0.5 text-base text-fg-muted">
-                  선택한 지역을 기준으로 주변 구인공고를 보여드립니다.
+                  반경 {formatDistanceKm(view === 'map' ? mapRadiusKm : radiusKm)} 이내 공고를 보여드립니다.
                 </p>
               </>
-            ) : (
+            )}
+            {(status === 'idle' || status === 'loading') && (
+              <p className="text-base font-bold text-fg">현재 위치를 확인하고 있어요...</p>
+            )}
+            {status === 'denied' && (
               <>
-                <p className="text-base font-bold text-fg">지역을 선택해 주세요</p>
+                <p className="text-base font-bold text-fg">위치 권한이 필요해요</p>
                 <p className="mt-0.5 text-base text-fg-muted">
-                  지역을 선택하면 해당 지역의 일자리를 모아서 보여드려요.
+                  브라우저 위치 권한을 허용한 뒤 다시 시도해 주세요.
                 </p>
+              </>
+            )}
+            {status === 'unsupported' && (
+              <p className="text-base font-bold text-fg">이 브라우저는 위치 확인을 지원하지 않아요.</p>
+            )}
+            {status === 'error' && (
+              <>
+                <p className="text-base font-bold text-fg">위치를 확인하지 못했어요</p>
+                <p className="mt-0.5 text-base text-fg-muted">잠시 후 다시 시도해 주세요.</p>
               </>
             )}
           </div>
         </div>
 
-        <Button variant="secondary" size="sm" onClick={focusRegionField}>
-          {regionLabel ? '지역 변경' : '지역 선택'}
-        </Button>
+        {!located && status !== 'unsupported' && (
+          <Button variant="secondary" size="sm" onClick={request} disabled={status === 'loading'}>
+            {status === 'loading' ? '확인 중...' : '다시 시도'}
+          </Button>
+        )}
       </div>
 
-      {/* ---------------- 검색 결과 요약 + 정렬 ---------------- */}
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-        <p className="text-lg text-fg-muted">
-          {regionLabel ? `${regionLabel} 주변 일자리` : '전체 구인공고'}{' '}
-          <strong className="font-bold text-primary-deep tabular">
-            {formatNumber(totalElements)}
-          </strong>
-          건
-        </p>
+      {located && coords && (
+        <>
+          {/* ---------------- 반경 + 보기 방식 ---------------- */}
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-base text-fg-muted">반경</span>
+              {view === 'map' ? (
+                <SegmentedControl
+                  items={MAP_RADIUS_OPTIONS_KM.map((km) => ({ value: String(km), label: formatDistanceKm(km) }))}
+                  value={String(mapRadiusKm)}
+                  onChange={handleMapRadiusChange}
+                />
+              ) : (
+                <SegmentedControl
+                  items={RADIUS_OPTIONS_KM.map((km) => ({ value: String(km), label: formatDistanceKm(km) }))}
+                  value={String(radiusKm)}
+                  onChange={handleRadiusChange}
+                />
+              )}
+            </div>
+            <SegmentedControl
+              items={[
+                { value: 'list', label: '리스트' },
+                { value: 'map', label: '지도' },
+              ]}
+              value={view}
+              onChange={(value) => setView(value as 'list' | 'map')}
+            />
+          </div>
 
-        <div className="flex items-center gap-2">
-          <label htmlFor="nearby-sort" className="text-base text-fg-muted">
-            정렬
-          </label>
-          <Select
-            id="nearby-sort"
-            options={JOB_SORT_OPTIONS}
-            value={sort}
-            onChange={(event) => handleSortChange(event.target.value)}
-            className="w-[160px]"
-          />
-        </div>
-      </div>
-
-      {/* 적용된 검색 조건 — 각 조건은 개별 해제할 수 있다 */}
-      {hasCondition && (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          {(Object.keys(SEARCH_FIELD_LABEL) as (keyof JobSearchQuery)[])
-            .filter((field) => search[field])
-            .map((field) => (
-              <Tag key={field} onRemove={() => removeSearchField(field)}>
-                {SEARCH_FIELD_LABEL[field]} {FILTER_VALUE_LABEL[search[field]] ?? search[field]}
-              </Tag>
-            ))}
-
-          {(Object.keys(filters) as JobFilterGroup[]).flatMap((group) =>
-            filters[group].map((value) => (
-              <Tag key={`${group}-${value}`} onRemove={() => removeFilterValue(group, value)}>
-                {FILTER_VALUE_LABEL[value] ?? value}
-              </Tag>
-            )),
+          {/* ---------------- 결과 요약 (리스트 전용) ---------------- */}
+          {view === 'list' && (
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+              <p className="text-lg text-fg-muted">
+                주변 일자리{' '}
+                <strong className="font-bold text-primary-deep tabular">{formatNumber(filtered.length)}</strong>건
+              </p>
+            </div>
           )}
 
-          <button
-            type="button"
-            onClick={resetAll}
-            className="inline-flex h-7 items-center px-1 text-sm text-fg-muted underline underline-offset-4 hover:text-primary-deep"
-          >
-            전체 해제
-          </button>
-        </div>
-      )}
-
-      {/* ---------------- 좌: 필터 / 우: 목록 ---------------- */}
-      <div className="mt-5 gap-6 lg:flex">
-        <JobFilterPanel
-          className="mb-6 self-start lg:mb-0 lg:w-[248px] lg:shrink-0"
-          value={filters}
-          onChange={handleFiltersChange}
-          onReset={resetFilters}
-          counts={counts}
-        />
-
-        <section className="min-w-0 flex-1" aria-label="내 주변 구인공고 목록">
-          {loading ? (
-            <div className="overflow-hidden rounded-card border border-border">
-              <LoadingState rows={PAGE_SIZE} />
+          {hasFilters && (
+            <div className={cn('flex flex-wrap items-center gap-2', view === 'list' ? 'mt-3' : 'mt-6')}>
+              {(Object.keys(filters) as JobFilterGroup[]).flatMap((group) =>
+                filters[group].map((value) => (
+                  <Tag key={`${group}-${value}`} onRemove={() => removeFilterValue(group, value)}>
+                    {FILTER_VALUE_LABEL[value] ?? value}
+                  </Tag>
+                )),
+              )}
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="inline-flex h-7 items-center px-1 text-sm text-fg-muted underline underline-offset-4 hover:text-primary-deep"
+              >
+                전체 해제
+              </button>
             </div>
-          ) : error ? (
-            <LoadFailed message={error} onRetry={reload} />
-          ) : jobs.length > 0 ? (
-            <ul className="overflow-hidden rounded-card border border-border">
-              {jobs.map((job) => (
-                <li key={job.id} className="border-b border-border last:border-b-0">
-                  <JobListItem job={job} />
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="rounded-card border border-border bg-surface">
-              <EmptyState
-                title="선택한 조건에 맞는 일자리가 없습니다."
-                description="지역이나 검색 조건을 변경해보세요."
-                action={
-                  <Button variant="secondary" size="sm" onClick={resetAll}>
-                    검색 조건 초기화
-                  </Button>
-                }
+          )}
+
+          {/* ---------------- 좌: 필터 / 우: 목록 또는 지도 ---------------- */}
+          <div className="mt-5 gap-6 lg:flex">
+            <JobFilterPanel
+              className="mb-6 self-start lg:mb-0 lg:w-[248px] lg:shrink-0"
+              value={filters}
+              onChange={handleFiltersChange}
+              onReset={resetFilters}
+              counts={counts}
+              hideRegions
+            />
+
+            {view === 'map' ? (
+              <NearbyMap
+                center={coords}
+                radiusKm={mapRadiusKm}
+                filters={filters}
+                onJobsChange={setMapJobs}
+                className="h-[560px] min-w-0 flex-1 lg:sticky lg:top-[88px] lg:self-start"
               />
-            </div>
-          )}
+            ) : (
+              <section className="min-w-0 flex-1" aria-label="내 주변 구인공고 목록">
+                {loading ? (
+                  <div className="overflow-hidden rounded-card border border-border">
+                    <LoadingState rows={PAGE_SIZE} />
+                  </div>
+                ) : error ? (
+                  <LoadFailed message={error} onRetry={reload} />
+                ) : pageJobs.length > 0 ? (
+                  <ul className="overflow-hidden rounded-card border border-border">
+                    {pageJobs.map((job) => (
+                      <li key={job.id} className="border-b border-border last:border-b-0">
+                        <JobListItem job={job} />
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="rounded-card border border-border bg-surface">
+                    <EmptyState
+                      title="주변에 등록된 일자리가 없습니다."
+                      description="반경을 넓히거나 필터를 초기화해보세요."
+                      action={
+                        <Button variant="secondary" size="sm" onClick={resetFilters}>
+                          필터 초기화
+                        </Button>
+                      }
+                    />
+                  </div>
+                )}
 
-          <Pagination page={page} totalPages={totalPages} onChange={setPage} className="mt-8" />
-        </section>
-      </div>
+                <Pagination page={currentPage} totalPages={totalPages} onChange={setPage} className="mt-8" />
+              </section>
+            )}
+          </div>
+        </>
+      )}
     </div>
   )
 }
