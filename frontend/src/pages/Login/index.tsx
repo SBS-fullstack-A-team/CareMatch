@@ -5,11 +5,8 @@ import { Input } from '@/components/ui/input'
 import { useApp } from '@/hooks/use-app'
 import { API_BASE_URL, ApiError } from '@/lib/api-client'
 
-const SOCIAL = [
-  { key: 'kakao', label: '카카오로 시작하기' },
-  { key: 'naver', label: '네이버로 시작하기' },
-  { key: 'google', label: 'Google로 시작하기' },
-] as const
+/** 연동 로그인은 카카오만 지원한다 (팀 결정 — 이용자 연령대가 높아 카카오 로그인 위주로 감) */
+const SOCIAL = [{ key: 'kakao', label: '카카오로 시작하기' }] as const
 
 /**
  * 로그인 화면 — API 연동 참조 구현.
