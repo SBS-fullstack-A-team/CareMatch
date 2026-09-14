@@ -2,6 +2,7 @@ package com.carematch.member.controller;
 
 import com.carematch.member.dto.DisplayPreferenceDtos;
 import com.carematch.member.dto.FacilitySignupRequest;
+import com.carematch.member.dto.GeneralSignupRequest;
 import com.carematch.member.dto.JobSeekerSignupRequest;
 import com.carematch.member.dto.MyPageResponse;
 import com.carematch.member.dto.PhoneUpdateRequest;
@@ -42,6 +43,12 @@ public class MemberController {
     @PostMapping("/facilities")
     public ResponseEntity<SignupResponse> signupFacility(@Valid @RequestBody FacilitySignupRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(memberService.registerFacility(request));
+    }
+
+    /** 일반(소비자) 회원가입 — 구직 의사 없이 개인적으로 요양보호사 등을 찾는 계정 */
+    @PostMapping("/general")
+    public ResponseEntity<SignupResponse> signupGeneral(@Valid @RequestBody GeneralSignupRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(memberService.registerGeneral(request));
     }
 
     /** 아이디/이메일 중복 확인 (둘 중 하나 이상 쿼리로 전달) */
