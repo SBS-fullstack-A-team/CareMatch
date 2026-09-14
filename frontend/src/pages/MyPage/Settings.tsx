@@ -1,13 +1,13 @@
 import { Link } from 'react-router-dom'
 import { Checkbox } from '@/components/ui/checkbox'
 import { buttonVariants } from '@/components/ui/button'
-import { SegmentedControl } from '@/components/ui/segmented-control'
-import { FONT_SCALE_LABEL, FONT_SCALES, useApp } from '@/hooks/use-app'
+import { FontSizeControl } from '@/components/layout/font-size-control'
+import { useApp } from '@/hooks/use-app'
 import { cn } from '@/lib/utils'
 
 /** `/mypage/settings` — 화면 표시 설정(이미 서버 동기화됨) + 계정 정보 요약. */
 export function MyPageSettingsPage() {
-  const { user, fontScale, setFontScale, easyMode, setEasyMode } = useApp()
+  const { user, easyMode, setEasyMode } = useApp()
   if (!user) return null
 
   return (
@@ -37,11 +37,7 @@ export function MyPageSettingsPage() {
         <div className="mt-4 space-y-4">
           <div>
             <p className="mb-1.5 text-base font-semibold text-fg">글자 크기</p>
-            <SegmentedControl
-              items={FONT_SCALES.map((scale) => ({ value: scale, label: FONT_SCALE_LABEL[scale] }))}
-              value={fontScale}
-              onChange={setFontScale}
-            />
+            <FontSizeControl />
           </div>
           <Checkbox
             label="쉬운 화면 모드"

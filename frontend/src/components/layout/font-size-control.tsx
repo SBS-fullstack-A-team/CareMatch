@@ -1,43 +1,29 @@
-import { FONT_SCALES, FONT_SCALE_LABEL, useApp } from '@/hooks/use-app'
+import { Type } from 'lucide-react'
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { FontSizeModal } from '@/components/layout/font-size-modal'
 import { cn } from '@/lib/utils'
 
 /**
  * GNB 글자크기 조절 (DESIGN_SYSTEM.md §25)
- * 드롭다운이 아니라 상시 노출되는 세그먼트 형태를 사용한다.
- * 루트 폰트 크기를 바꾸므로 화면 전체 텍스트가 함께 커진다.
+ * "글자크기" 버튼 하나만 노출하고, 클릭하면 슬라이더 모달(FontSizeModal)이 뜬다.
  */
 export function FontSizeControl({ className }: { className?: string }) {
-  const { fontScale, setFontScale } = useApp()
+  const [open, setOpen] = useState(false)
 
   return (
-    <div className={cn('flex items-center gap-2', className)}>
-      <span className="text-sm text-fg-muted">글자크기</span>
-      <div
-        role="radiogroup"
-        aria-label="글자크기"
-        className="flex items-center gap-1 rounded-btn border border-border bg-surface p-1"
+    <>
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={() => setOpen(true)}
+        className={cn(className)}
       >
-        {FONT_SCALES.map((scale) => {
-          const selected = fontScale === scale
-          return (
-            <button
-              key={scale}
-              type="button"
-              role="radio"
-              aria-checked={selected}
-              onClick={() => setFontScale(scale)}
-              className={cn(
-                'h-8 rounded-[6px] px-2.5 text-sm font-semibold transition-colors',
-                selected
-                  ? 'bg-primary text-white'
-                  : 'text-fg-muted hover:bg-surface-sunken hover:text-fg',
-              )}
-            >
-              {FONT_SCALE_LABEL[scale]}
-            </button>
-          )
-        })}
-      </div>
-    </div>
+        <Type className="size-[18px]" aria-hidden />
+        글자크기
+      </Button>
+      <FontSizeModal open={open} onClose={() => setOpen(false)} />
+    </>
   )
 }

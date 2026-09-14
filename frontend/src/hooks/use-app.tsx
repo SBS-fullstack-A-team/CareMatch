@@ -28,14 +28,40 @@ export interface SessionUser {
   unreadNotifications: number
 }
 
-export const FONT_SCALES = ['normal', 'large', 'xlarge'] as const
-export type FontScale = (typeof FONT_SCALES)[number]
+/**
+ * 글자크기 10단계 (DESIGN_SYSTEM.md §25 — 버튼 클릭 → 모달 슬라이더).
+ * 4단계(100%)가 기존 "기본"과 같은 크기. 단계당 10%p씩 70%~160%.
+ */
+export const FONT_SCALE_MIN = 1
+export const FONT_SCALE_MAX = 10
+export const FONT_SCALE_STEPS = Array.from(
+  { length: FONT_SCALE_MAX },
+  (_, i) => i + 1,
+) as readonly number[]
+export type FontScale = number
+/** 4단계 = 100% — 기존 "기본" 크기와 동일 */
+export const FONT_SCALE_DEFAULT: FontScale = 4
 
-/** DESIGN_SYSTEM.md §25 — [기본] [크게] [더크게] */
-export const FONT_SCALE_LABEL: Record<FontScale, string> = {
-  normal: '기본',
-  large: '크게',
-  xlarge: '더크게',
+const FONT_SCALE_PERCENT: Record<FontScale, number> = {
+  1: 70,
+  2: 80,
+  3: 90,
+  4: 100,
+  5: 110,
+  6: 120,
+  7: 130,
+  8: 140,
+  9: 150,
+  10: 160,
+}
+
+export function fontScalePercent(scale: FontScale): number {
+  return FONT_SCALE_PERCENT[scale] ?? 100
+}
+
+function clampFontScale(scale: number): FontScale {
+  const rounded = Math.round(scale)
+  return Math.min(FONT_SCALE_MAX, Math.max(FONT_SCALE_MIN, rounded))
 }
 
 interface AppContextValue {
@@ -56,21 +82,31 @@ const AppContext = createContext<AppContextValue | null>(null)
 const FONT_SCALE_KEY = 'carematch.fontScale'
 const EASY_MODE_KEY = 'carematch.easyMode'
 
-const SERVER_SCALE: Record<FontScale, FontScaleServer> = {
-  normal: 'NORMAL',
-  large: 'LARGE',
-  xlarge: 'XLARGE',
-}
-const toServerScale = (s: FontScale): FontScaleServer => SERVER_SCALE[s]
+/**
+ * 서버는 아직 NORMAL/LARGE/XLARGE 3단계만 저장한다 — 10단계는 프론트 로컬(localStorage)
+ * 기준이 정확한 값이고, 서버엔 가장 가까운 3단계로 근사해 동기화만 해 둔다.
+ */
+const toServerScale = (s: FontScale): FontScaleServer =>
+  s <= FONT_SCALE_DEFAULT ? 'NORMAL' : s <= 7 ? 'LARGE' : 'XLARGE'
 const fromServerScale = (s: FontScaleServer): FontScale =>
-  s === 'LARGE' ? 'large' : s === 'XLARGE' ? 'xlarge' : 'normal'
+  s === 'XLARGE' ? 8 : s === 'LARGE' ? 6 : FONT_SCALE_DEFAULT
+
+/** 이전 3단계('normal'|'large'|'xlarge') localStorage 값과의 하위호환 */
+const LEGACY_SCALE: Record<string, FontScale> = {
+  normal: FONT_SCALE_DEFAULT,
+  large: 6,
+  xlarge: 8,
+}
 
 function readStoredScale(): FontScale {
   try {
-    const stored = localStorage.getItem(FONT_SCALE_KEY) as FontScale | null
-    return stored && FONT_SCALES.includes(stored) ? stored : 'normal'
+    const stored = localStorage.getItem(FONT_SCALE_KEY)
+    if (!stored) return FONT_SCALE_DEFAULT
+    if (stored in LEGACY_SCALE) return LEGACY_SCALE[stored]
+    const parsed = Number(stored)
+    return Number.isFinite(parsed) ? clampFontScale(parsed) : FONT_SCALE_DEFAULT
   } catch {
-    return 'normal'
+    return FONT_SCALE_DEFAULT
   }
 }
 
@@ -161,11 +197,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return tokenStore.subscribe(() => void sync())
   }, [])
 
-  // 글자 크기: DOM 반영 + localStorage
+  // 글자 크기: 루트 font-size(%) 반영 + localStorage
   useEffect(() => {
-    document.documentElement.dataset.fontScale = fontScale
+    document.documentElement.style.fontSize = `${fontScalePercent(fontScale)}%`
+    document.documentElement.dataset.fontScale = String(fontScale)
     try {
-      localStorage.setItem(FONT_SCALE_KEY, fontScale)
+      localStorage.setItem(FONT_SCALE_KEY, String(fontScale))
     } catch {
       /* noop */
     }
@@ -193,8 +230,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setFontScale = useCallback(
     (scale: FontScale) => {
-      setFontScaleState(scale)
-      persistPref({ fontScale: scale, easyMode: easyModeRef.current })
+      const clamped = clampFontScale(scale)
+      setFontScaleState(clamped)
+      persistPref({ fontScale: clamped, easyMode: easyModeRef.current })
     },
     [persistPref],
   )

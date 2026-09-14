@@ -2,12 +2,13 @@ import { Bell, ChevronRight, Coins, LogOut } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Drawer } from '@/components/ui/drawer'
 import { buttonVariants } from '@/components/ui/button'
-import { FONT_SCALES, FONT_SCALE_LABEL, useApp } from '@/hooks/use-app'
+import { FontSizeControl } from '@/components/layout/font-size-control'
+import { useApp } from '@/hooks/use-app'
 import { MAIN_NAV } from '@/lib/nav'
 import { cn, formatNumber } from '@/lib/utils'
 
 export function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { user, logout, fontScale, setFontScale } = useApp()
+  const { user, logout } = useApp()
 
   return (
     <Drawer open={open} onClose={onClose} title="전체 메뉴">
@@ -76,24 +77,7 @@ export function MobileNav({ open, onClose }: { open: boolean; onClose: () => voi
       </nav>
 
       <div className="mt-6">
-        <p className="text-base font-bold text-fg-muted">글자크기</p>
-        <div className="mt-2 grid grid-cols-3 gap-2">
-          {FONT_SCALES.map((scale) => (
-            <button
-              key={scale}
-              type="button"
-              onClick={() => setFontScale(scale)}
-              className={cn(
-                'h-12 rounded-btn border text-base font-bold transition-colors',
-                fontScale === scale
-                  ? 'border-primary bg-primary-light text-primary-deep'
-                  : 'border-border-strong bg-surface text-fg-muted',
-              )}
-            >
-              {FONT_SCALE_LABEL[scale]}
-            </button>
-          ))}
-        </div>
+        <FontSizeControl className="w-full" />
       </div>
 
       {user && (
