@@ -116,7 +116,7 @@ export function NearbyJobsPage() {
 
   const [radiusKm, setRadiusKm] = useState<RadiusKm>(10)
   const [mapRadiusKm, setMapRadiusKm] = useState<MapRadiusKm>(1)
-  const [view, setView] = useState<'list' | 'map'>('list')
+  const [view, setView] = useState<'list' | 'map'>('map')
   const [filters, setFilters] = useState<JobFilterState>(EMPTY_JOB_FILTERS)
   const [page, setPage] = useState(1)
   /** 지도가 지금 자기 반경 안에서 들고 있는 원본 공고 — 지도 뷰에서는 필터 건수 배지를
