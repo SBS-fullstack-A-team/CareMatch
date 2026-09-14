@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router-dom'
 import { PlaceholderPage } from '@/components/common/placeholder-page'
 import { SiteLayout } from '@/components/layout/site-layout'
 import { TalentAccessGate } from '@/components/talent/talent-access-gate'
+import { AboutPage } from '@/pages/About'
 import { HomePage } from '@/pages/Home'
 import { JobApplyPage } from '@/pages/JobApply'
 import { JobDetailPage } from '@/pages/JobDetail'
@@ -78,7 +79,7 @@ export const router = createBrowserRouter([
           { path: '*', element: <PlaceholderPage title="마이페이지" /> },
         ],
       },
-      { path: '/about', element: <PlaceholderPage title="회사소개" /> },
+      { path: '/about', element: <AboutPage /> },
       { path: '/terms', element: <LegalPage type="SERVICE" /> },
       { path: '/privacy', element: <LegalPage type="PRIVACY" /> },
       {
