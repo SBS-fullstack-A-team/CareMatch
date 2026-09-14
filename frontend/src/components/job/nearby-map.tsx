@@ -443,7 +443,11 @@ export function NearbyMap({
                   'shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors',
                   selectedJobId === item.job.id
                     ? 'border-primary bg-primary text-white'
-                    : 'border-border bg-surface text-fg-muted hover:border-primary/50 hover:text-primary-deep',
+                    : item.job.status === 'special'
+                      ? 'border-accent bg-accent text-white hover:brightness-95'
+                      : item.job.status === 'premium'
+                        ? 'border-accent bg-surface text-accent-deep hover:bg-accent-light'
+                        : 'border-border bg-surface text-fg-muted hover:border-primary/50 hover:text-primary-deep',
                 )}
               >
                 {item.job.facilityName} · {formatDistanceKm(item.distanceKm)}
