@@ -1,7 +1,7 @@
 import { Award, MapPin, UserRound } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { jobCategoryLabel } from '@/data/labels'
-import { cn, formatDotDate, maskName } from '@/lib/utils'
+import { cn, formatDotDate } from '@/lib/utils'
 import type { Talent } from '@/types'
 
 /**
@@ -9,7 +9,7 @@ import type { Talent } from '@/types'
  *
  * 시설 담당자가 "누구이고 어떤 일을 원하는지"를 가장 먼저 파악하는 영역이라
  * 마스킹된 이름 → 희망직종 → 지역·경력 순으로 시각적 우선순위를 둔다.
- * 이름은 기존 maskName() 정책 그대로다. (DESIGN_SYSTEM.md §21)
+ * 이름은 서버가 이미 마스킹해서 내려준다(연락처 열람 시 언마스크). (DESIGN_SYSTEM.md §21)
  *
  * 프로필 사진이 없어도 동일한 크기의 원형 placeholder 를 유지한다. (§32)
  */
@@ -44,16 +44,20 @@ export function TalentDetailHeader({
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <h1 className="text-3xl font-bold text-fg">{maskName(talent.name)}</h1>
-            <p className="text-base text-fg-muted">
-              {talent.gender} · {talent.age}세
-            </p>
+            <h1 className="text-3xl font-bold text-fg">{talent.name}</h1>
+            {(talent.gender || talent.age != null) && (
+              <p className="text-base text-fg-muted">
+                {[talent.gender, talent.age != null ? `${talent.age}세` : null].filter(Boolean).join(' · ')}
+              </p>
+            )}
             {talent.availableNow && <Badge variant="normal">즉시 근무 가능</Badge>}
           </div>
 
           <p className="mt-3 text-xl">
-            <span className="font-bold text-primary-deep">{jobCategoryLabel(talent.category)}</span>
-            <span className="ml-1.5 text-fg-muted">희망</span>
+            <span className="font-bold text-primary-deep">
+              {talent.category ? jobCategoryLabel(talent.category) : '희망직종 미기재'}
+            </span>
+            {talent.category && <span className="ml-1.5 text-fg-muted">희망</span>}
           </p>
 
           <dl className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-base text-fg-muted">
@@ -72,9 +76,11 @@ export function TalentDetailHeader({
             )}
           </dl>
 
-          <p className="mt-4 text-xs text-fg-subtle tabular">
-            최근 업데이트 {formatDotDate(talent.updatedAt)}
-          </p>
+          {talent.updatedAt && (
+            <p className="mt-4 text-xs text-fg-subtle tabular">
+              최근 업데이트 {formatDotDate(talent.updatedAt)}
+            </p>
+          )}
         </div>
       </div>
     </header>

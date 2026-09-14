@@ -2,13 +2,19 @@ import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Breadcrumb } from '@/components/common/breadcrumb'
 import { EmptyState } from '@/components/common/empty-state'
+import { LoadingState } from '@/components/common/loading-state'
 import { Pagination } from '@/components/common/pagination'
-import { TalentFilterPanel } from '@/components/talent/talent-filter-panel'
-import { TalentListCard } from '@/components/talent/talent-list-card'
 import { TalentSearchBar } from '@/components/talent/talent-search-bar'
+import {
+  EMPTY_TALENT_FILTER_COUNTS,
+  TalentFilterPanel,
+  type TalentFilterCounts,
+} from '@/components/talent/talent-filter-panel'
+import { TalentListCard } from '@/components/talent/talent-list-card'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { Tag } from '@/components/ui/tag'
+import { getTalentFacets, getTalents } from '@/api/jobseekers'
 import {
   CAREER_OPTIONS,
   CATEGORY_OPTIONS,
@@ -16,20 +22,22 @@ import {
   TALENT_SORT_OPTIONS,
   WORK_SCHEDULE_OPTIONS,
 } from '@/data/filters'
-import { TALENTS } from '@/data/mock/talents'
+import { useAsync } from '@/hooks/use-async'
+import { summaryToTalent } from '@/lib/talent-adapter'
 import {
-  applyFilters,
   EMPTY_TALENT_FILTERS,
   EMPTY_TALENT_SEARCH,
   isTalentSort,
-  matchesSearch,
-  sortTalents,
+  toTalentSearchParams,
   type TalentFilterGroup,
   type TalentFilterState,
   type TalentSearchQuery,
   type TalentSort,
 } from '@/lib/talent-filters'
+import { toRegionLabel } from '@/lib/job-filters'
 import { formatNumber } from '@/lib/utils'
+import { LoadFailed } from '@/pages/Support/shared'
+import type { TalentFacetsResponse } from '@/types/api'
 
 /** 3열 × 4행 */
 const PAGE_SIZE = 12
@@ -72,13 +80,41 @@ function toParams(search: TalentSearchQuery, sort: TalentSort) {
   return params
 }
 
+const CAREER_BUCKET_FROM_API: Record<string, string> = {
+  ENTRY: 'entry',
+  Y1_3: '1-3',
+  Y3_5: '3-5',
+  Y5_PLUS: '5+',
+}
+
+/** `GET /api/jobseekers/facets` 응답을 좌측 필터 패널이 쓰는 형태로 옮긴다. 자격증 축은 항상 빈 값. */
+function toFilterCounts(facets: TalentFacetsResponse | null): TalentFilterCounts {
+  if (!facets) return EMPTY_TALENT_FILTER_COUNTS
+  return {
+    regions: Object.fromEntries(
+      Object.entries(facets.sido).map(([sido, count]) => [toRegionLabel(sido), count]),
+    ),
+    categories: facets.desiredJobType,
+    workSchedules: facets.desiredWorkSchedule,
+    careers: Object.fromEntries(
+      Object.entries(facets.careerBucket).map(([bucket, count]) => [
+        CAREER_BUCKET_FROM_API[bucket] ?? bucket,
+        count,
+      ]),
+    ),
+    certificates: {},
+  }
+}
+
 /**
  * 인재정보 목록 (COMPONENT_RULES.md §17 / DESIGN_SYSTEM.md §6)
  *
  * Breadcrumb → 페이지 타이틀 → 검색 → 결과 요약·정렬 → (좌) 필터 / (우) 카드 3열 → 페이지네이션
  * 구인공고 목록과 같은 탐색 구조를 쓰되, 시설 담당자가 구직자를 찾는 방향으로 정보를 재구성했다.
  *
- * 검색·필터·정렬·페이지네이션은 아직 API 가 없어 mock 데이터 위에서 동작한다.
+ * `GET /api/jobseekers`(목록)·`/facets`(필터 옵션별 인원수) 를 그대로 쓴다. 자격증 필터는
+ * 체크박스만 동작하고 옆 숫자는 없다(백엔드 facets 가 자격증 축을 제공하지 않음).
+ * 키워드 검색은 백엔드에 대응 파라미터가 없어 반영되지 않는다.
  */
 export function TalentListPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -93,16 +129,18 @@ export function TalentListPage() {
   })
   const [page, setPage] = useState(1)
 
-  const searched = useMemo(
-    () => TALENTS.filter((talent) => matchesSearch(talent, search)),
-    [search],
-  )
-  const filtered = useMemo(() => applyFilters(searched, filters), [searched, filters])
-  const sorted = useMemo(() => sortTalents(filtered, sort), [filtered, sort])
+  const params = useMemo(() => toTalentSearchParams(search, filters, sort), [search, filters, sort])
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
-  const currentPage = Math.min(page, totalPages)
-  const pageTalents = sorted.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+  const { data, loading, error, reload } = useAsync(
+    () => getTalents({ ...params, page: page - 1, size: PAGE_SIZE }),
+    [params, page],
+  )
+  const { data: facets } = useAsync(() => getTalentFacets(params), [params])
+
+  const talents = useMemo(() => (data?.content ?? []).map(summaryToTalent), [data])
+  const totalElements = data?.totalElements ?? 0
+  const totalPages = Math.max(1, data?.totalPages ?? 1)
+  const counts = useMemo(() => toFilterCounts(facets ?? null), [facets])
 
   const hasSearch = Object.values(search).some(Boolean)
   const hasFilters = Object.values(filters).some((group) => group.length > 0)
@@ -169,7 +207,7 @@ export function TalentListPage() {
         <p className="text-lg text-fg-muted">
           {hasCondition ? '검색 결과' : '전체 인재정보'}{' '}
           <strong className="font-bold text-primary-deep tabular">
-            {formatNumber(sorted.length)}
+            {formatNumber(totalElements)}
           </strong>
           건
         </p>
@@ -224,13 +262,17 @@ export function TalentListPage() {
           value={filters}
           onChange={handleFiltersChange}
           onReset={resetFilters}
-          talents={searched}
+          counts={counts}
         />
 
         <section className="min-w-0 flex-1" aria-label="인재정보 목록">
-          {pageTalents.length > 0 ? (
+          {loading ? (
+            <LoadingState rows={PAGE_SIZE} variant="card" />
+          ) : error ? (
+            <LoadFailed message={error} onRetry={reload} />
+          ) : talents.length > 0 ? (
             <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {pageTalents.map((talent) => (
+              {talents.map((talent) => (
                 <li key={talent.id} className="flex">
                   <TalentListCard talent={talent} className="w-full" />
                 </li>
@@ -250,12 +292,7 @@ export function TalentListPage() {
             </div>
           )}
 
-          <Pagination
-            page={currentPage}
-            totalPages={totalPages}
-            onChange={setPage}
-            className="mt-8"
-          />
+          <Pagination page={page} totalPages={totalPages} onChange={setPage} className="mt-8" />
         </section>
       </div>
     </div>

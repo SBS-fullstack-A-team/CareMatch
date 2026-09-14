@@ -160,12 +160,16 @@ export interface Job {
 
 export interface Talent {
   id: string
-  /** 실명. 화면에는 maskName() 으로 마스킹해 노출한다 (DESIGN_SYSTEM.md §21) */
+  /**
+   * 이름. 서버가 이미 마스킹해서 내려준다(목록은 항상 "홍*동", 상세는 연락처 열람 전까지 마스킹) —
+   * 클라이언트에서 다시 마스킹하지 않는다. (DESIGN_SYSTEM.md §21)
+   */
   name: string
-  gender: '여' | '남'
-  age: number
-  /** 희망 직종 */
-  category: JobCategory
+  /** 구직자가 입력하지 않았을 수 있다. */
+  gender?: '여' | '남'
+  age?: number
+  /** 희망 직종. 구직자가 아직 설정하지 않았으면 없다. */
+  category?: JobCategory
   /** 희망 근무 지역 */
   regions: string[]
   /**
@@ -175,8 +179,8 @@ export interface Talent {
   certificates: CertificateType[]
   /** 프로필 사진 경로. 없으면 동일 크기의 원형 placeholder */
   photoUrl?: string
-  /** 갱신일 ISO date */
-  updatedAt: string
+  /** 갱신일 ISO date. 목록 응답에만 있다 — 상세 응답(JobSeekerProfileResponse)엔 없다. */
+  updatedAt?: string
   /** ---- 아래는 인재정보 목록/상세 화면용. 메인에서는 사용하지 않는다 ---- */
   careerLabel?: string
   careerYears?: number
@@ -192,6 +196,14 @@ export interface Talent {
   summary?: string
   matching?: Matching
   availableNow?: boolean
+  /** ---- 아래는 상세 화면(시설회원 열람) 전용 ---- */
+  /** 마스킹된 연락처("010-****-5678"). 열람 전. contactUnlocked=true 면 언마스크 값. */
+  phone?: string
+  residence?: string
+  /** 이 시설이 이미 연락처를 열람했는지 (열람했으면 phone/residence 가 언마스크 값). */
+  contactUnlocked?: boolean
+  /** 아직 열람 안 했을 때 소요될 포인트. */
+  unlockCost?: number
 }
 
 export interface Notice {

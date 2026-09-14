@@ -22,13 +22,13 @@ class TalentSummaryTest {
 
     @Test
     void 목록_이름은_항상_마스킹된다() {
-        TalentSummary summary = TalentSummary.from(profileOf("홍길동"), List.of(), null);
+        TalentSummary summary = TalentSummary.from(profileOf("홍길동"), List.of(), List.of(), null);
         assertThat(summary.name()).isEqualTo("홍*동");
     }
 
     @Test
     void 두글자_이름_마스킹() {
-        TalentSummary summary = TalentSummary.from(profileOf("김철"), List.of(), null);
+        TalentSummary summary = TalentSummary.from(profileOf("김철"), List.of(), List.of(), null);
         assertThat(summary.name()).isEqualTo("김*");
     }
 }

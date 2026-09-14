@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
 import { Tag } from '@/components/ui/tag'
 import { certificateTypeLabel, jobCategoryLabel, workScheduleLabel } from '@/data/labels'
-import { cn, formatDotDate, maskName } from '@/lib/utils'
+import { cn, formatDotDate } from '@/lib/utils'
 import type { Talent } from '@/types'
 
 /**
@@ -14,7 +14,7 @@ import type { Talent } from '@/types'
  * 목록은 여러 인재를 비교·탐색하는 화면이라 근무 시간대·경력이 더 필요해 별도 컴포넌트로 둔다.
  * 카드 스타일(border 기반 white surface / radius 10 / 64px 원형 프로필)은 그대로 계승한다.
  *
- * 이름은 maskName() 으로 마스킹한다. (DESIGN_SYSTEM.md §21)
+ * 이름은 서버가 이미 마스킹해서 내려준다. (DESIGN_SYSTEM.md §21)
  */
 export function TalentListCard({ talent, className }: { talent: Talent; className?: string }) {
   return (
@@ -44,10 +44,12 @@ export function TalentListCard({ talent, className }: { talent: Talent; classNam
         )}
 
         <div className="min-w-0 flex-1">
-          <h3 className="truncate text-lg font-bold text-fg">{maskName(talent.name)}</h3>
-          <p className="mt-0.5 text-sm text-fg-muted">
-            {talent.gender} · {talent.age}세
-          </p>
+          <h3 className="truncate text-lg font-bold text-fg">{talent.name}</h3>
+          {(talent.gender || talent.age != null) && (
+            <p className="mt-0.5 text-sm text-fg-muted">
+              {[talent.gender, talent.age != null ? `${talent.age}세` : null].filter(Boolean).join(' · ')}
+            </p>
+          )}
           {talent.availableNow && (
             <Badge variant="normal" className="mt-1.5">
               즉시 근무 가능
@@ -58,8 +60,10 @@ export function TalentListCard({ talent, className }: { talent: Talent; classNam
 
       {/* 희망 조건 */}
       <p className="mt-4 text-base">
-        <span className="font-bold text-primary-deep">{jobCategoryLabel(talent.category)}</span>
-        <span className="ml-1 text-fg-muted">희망</span>
+        <span className="font-bold text-primary-deep">
+          {talent.category ? jobCategoryLabel(talent.category) : '희망직종 미기재'}
+        </span>
+        {talent.category && <span className="ml-1 text-fg-muted">희망</span>}
       </p>
 
       <dl className="mt-2.5 space-y-2 text-base text-fg-muted">
@@ -103,9 +107,11 @@ export function TalentListCard({ talent, className }: { talent: Talent; classNam
       )}
 
       {/* 수정일 + 프로필 보기 — mt-auto 로 카드 높이가 달라도 하단에 정렬된다 */}
-      <p className="mt-auto pt-4 text-xs text-fg-subtle tabular">
-        프로필 수정 {formatDotDate(talent.updatedAt)}
-      </p>
+      {talent.updatedAt && (
+        <p className="mt-auto pt-4 text-xs text-fg-subtle tabular">
+          프로필 수정 {formatDotDate(talent.updatedAt)}
+        </p>
+      )}
 
       <Link
         to={`/talents/${talent.id}`}

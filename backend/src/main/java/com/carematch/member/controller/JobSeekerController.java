@@ -14,6 +14,7 @@ import com.carematch.member.domain.Gender;
 import com.carematch.member.dto.JobSeekerProfileResponse;
 import com.carematch.member.dto.JobSeekerProfileUpdateRequest;
 import com.carematch.member.dto.TalentSearchDtos.CareerBucket;
+import com.carematch.member.dto.TalentSearchDtos.FacetsResponse;
 import com.carematch.member.dto.TalentSearchDtos.SearchCondition;
 import com.carematch.member.dto.TalentSearchDtos.TalentSummary;
 import com.carematch.member.service.JobSeekerProfileQueryService;
@@ -72,10 +73,10 @@ public class JobSeekerController {
     @PreAuthorize("hasAnyRole('FACILITY','ADMIN')")
     public PageResponse<TalentSummary> search(
             @AuthenticationPrincipal CustomUserDetails principal,
-            @RequestParam(required = false) JobType desiredJobType,
+            @RequestParam(required = false) java.util.List<JobType> desiredJobTypes,
             @RequestParam(required = false) WorkType desiredWorkType,
             @RequestParam(required = false) java.util.List<WorkSchedule> desiredWorkSchedules,
-            @RequestParam(required = false) String sido,
+            @RequestParam(required = false) java.util.List<String> sidos,
             @RequestParam(required = false) String sigungu,
             @RequestParam(required = false) java.util.List<PayType> payTypes,
             @RequestParam(required = false) Integer payMax,
@@ -92,10 +93,39 @@ public class JobSeekerController {
         boolean isFacility = principal.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_FACILITY"));
         SearchCondition cond = new SearchCondition(
-                desiredJobType, desiredWorkType, desiredWorkSchedules, sido, sigungu, payTypes, payMax,
+                desiredJobTypes, desiredWorkType, desiredWorkSchedules, sidos, sigungu, payTypes, payMax,
                 gender, careerBuckets, availableTasks, desiredEmploymentTypes, certificateTypes,
                 seekingOnly, updatedWithinDays, sort);
         return talentSearchService.search(cond, page, size, principal.getMemberId(), isFacility);
+    }
+
+    /**
+     * 좌측 필터 패널의 옵션별 결과 인원수. 검색과 같은 필터 파라미터를 받되 sort/page/size 는 없다.
+     * 각 축은 그 축 자신의 선택은 제외하고 센다(JobPostingController#facets 와 동일 규칙).
+     * 자격증 축은 이번 범위에서 제공하지 않는다.
+     */
+    @GetMapping("/facets")
+    @PreAuthorize("hasAnyRole('FACILITY','ADMIN')")
+    public FacetsResponse facets(
+            @RequestParam(required = false) java.util.List<JobType> desiredJobTypes,
+            @RequestParam(required = false) WorkType desiredWorkType,
+            @RequestParam(required = false) java.util.List<WorkSchedule> desiredWorkSchedules,
+            @RequestParam(required = false) java.util.List<String> sidos,
+            @RequestParam(required = false) String sigungu,
+            @RequestParam(required = false) java.util.List<PayType> payTypes,
+            @RequestParam(required = false) Integer payMax,
+            @RequestParam(required = false) Gender gender,
+            @RequestParam(required = false) java.util.List<CareerBucket> careerBuckets,
+            @RequestParam(required = false) java.util.List<CareTask> availableTasks,
+            @RequestParam(required = false) java.util.List<EmploymentType> desiredEmploymentTypes,
+            @RequestParam(required = false) java.util.List<CertificateType> certificateTypes,
+            @RequestParam(required = false) Boolean seekingOnly,
+            @RequestParam(required = false) Integer updatedWithinDays) {
+        SearchCondition cond = new SearchCondition(
+                desiredJobTypes, desiredWorkType, desiredWorkSchedules, sidos, sigungu, payTypes, payMax,
+                gender, careerBuckets, availableTasks, desiredEmploymentTypes, certificateTypes,
+                seekingOnly, updatedWithinDays, null);
+        return talentSearchService.facets(cond);
     }
 
     /** 인재 상세 (시설회원/관리자). 연락처·거주지는 기본 마스킹, 열람 이력 있으면 언마스크 */
