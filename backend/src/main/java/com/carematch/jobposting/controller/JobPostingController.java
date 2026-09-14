@@ -59,6 +59,16 @@ public class JobPostingController {
                 .body(jobPostingService.create(principal.getMemberId(), request));
     }
 
+    /** "등록한 공고" 마이페이지 — 내가 올린 공고 전체(상태 무관, 최신순) + 공고별 지원자 수. */
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('FACILITY')")
+    public PageResponse<SummaryResponse> myPostings(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return jobPostingService.myPostings(principal.getMemberId(), page, size);
+    }
+
     /**
      * 목록/검색. 모든 필터는 선택. 다중값은 반복 파라미터(?jobTypes=A&jobTypes=B) 또는 콤마.
      * sort: RECOMMENDED(기본)/LATEST/DEADLINE/PAY_DESC/PAY_ASC/VIEWS.
