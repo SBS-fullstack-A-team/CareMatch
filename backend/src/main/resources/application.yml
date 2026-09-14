@@ -140,6 +140,6 @@ carematch:
       secret-access-key: ${R2_SECRET_ACCESS_KEY:}
 
   support:
-    tel: ${SUPPORT_TEL:1600-0000}
+    tel: ${SUPPORT_TEL:1588-1234}
     kakao-channel-url: ${SUPPORT_KAKAO_URL:https://pf.kakao.com/_carematch}
     operating-hours: "평일 09:00~18:00 (점심 12:00~13:00 제외)"
