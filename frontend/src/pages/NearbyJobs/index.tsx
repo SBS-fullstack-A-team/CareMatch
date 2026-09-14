@@ -1,5 +1,6 @@
-import { MapPin } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { LocateFixed, MapPin, Search } from 'lucide-react'
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { useKakaoLoader } from 'react-kakao-maps-sdk'
 import { getNearbyJobPostings } from '@/api/job-postings'
 import { Breadcrumb } from '@/components/common/breadcrumb'
 import { EmptyState } from '@/components/common/empty-state'
@@ -9,8 +10,10 @@ import { EMPTY_JOB_FILTER_COUNTS, JobFilterPanel, type JobFilterCounts } from '@
 import { JobListItem } from '@/components/job/job-list-item'
 import { NearbyMap } from '@/components/job/nearby-map'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { Tag } from '@/components/ui/tag'
+import { useToast } from '@/components/ui/toast'
 import { CATEGORY_OPTIONS, FACILITY_TYPE_OPTIONS, PAY_TYPE_OPTIONS, WORK_SCHEDULE_OPTIONS } from '@/data/filters'
 import { useAsync } from '@/hooks/use-async'
 import { useGeolocation } from '@/hooks/use-geolocation'
@@ -54,7 +57,7 @@ function withDistanceTag(job: Job, distanceKm: number): Job {
  * 범위(최대 100건)라 좌측 필터는 서버 재조회 없이 클라이언트에서 적용한다.
  */
 export function NearbyJobsPage() {
-  const { status, coords, request } = useGeolocation()
+  const { status, coords: gpsCoords, request } = useGeolocation()
   const requestedRef = useRef(false)
   useEffect(() => {
     if (!requestedRef.current) {
@@ -62,6 +65,37 @@ export function NearbyJobsPage() {
       request()
     }
   }, [request])
+
+  const [kakaoLoading, kakaoError] = useKakaoLoader({
+    appkey: import.meta.env.VITE_KAKAO_MAP_KEY,
+    libraries: ['services'],
+  })
+  const { toast } = useToast()
+  const [addressQuery, setAddressQuery] = useState('')
+  /** 주소 검색으로 위치를 직접 지정하면 GPS 대신 이 좌표를 기준으로 찾는다 — GPS 권한이 없거나
+   * 다른 지역을 미리 둘러보고 싶을 때를 위한 보조 수단. */
+  const [manualLocation, setManualLocation] = useState<{ lat: number; lng: number; label: string } | null>(null)
+  const coords = manualLocation ?? gpsCoords
+
+  const handleAddressSearch = (event: FormEvent) => {
+    event.preventDefault()
+    const query = addressQuery.trim()
+    if (!query || kakaoLoading || kakaoError || typeof kakao === 'undefined') return
+    const geocoder = new kakao.maps.services.Geocoder()
+    geocoder.addressSearch(query, (result, resultStatus) => {
+      if (resultStatus === kakao.maps.services.Status.OK && result[0]) {
+        setManualLocation({ lat: Number(result[0].y), lng: Number(result[0].x), label: result[0].address_name })
+        setPage(1)
+      } else {
+        toast({ title: '주소를 찾을 수 없어요. 다른 검색어로 시도해보세요.', variant: 'error' })
+      }
+    })
+  }
+  const handleUseGps = () => {
+    setManualLocation(null)
+    setAddressQuery('')
+    if (status !== 'granted') request()
+  }
 
   const [radiusKm, setRadiusKm] = useState<RadiusKm>(10)
   const [mapRadiusKm, setMapRadiusKm] = useState<MapRadiusKm>(1)
@@ -122,7 +156,8 @@ export function NearbyJobsPage() {
   }
   const handleMapRadiusChange = (value: string) => setMapRadiusKm(Number(value) as MapRadiusKm)
 
-  const located = status === 'granted' && coords != null
+  /** GPS 권한 상태와 무관하게, 주소를 직접 검색해 찾았다면 그 좌표로 위치가 확정된 것으로 본다. */
+  const located = coords != null
 
   return (
     <div className="container-page py-6 lg:py-8">
@@ -134,46 +169,70 @@ export function NearbyJobsPage() {
       </header>
 
       {/* ---------------- 위치 상태 안내 ---------------- */}
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-card border border-primary/35 bg-primary-light/60 px-5 py-4">
-        <div className="flex items-start gap-2.5">
-          <MapPin className="mt-0.5 size-5 shrink-0 text-primary-deep" aria-hidden />
-          <div>
-            {located && (
-              <>
-                <p className="text-base font-bold text-fg">현재 위치 기준으로 찾고 있어요</p>
-                <p className="mt-0.5 text-base text-fg-muted">
-                  반경 {formatDistanceKm(view === 'map' ? mapRadiusKm : radiusKm)} 이내 공고를 보여드립니다.
-                </p>
-              </>
-            )}
-            {(status === 'idle' || status === 'loading') && (
-              <p className="text-base font-bold text-fg">현재 위치를 확인하고 있어요...</p>
-            )}
-            {status === 'denied' && (
-              <>
-                <p className="text-base font-bold text-fg">위치 권한이 필요해요</p>
-                <p className="mt-0.5 text-base text-fg-muted">
-                  브라우저 위치 권한을 허용한 뒤 다시 시도해 주세요.
-                </p>
-              </>
-            )}
-            {status === 'unsupported' && (
-              <p className="text-base font-bold text-fg">이 브라우저는 위치 확인을 지원하지 않아요.</p>
-            )}
-            {status === 'error' && (
-              <>
-                <p className="text-base font-bold text-fg">위치를 확인하지 못했어요</p>
-                <p className="mt-0.5 text-base text-fg-muted">잠시 후 다시 시도해 주세요.</p>
-              </>
-            )}
+      <div className="mt-5 rounded-card border border-primary/35 bg-primary-light/60 px-5 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+          <div className="flex items-start gap-2.5">
+            <MapPin className="mt-0.5 size-5 shrink-0 text-primary-deep" aria-hidden />
+            <div>
+              {located && (
+                <>
+                  <p className="text-base font-bold text-fg">
+                    {manualLocation ? '검색한 위치 기준으로 찾고 있어요' : '현재 위치 기준으로 찾고 있어요'}
+                  </p>
+                  <p className="mt-0.5 text-base text-fg-muted">
+                    {manualLocation && `${manualLocation.label} · `}반경{' '}
+                    {formatDistanceKm(view === 'map' ? mapRadiusKm : radiusKm)} 이내 공고를 보여드립니다.
+                  </p>
+                </>
+              )}
+              {!located && (status === 'idle' || status === 'loading') && (
+                <p className="text-base font-bold text-fg">현재 위치를 확인하고 있어요...</p>
+              )}
+              {!located && status === 'denied' && (
+                <>
+                  <p className="text-base font-bold text-fg">위치 권한이 필요해요</p>
+                  <p className="mt-0.5 text-base text-fg-muted">
+                    브라우저 위치 권한을 허용하거나, 아래에서 주소를 직접 검색해 주세요.
+                  </p>
+                </>
+              )}
+              {!located && status === 'unsupported' && (
+                <p className="text-base font-bold text-fg">이 브라우저는 위치 확인을 지원하지 않아요.</p>
+              )}
+              {!located && status === 'error' && (
+                <>
+                  <p className="text-base font-bold text-fg">위치를 확인하지 못했어요</p>
+                  <p className="mt-0.5 text-base text-fg-muted">잠시 후 다시 시도하거나, 주소를 직접 검색해 주세요.</p>
+                </>
+              )}
+            </div>
           </div>
+
+          {!located && status !== 'unsupported' && (
+            <Button variant="secondary" size="sm" onClick={request} disabled={status === 'loading'}>
+              {status === 'loading' ? '확인 중...' : '다시 시도'}
+            </Button>
+          )}
         </div>
 
-        {!located && status !== 'unsupported' && (
-          <Button variant="secondary" size="sm" onClick={request} disabled={status === 'loading'}>
-            {status === 'loading' ? '확인 중...' : '다시 시도'}
+        {/* ---------------- 주소 직접 검색 ---------------- */}
+        <form onSubmit={handleAddressSearch} className="mt-3 flex flex-wrap items-center gap-2">
+          <Input
+            icon={<Search className="size-[18px]" aria-hidden />}
+            value={addressQuery}
+            onChange={(event) => setAddressQuery(event.target.value)}
+            placeholder="주소로 검색 (예: 대전 서구 둔산동)"
+            className="h-11 max-w-xs flex-1"
+          />
+          <Button type="submit" variant="outline" size="sm" disabled={!addressQuery.trim() || kakaoLoading}>
+            검색
           </Button>
-        )}
+          {manualLocation && (
+            <Button type="button" variant="ghost" size="sm" onClick={handleUseGps}>
+              <LocateFixed className="size-[18px]" aria-hidden /> 내 위치로
+            </Button>
+          )}
+        </form>
       </div>
 
       {located && coords && (

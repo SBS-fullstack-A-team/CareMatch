@@ -1,5 +1,5 @@
-import { MapPin, Share2, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { LocateFixed, MapPin, Share2, X } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CustomOverlayMap, Map, useKakaoLoader } from 'react-kakao-maps-sdk'
 import { getJobPostingsInBounds } from '@/api/job-postings'
@@ -62,11 +62,38 @@ export function NearbyMap({
   onJobsChange?: (jobs: Job[]) => void
   className?: string
 }) {
-  const [loading, error] = useKakaoLoader({ appkey: import.meta.env.VITE_KAKAO_MAP_KEY })
+  const [loading, error] = useKakaoLoader({
+    appkey: import.meta.env.VITE_KAKAO_MAP_KEY,
+    libraries: ['services'],
+  })
   const [rawMarkers, setRawMarkers] = useState<MapMarkerItem[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [tooMany, setTooMany] = useState(false)
+  const [address, setAddress] = useState<string | null>(null)
+  const mapRef = useRef<kakao.maps.Map | null>(null)
   const { toast } = useToast()
+
+  /** react-kakao-maps-sdk 의 `onCreate` 는 (마운트 시가 아니라) 콜백의 참조가 바뀔 때마다 다시
+   * 호출된다 — refreshMarkers 를 매 렌더마다 새로 만들면 렌더 -> onCreate 재호출 -> setState ->
+   * 렌더 -> ... 로 무한 루프(+무한 재조회)가 생긴다. center/radiusKm 은 ref 로 최신값만 읽어서
+   * refreshMarkers 자체는 참조가 절대 바뀌지 않게 만든다. */
+  const centerRef = useRef(center)
+  centerRef.current = center
+  const radiusKmRef = useRef(radiusKm)
+  radiusKmRef.current = radiusKm
+
+  /** 내 위치 좌표 -> 주소 텍스트(도로명 우선, 없으면 지번). 지도 아래에 사람이 읽을 수 있는
+   * 형태로 보여주기 위한 역지오코딩 — 좌표만으로는 사용자가 위치를 가늠하기 어렵다. */
+  useEffect(() => {
+    if (loading || error) return
+    const geocoder = new kakao.maps.services.Geocoder()
+    geocoder.coord2Address(center.lng, center.lat, (result, status) => {
+      if (status === kakao.maps.services.Status.OK && result[0]) {
+        const { road_address, address: jibun } = result[0]
+        setAddress(road_address?.address_name ?? jibun.address_name)
+      }
+    })
+  }, [center.lat, center.lng, loading, error])
 
   /** 필터에 걸리는 마커는 원색 배지로 눈에 띄게, 나머지는 흐리게 — 지도에서 아예 없애지 않고
    * 위치 맥락은 남겨둔 채 "필터에 맞는 곳"만 두드러지게 한다. */
@@ -98,7 +125,7 @@ export function NearbyMap({
     }
   }
 
-  const refreshMarkers = (map: kakao.maps.Map) => {
+  const refreshMarkers = useCallback((map: kakao.maps.Map) => {
     const bounds = map.getBounds()
     const sw = bounds.getSouthWest()
     const ne = bounds.getNorthEast()
@@ -109,13 +136,30 @@ export function NearbyMap({
       neLng: ne.getLng(),
     })
       .then((results) => {
+        const { lat, lng } = centerRef.current
         const withinRadius = results.filter(
-          (r) => distanceKm(center.lat, center.lng, r.latitude, r.longitude) <= radiusKm,
+          (r) => distanceKm(lat, lng, r.latitude, r.longitude) <= radiusKmRef.current,
         )
         setTooMany(withinRadius.length >= 200)
         setRawMarkers(withinRadius.map((r) => ({ job: summaryToJob(r.posting), lat: r.latitude, lng: r.longitude })))
       })
       .catch(() => setRawMarkers([]))
+  }, [])
+
+  const handleMapCreate = useCallback(
+    (map: kakao.maps.Map) => {
+      mapRef.current = map
+      refreshMarkers(map)
+    },
+    [refreshMarkers],
+  )
+
+  /** 지도를 손으로 옮기거나 확대/축소한 뒤에도 버튼 한 번으로 내 위치 기준으로 되돌아온다. */
+  const handleRecenter = () => {
+    const map = mapRef.current
+    if (!map) return
+    map.setLevel(levelForRadiusKm(radiusKm))
+    map.setCenter(new kakao.maps.LatLng(center.lat, center.lng))
   }
 
   if (error) {
@@ -139,14 +183,14 @@ export function NearbyMap({
   }
 
   return (
-    <div className={className}>
-      <div className="relative h-full overflow-hidden rounded-card border border-border">
+    <div className={cn('flex flex-col', className)}>
+      <div className="relative min-h-0 flex-1 overflow-hidden rounded-card border border-border">
         <Map
           key={radiusKm}
           center={center}
           level={levelForRadiusKm(radiusKm)}
           style={{ width: '100%', height: '100%' }}
-          onCreate={refreshMarkers}
+          onCreate={handleMapCreate}
           onIdle={refreshMarkers}
           onClick={() => setActiveId(null)}
         >
@@ -233,6 +277,33 @@ export function NearbyMap({
             공고가 많아 일부만 표시돼요. 반경을 좁혀보세요.
           </p>
         )}
+
+        <button
+          type="button"
+          onClick={handleRecenter}
+          aria-label="내 위치로 이동"
+          className="absolute bottom-3 right-3 grid size-11 place-items-center rounded-full border border-border bg-surface text-fg-muted shadow-overlay hover:border-primary hover:text-primary-deep"
+        >
+          <LocateFixed className="size-5" aria-hidden />
+        </button>
+      </div>
+
+      {/* 지도 아래 내 현재 위치 주소 — 좌표만으론 위치를 가늠하기 어려워 사람이 읽을 수 있는
+       * 주소로 역지오코딩해서 보여준다. */}
+      <div className="mt-2 flex items-center gap-1.5 rounded-card border border-border bg-surface px-3 py-2 text-sm text-fg-muted">
+        <span className="relative flex size-2.5 shrink-0 items-center justify-center">
+          <span className="absolute inline-flex size-2.5 rounded-full bg-accent opacity-60" />
+          <span className="relative inline-flex size-1.5 rounded-full bg-accent" />
+        </span>
+        <span className="truncate">
+          {address ? (
+            <>
+              내 위치: <span className="font-medium text-fg">{address}</span>
+            </>
+          ) : (
+            '내 위치 확인 중...'
+          )}
+        </span>
       </div>
     </div>
   )
