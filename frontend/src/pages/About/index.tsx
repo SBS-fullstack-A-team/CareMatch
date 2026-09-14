@@ -98,7 +98,7 @@ export function AboutPage() {
           </div>
           <div className="flex justify-between gap-4 sm:justify-start sm:col-span-2">
             <dt className="text-fg-muted">주소</dt>
-            <dd className="text-fg">서울특별시 강남구 테헤란로 123, 7층 (역삼동)</dd>
+            <dd className="text-fg">대전광역시 서구 대덕대로 179, 10층</dd>
           </div>
           <div className="flex justify-between gap-4 sm:justify-start">
             <dt className="text-fg-muted">고객센터</dt>
