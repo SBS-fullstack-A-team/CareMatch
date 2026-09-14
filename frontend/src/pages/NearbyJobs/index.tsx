@@ -1,5 +1,5 @@
 import { LocateFixed, MapPin, Search } from 'lucide-react'
-import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useKakaoLoader } from 'react-kakao-maps-sdk'
 import { getNearbyJobPostings } from '@/api/job-postings'
 import { Breadcrumb } from '@/components/common/breadcrumb'
@@ -10,7 +10,6 @@ import { EMPTY_JOB_FILTER_COUNTS, JobFilterPanel, type JobFilterCounts } from '@
 import { JobListItem } from '@/components/job/job-list-item'
 import { NearbyMap } from '@/components/job/nearby-map'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { Tag } from '@/components/ui/tag'
 import { useToast } from '@/components/ui/toast'
@@ -71,29 +70,47 @@ export function NearbyJobsPage() {
     libraries: ['services'],
   })
   const { toast } = useToast()
-  const [addressQuery, setAddressQuery] = useState('')
   /** 주소 검색으로 위치를 직접 지정하면 GPS 대신 이 좌표를 기준으로 찾는다 — GPS 권한이 없거나
    * 다른 지역을 미리 둘러보고 싶을 때를 위한 보조 수단. */
   const [manualLocation, setManualLocation] = useState<{ lat: number; lng: number; label: string } | null>(null)
   const coords = manualLocation ?? gpsCoords
 
-  const handleAddressSearch = (event: FormEvent) => {
-    event.preventDefault()
-    const query = addressQuery.trim()
-    if (!query || kakaoLoading || kakaoError || typeof kakao === 'undefined') return
-    const geocoder = new kakao.maps.services.Geocoder()
-    geocoder.addressSearch(query, (result, resultStatus) => {
-      if (resultStatus === kakao.maps.services.Status.OK && result[0]) {
-        setManualLocation({ lat: Number(result[0].y), lng: Number(result[0].x), label: result[0].address_name })
-        setPage(1)
-      } else {
-        toast({ title: '주소를 찾을 수 없어요. 다른 검색어로 시도해보세요.', variant: 'error' })
-      }
-    })
+  /** 카카오 우편번호(주소 검색) 서비스 스크립트 — 지도 SDK 와 별도 스크립트라 따로 로드한다.
+   * 건물명/지번/도로명을 다 지원하는 공식 검색 팝업이라 직접 만든 자동완성보다 정확하다. */
+  const [postcodeLoaded, setPostcodeLoaded] = useState(false)
+  useEffect(() => {
+    if (typeof kakao !== 'undefined' && kakao.Postcode) {
+      setPostcodeLoaded(true)
+      return
+    }
+    const script = document.createElement('script')
+    script.src = '//t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js'
+    script.onload = () => setPostcodeLoaded(true)
+    document.head.appendChild(script)
+  }, [])
+
+  const applyLocation = (lat: number, lng: number, label: string) => {
+    setManualLocation({ lat, lng, label })
+    setPage(1)
+  }
+  const handleAddressSearch = () => {
+    if (!postcodeLoaded || kakaoLoading || kakaoError) return
+    new kakao.Postcode({
+      oncomplete: (data) => {
+        const address = data.roadAddress || data.jibunAddress
+        const geocoder = new kakao.maps.services.Geocoder()
+        geocoder.addressSearch(address, (result, resultStatus) => {
+          if (resultStatus === kakao.maps.services.Status.OK && result[0]) {
+            applyLocation(Number(result[0].y), Number(result[0].x), address)
+          } else {
+            toast({ title: '주소를 찾을 수 없어요. 다른 주소로 다시 시도해보세요.', variant: 'error' })
+          }
+        })
+      },
+    }).open()
   }
   const handleUseGps = () => {
     setManualLocation(null)
-    setAddressQuery('')
     if (status !== 'granted') request()
   }
 
@@ -215,24 +232,26 @@ export function NearbyJobsPage() {
           )}
         </div>
 
-        {/* ---------------- 주소 직접 검색 ---------------- */}
-        <form onSubmit={handleAddressSearch} className="mt-3 flex flex-wrap items-center gap-2">
-          <Input
-            icon={<Search className="size-[18px]" aria-hidden />}
-            value={addressQuery}
-            onChange={(event) => setAddressQuery(event.target.value)}
-            placeholder="주소로 검색 (예: 대전 서구 둔산동)"
-            className="h-11 max-w-xs flex-1"
-          />
-          <Button type="submit" variant="outline" size="sm" disabled={!addressQuery.trim() || kakaoLoading}>
-            검색
-          </Button>
+        {/* ---------------- 주소 직접 검색 (카카오 우편번호 서비스) ---------------- */}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleAddressSearch}
+            disabled={!postcodeLoaded || kakaoLoading}
+            className={cn(
+              'flex h-11 max-w-xs flex-1 items-center gap-2 rounded-input border border-border-strong bg-surface px-4',
+              'text-left text-base text-fg-muted transition-colors hover:border-primary disabled:opacity-50',
+            )}
+          >
+            <Search className="size-[18px] shrink-0" aria-hidden />
+            <span className="truncate">{manualLocation ? manualLocation.label : '주소로 검색'}</span>
+          </button>
           {manualLocation && (
             <Button type="button" variant="ghost" size="sm" onClick={handleUseGps}>
               <LocateFixed className="size-[18px]" aria-hidden /> 내 위치로
             </Button>
           )}
-        </form>
+        </div>
       </div>
 
       {located && coords && (
@@ -257,8 +276,8 @@ export function NearbyJobsPage() {
             </div>
             <SegmentedControl
               items={[
-                { value: 'list', label: '리스트' },
                 { value: 'map', label: '지도' },
+                { value: 'list', label: '리스트' },
               ]}
               value={view}
               onChange={(value) => setView(value as 'list' | 'map')}

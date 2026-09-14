@@ -4,16 +4,18 @@ import { Link } from 'react-router-dom'
 import { CustomOverlayMap, Map, useKakaoLoader } from 'react-kakao-maps-sdk'
 import { getJobPostingsInBounds } from '@/api/job-postings'
 import { ScrapButton } from '@/components/common/scrap-button'
+import { JobListItem } from '@/components/job/job-list-item'
 import { useToast } from '@/components/ui/toast'
 import { summaryToJob } from '@/lib/job-adapter'
 import { applyFilters, type JobFilterState } from '@/lib/job-filters'
-import { cn, formatPay } from '@/lib/utils'
+import { cn, formatDistanceKm, formatPay } from '@/lib/utils'
 import type { Job } from '@/types'
 
 interface MapMarkerItem {
   job: Job
   lat: number
   lng: number
+  distanceKm: number
 }
 
 const EARTH_RADIUS_KM = 6371
@@ -68,6 +70,7 @@ export function NearbyMap({
   })
   const [rawMarkers, setRawMarkers] = useState<MapMarkerItem[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
   const [tooMany, setTooMany] = useState(false)
   const [address, setAddress] = useState<string | null>(null)
   const mapRef = useRef<kakao.maps.Map | null>(null)
@@ -101,6 +104,14 @@ export function NearbyMap({
     const matchedIds = new Set(applyFilters(rawMarkers.map((m) => m.job), filters).map((job) => job.id))
     return rawMarkers.map((m) => ({ ...m, matched: matchedIds.has(m.job.id) }))
   }, [rawMarkers, filters])
+
+  /** 내 위치와 가까운 순으로 — 리스트에서 위쪽부터 훑어보면 가까운 공고부터 보이게 한다. */
+  const nearestFirst = useMemo(() => [...markers].sort((a, b) => a.distanceKm - b.distanceKm), [markers])
+
+  const selectedJob = useMemo(
+    () => markers.find((m) => m.job.id === selectedJobId)?.job ?? null,
+    [markers, selectedJobId],
+  )
 
   useEffect(() => {
     onJobsChange?.(rawMarkers.map((m) => m.job))
@@ -137,11 +148,18 @@ export function NearbyMap({
     })
       .then((results) => {
         const { lat, lng } = centerRef.current
-        const withinRadius = results.filter(
-          (r) => distanceKm(lat, lng, r.latitude, r.longitude) <= radiusKmRef.current,
-        )
+        const withinRadius = results
+          .map((r) => ({ r, d: distanceKm(lat, lng, r.latitude, r.longitude) }))
+          .filter(({ d }) => d <= radiusKmRef.current)
         setTooMany(withinRadius.length >= 200)
-        setRawMarkers(withinRadius.map((r) => ({ job: summaryToJob(r.posting), lat: r.latitude, lng: r.longitude })))
+        setRawMarkers(
+          withinRadius.map(({ r, d }) => ({
+            job: summaryToJob(r.posting),
+            lat: r.latitude,
+            lng: r.longitude,
+            distanceKm: d,
+          })),
+        )
       })
       .catch(() => setRawMarkers([]))
   }, [])
@@ -160,6 +178,12 @@ export function NearbyMap({
     if (!map) return
     map.setLevel(levelForRadiusKm(radiusKm))
     map.setCenter(new kakao.maps.LatLng(center.lat, center.lng))
+  }
+
+  /** 목록에서 공고를 고르면 지도가 그 위치로 이동하고, 아래에 상세 카드가 뜬다. */
+  const handleSelectJob = (item: MapMarkerItem) => {
+    setSelectedJobId((prev) => (prev === item.job.id ? null : item.job.id))
+    mapRef.current?.panTo(new kakao.maps.LatLng(item.lat, item.lng))
   }
 
   if (error) {
@@ -282,29 +306,62 @@ export function NearbyMap({
           type="button"
           onClick={handleRecenter}
           aria-label="내 위치로 이동"
-          className="absolute bottom-3 right-3 grid size-11 place-items-center rounded-full border border-border bg-surface text-fg-muted shadow-overlay hover:border-primary hover:text-primary-deep"
+          className="absolute bottom-3 right-3 z-[999] grid size-11 place-items-center rounded-full border border-border bg-surface text-fg-muted shadow-overlay hover:border-primary hover:text-primary-deep"
         >
           <LocateFixed className="size-5" aria-hidden />
         </button>
       </div>
 
-      {/* 지도 아래 내 현재 위치 주소 — 좌표만으론 위치를 가늠하기 어려워 사람이 읽을 수 있는
-       * 주소로 역지오코딩해서 보여준다. */}
-      <div className="mt-2 flex items-center gap-1.5 rounded-card border border-border bg-surface px-3 py-2 text-sm text-fg-muted">
-        <span className="relative flex size-2.5 shrink-0 items-center justify-center">
-          <span className="absolute inline-flex size-2.5 rounded-full bg-accent opacity-60" />
-          <span className="relative inline-flex size-1.5 rounded-full bg-accent" />
-        </span>
-        <span className="truncate">
-          {address ? (
-            <>
-              내 위치: <span className="font-medium text-fg">{address}</span>
-            </>
-          ) : (
-            '내 위치 확인 중...'
+      {/* 지도 아래 내 현재 위치 주소 + 주변 공고 목록. 핀을 정확히 찍기 어려운 터치 환경을
+       * 고려해서, 목록에서 골라도 지도 이동 + 아래 상세 카드로 이어지게 한다. */}
+      <div className="mt-2 rounded-card border border-border bg-surface px-3 py-2.5">
+        <div className="flex items-center gap-1.5 text-sm text-fg-muted">
+          <span className="relative flex size-2.5 shrink-0 items-center justify-center">
+            <span className="absolute inline-flex size-2.5 rounded-full bg-accent opacity-60" />
+            <span className="relative inline-flex size-1.5 rounded-full bg-accent" />
+          </span>
+          <span className="truncate">
+            {address ? (
+              <>
+                내 위치: <span className="font-medium text-fg">{address}</span>
+              </>
+            ) : (
+              '내 위치 확인 중...'
+            )}
+          </span>
+          {nearestFirst.length > 0 && (
+            <span className="ml-auto shrink-0 text-fg-subtle">
+              주변 채용공고 <span className="font-bold text-primary-deep">{nearestFirst.length}</span>건
+            </span>
           )}
-        </span>
+        </div>
+
+        {nearestFirst.length > 0 && (
+          <div className="-mx-1 mt-2 flex gap-1.5 overflow-x-auto px-1 pb-0.5">
+            {nearestFirst.map((item) => (
+              <button
+                key={item.job.id}
+                type="button"
+                onClick={() => handleSelectJob(item)}
+                className={cn(
+                  'shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors',
+                  selectedJobId === item.job.id
+                    ? 'border-primary bg-primary text-white'
+                    : 'border-border bg-surface text-fg-muted hover:border-primary/50 hover:text-primary-deep',
+                )}
+              >
+                {item.job.facilityName} · {formatDistanceKm(item.distanceKm)}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
+
+      {selectedJob && (
+        <div className="mt-2 overflow-hidden rounded-card border border-primary/40">
+          <JobListItem job={selectedJob} showMatching={false} />
+        </div>
+      )}
     </div>
   )
 }
