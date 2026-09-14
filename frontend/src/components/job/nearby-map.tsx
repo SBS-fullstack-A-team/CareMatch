@@ -271,6 +271,7 @@ export function NearbyMap({
                     <button
                       type="button"
                       aria-label="닫기"
+                      title="닫기"
                       onClick={(event) => {
                         event.stopPropagation()
                         setActiveId(null)
@@ -296,6 +297,7 @@ export function NearbyMap({
                         <button
                           type="button"
                           aria-label="공유하기"
+                          title="공유하기"
                           onClick={(event) => {
                             event.stopPropagation()
                             setShareMenuOpen((prev) => !prev)
@@ -376,6 +378,7 @@ export function NearbyMap({
           type="button"
           onClick={handleRecenter}
           aria-label="내 위치로 이동"
+          title="내 위치로 이동"
           className="absolute bottom-3 right-3 z-[999] grid size-11 place-items-center rounded-full border border-border bg-surface text-fg-muted shadow-overlay hover:border-primary hover:text-primary-deep"
         >
           <LocateFixed className="size-5" aria-hidden />
