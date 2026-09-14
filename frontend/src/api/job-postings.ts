@@ -5,6 +5,7 @@ import type {
   JobPostingDetailResponse,
   JobPostingSearchParams,
   JobPostingSummaryResponse,
+  JobPostingWriteRequest,
   PageResponse,
 } from '@/types/api'
 
@@ -78,4 +79,20 @@ export function getMyJobPostings(
 /** 비슷한 공고 (같은 시군구 + 직종, 최대 6). */
 export function getSimilarJobPostings(jobPostingId: number | string): Promise<JobPostingSummaryResponse[]> {
   return apiFetch<JobPostingSummaryResponse[]>(`/api/job-postings/${jobPostingId}/similar`)
+}
+
+/** (시설) 공고 등록. 기본 500P + 노출옵션 비용이 차감된다(포인트 부족하면 ApiError). */
+export function createJobPosting(req: JobPostingWriteRequest): Promise<JobPostingDetailResponse> {
+  return apiFetch<JobPostingDetailResponse>('/api/job-postings', { method: 'POST', body: req })
+}
+
+/** (시설) 내 공고 수정. 작성 시설 본인만 가능. */
+export function updateJobPosting(
+  jobPostingId: number,
+  req: Omit<JobPostingWriteRequest, 'exposureType'>,
+): Promise<JobPostingDetailResponse> {
+  return apiFetch<JobPostingDetailResponse>(`/api/job-postings/${jobPostingId}`, {
+    method: 'PUT',
+    body: req,
+  })
 }
