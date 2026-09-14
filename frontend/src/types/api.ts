@@ -559,6 +559,41 @@ export interface JobPostingSearchParams {
   size?: number
 }
 
+/**
+ * POST/PUT /api/job-postings (JobPostingDtos.CreateRequest/UpdateRequest) — 시설의 공고
+ * 등록/수정. UpdateRequest 는 이 타입에서 exposureType 만 빠진 형태라 하나로 같이 쓴다.
+ */
+export interface JobPostingWriteRequest {
+  title: string
+  jobType: ApiJobType
+  description?: string
+  workType: ApiWorkType
+  /** 입주형(LIVE_IN)이 아니면 필수 */
+  workSchedule?: ApiWorkSchedule
+  employmentType: ApiEmploymentType
+  workDays: string
+  /** "HH:mm" 또는 "HH:mm:ss" */
+  workStartTime: string
+  workEndTime: string
+  payType: ApiPayType
+  payAmount: number
+  recruitCount: number
+  /** "YYYY-MM-DD" */
+  deadline: string
+  sido: string
+  sigungu: string
+  addressDetail?: string
+  careGrade: ApiCareGrade
+  elderGender: ApiElderGender
+  elderAgeRange?: string
+  mobilityStatus: ApiMobilityStatus
+  mealStatus: ApiMealStatus
+  cognitiveStatus: ApiCognitiveStatus
+  elderNote?: string
+  /** 등록(create)에서만 의미 있음. null/미전달이면 NORMAL. */
+  exposureType?: ExposureType
+}
+
 /** GET /api/job-postings/facets — 좌측 필터 옵션별 결과 건수 (축 자신의 선택은 제외하고 센다) */
 export interface JobFacetsResponse {
   sido: Record<string, number>

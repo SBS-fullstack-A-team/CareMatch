@@ -16,6 +16,7 @@ import { MyPageApplicationsPage } from '@/pages/MyPage/Applications'
 import { MyPageCertificatesPage } from '@/pages/MyPage/Certificates'
 import { MyPageJobApplicantsPage } from '@/pages/MyPage/JobApplicants'
 import { MyPageJobsPage } from '@/pages/MyPage/Jobs'
+import { JobPostingFormPage } from '@/pages/MyPage/JobPostingForm'
 import { MyPageLayout } from '@/pages/MyPage/MyPageLayout'
 import { MyPageOverviewPage } from '@/pages/MyPage/Overview'
 import { MyPageScrapsPage } from '@/pages/MyPage/Scraps'
@@ -77,9 +78,11 @@ export const router = createBrowserRouter([
           { path: 'scraps', element: <MyPageScrapsPage /> },
           { path: 'certificates', element: <MyPageCertificatesPage /> },
           { path: 'jobs', element: <MyPageJobsPage /> },
+          { path: 'jobs/new', element: <JobPostingFormPage /> },
+          { path: 'jobs/:jobPostingId/edit', element: <JobPostingFormPage /> },
           { path: 'jobs/:jobPostingId/applicants', element: <MyPageJobApplicantsPage /> },
           { path: 'settings', element: <MyPageSettingsPage /> },
-          // 공고 등록/수정 폼, 포인트/알림설정 등 아직 없는 하위 화면
+          // 포인트/알림설정 등 아직 없는 하위 화면
           { path: '*', element: <PlaceholderPage title="마이페이지" /> },
         ],
       },

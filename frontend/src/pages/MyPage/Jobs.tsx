@@ -112,13 +112,21 @@ export function MyPageJobsPage() {
                       {formatNumber(job.payAmount)}원
                     </span>
                   </div>
-                  <Link
-                    to={`/mypage/jobs/${job.id}/applicants`}
-                    className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'shrink-0 gap-1.5')}
-                  >
-                    <Users className="size-4" aria-hidden />
-                    지원자 {formatNumber(job.applicantCount)}명
-                  </Link>
+                  <div className="flex shrink-0 gap-2">
+                    <Link
+                      to={`/mypage/jobs/${job.id}/edit`}
+                      className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }))}
+                    >
+                      수정
+                    </Link>
+                    <Link
+                      to={`/mypage/jobs/${job.id}/applicants`}
+                      className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'gap-1.5')}
+                    >
+                      <Users className="size-4" aria-hidden />
+                      지원자 {formatNumber(job.applicantCount)}명
+                    </Link>
+                  </div>
                 </li>
               ))}
             </ul>
