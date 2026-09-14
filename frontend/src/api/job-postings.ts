@@ -3,8 +3,10 @@ import { apiFetch } from '@/lib/api-client'
 import type {
   JobFacetsResponse,
   JobPostingDetailResponse,
+  JobPostingMapResult,
   JobPostingSearchParams,
   JobPostingSummaryResponse,
+  NearbyJobPostingResult,
   PageResponse,
 } from '@/types/api'
 
@@ -68,4 +70,36 @@ export function getJobPosting(jobPostingId: number | string): Promise<JobPosting
 /** 비슷한 공고 (같은 시군구 + 직종, 최대 6). */
 export function getSimilarJobPostings(jobPostingId: number | string): Promise<JobPostingSummaryResponse[]> {
   return apiFetch<JobPostingSummaryResponse[]>(`/api/job-postings/${jobPostingId}/similar`)
+}
+
+/**
+ * "내 주변 일자리" — 기준 좌표 반경(km) 내 공고를 가까운 순으로.
+ * radiusKm 기본 3(백엔드), 상한 50. limit 기본 30, 상한 100.
+ */
+export function getNearbyJobPostings(params: {
+  lat: number
+  lng: number
+  radiusKm?: number
+  limit?: number
+}): Promise<NearbyJobPostingResult[]> {
+  const query = new URLSearchParams({ lat: String(params.lat), lng: String(params.lng) })
+  if (params.radiusKm != null) query.set('radiusKm', String(params.radiusKm))
+  if (params.limit != null) query.set('limit', String(params.limit))
+  return apiFetch<NearbyJobPostingResult[]>(`/api/job-postings/nearby?${query.toString()}`)
+}
+
+/** "지도로 보기" — 지도 뷰포트(남서/북동 모서리) 안의 공고를 마커용으로. 결과 상한 200. */
+export function getJobPostingsInBounds(bounds: {
+  swLat: number
+  swLng: number
+  neLat: number
+  neLng: number
+}): Promise<JobPostingMapResult[]> {
+  const query = new URLSearchParams({
+    swLat: String(bounds.swLat),
+    swLng: String(bounds.swLng),
+    neLat: String(bounds.neLat),
+    neLng: String(bounds.neLng),
+  })
+  return apiFetch<JobPostingMapResult[]>(`/api/job-postings/in-bounds?${query.toString()}`)
 }

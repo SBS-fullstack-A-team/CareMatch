@@ -486,6 +486,25 @@ export interface JobPostingDetailResponse {
   scrapped: boolean | null
 }
 
+/**
+ * GET /api/job-postings/nearby 항목 — 목록 카드 + 기준 좌표로부터의 거리(km, 소수 1자리).
+ * 가까운 순으로 정렬되어 온다.
+ */
+export interface NearbyJobPostingResult {
+  posting: JobPostingSummaryResponse
+  distanceKm: number
+}
+
+/**
+ * GET /api/job-postings/in-bounds 항목 — 지도 뷰포트 안의 공고. 마커 배치용 좌표 포함.
+ * (JobPostingSummaryResponse 에는 위경도가 없어 별도로 실어 온다)
+ */
+export interface JobPostingMapResult {
+  posting: JobPostingSummaryResponse
+  latitude: number
+  longitude: number
+}
+
 /** GET /api/job-postings 등에 보내는 검색 파라미터 (모두 선택) */
 export interface JobPostingSearchParams {
   /** 시·도 다중(OR). 좌측 필터 "지역" 체크박스가 여러 개 선택될 수 있다. */
