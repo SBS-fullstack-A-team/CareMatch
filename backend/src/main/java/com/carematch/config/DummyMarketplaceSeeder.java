@@ -29,10 +29,10 @@ import com.carematch.member.repository.JobSeekerProfileRepository;
 import com.carematch.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDate;
@@ -52,12 +52,15 @@ import java.util.Set;
  * 17개 시/도 전체에 공고·인재를 고르게 분산해서, 어떤 지역/필터로 검색해도 결과가 나오게 한다.
  * 완전 무작위 대신 인덱스 순환(idx % length)으로 결정적으로 생성한다 — 재현 가능하고 리뷰하기 쉽다.
  *
- * ⚠️ 이 시더는 @Profile("local") 이라 로컬 개발 환경에서만 실행된다. 운영(Render)이 이 프로필로
- * 떠 있다면(과거 세션에서 그런 정황이 있었다) 이 더미 데이터도 운영에 그대로 반영되니 주의.
+ * carematch.seed.marketplace-dummy (env: SEED_MARKETPLACE_DUMMY) 로 켜고 끈다.
+ * local 프로필은 application-local.yml 에서 기본 true — 로컬은 늘 자동 생성.
+ * prod 는 기본 false — 데모용으로 운영 DB에 한 번 심고 싶을 때만 Render 환경변수로 켠다.
+ * ⚠️ 켜면 실제 운영 DB에 FACILITY/JOBSEEKER 계정이 공용 비밀번호(SEED_PASSWORD)로 그대로 생성된다.
+ * 이미 데이터가 있으면(jobPostingRepository.count() > 0) 스스로 스킵하니 중복 생성 걱정은 없다.
  */
 @Slf4j
 @Configuration
-@Profile("local")
+@ConditionalOnProperty(prefix = "carematch.seed", name = "marketplace-dummy", havingValue = "true")
 @RequiredArgsConstructor
 public class DummyMarketplaceSeeder {
 

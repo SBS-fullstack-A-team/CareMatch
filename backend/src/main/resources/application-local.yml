@@ -26,6 +26,11 @@ spring:
       enabled: true
       path: /h2-console
 
+carematch:
+  seed:
+    # 로컬은 항상 더미 데이터 자동 생성(H2가 재시작마다 비므로 매번 새로 심어야 함).
+    marketplace-dummy: true
+
 logging:
   level:
     com.carematch: DEBUG
