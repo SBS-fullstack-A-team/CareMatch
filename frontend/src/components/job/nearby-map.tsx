@@ -1,8 +1,9 @@
-import { LocateFixed, MapPin, Share2, X } from 'lucide-react'
+import { Link2, LocateFixed, MapPin, MessageCircle, Share2, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CustomOverlayMap, Map, useKakaoLoader } from 'react-kakao-maps-sdk'
 import { getJobPostingsInBounds } from '@/api/job-postings'
+import heroBannerImage from '@/assets/hero-banner.png'
 import { ScrapButton } from '@/components/common/scrap-button'
 import { JobListItem } from '@/components/job/job-list-item'
 import { useToast } from '@/components/ui/toast'
@@ -70,11 +71,17 @@ export function NearbyMap({
   })
   const [rawMarkers, setRawMarkers] = useState<MapMarkerItem[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [shareMenuOpen, setShareMenuOpen] = useState(false)
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
   const [tooMany, setTooMany] = useState(false)
   const [address, setAddress] = useState<string | null>(null)
   const mapRef = useRef<kakao.maps.Map | null>(null)
   const { toast } = useToast()
+
+  /** 마커 팝업이 닫히거나 다른 공고로 바뀌면 공유 메뉴도 같이 닫는다. */
+  useEffect(() => {
+    setShareMenuOpen(false)
+  }, [activeId])
 
   /** react-kakao-maps-sdk 의 `onCreate` 는 (마운트 시가 아니라) 콜백의 참조가 바뀔 때마다 다시
    * 호출된다 — refreshMarkers 를 매 렌더마다 새로 만들면 렌더 -> onCreate 재호출 -> setState ->
@@ -117,17 +124,43 @@ export function NearbyMap({
     onJobsChange?.(rawMarkers.map((m) => m.job))
   }, [rawMarkers, onJobsChange])
 
-  /** 공고 상세 링크를 공유. Web Share API 지원 브라우저는 공유 시트, 아니면 링크를 클립보드에 복사. */
-  const handleShare = async (job: Job) => {
-    const url = `${window.location.origin}/jobs/${job.id}`
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: job.title, url })
-      } catch {
-        // 사용자가 공유를 취소한 경우 — 별도 처리 없음
-      }
+  /** 카카오톡 공유 SDK — 지도/우편번호 SDK 와는 별도 스크립트(대문자 Kakao)라 따로 로드한다. */
+  const [kakaoShareReady, setKakaoShareReady] = useState(false)
+  useEffect(() => {
+    if (typeof Kakao !== 'undefined' && Kakao.isInitialized()) {
+      setKakaoShareReady(true)
       return
     }
+    const script = document.createElement('script')
+    script.src = 'https://developers.kakao.com/sdk/js/kakao.min.js'
+    script.onload = () => {
+      if (!Kakao.isInitialized()) Kakao.init(import.meta.env.VITE_KAKAO_MAP_KEY)
+      setKakaoShareReady(true)
+    }
+    document.head.appendChild(script)
+  }, [])
+
+  const handleKakaoShare = (job: Job) => {
+    if (!kakaoShareReady || typeof Kakao === 'undefined') {
+      toast({ title: '카카오톡 공유를 준비 중이에요. 잠시 후 다시 시도해주세요.', variant: 'error' })
+      return
+    }
+    const url = `${window.location.origin}/jobs/${job.id}`
+    Kakao.Share.sendDefault({
+      objectType: 'feed',
+      content: {
+        title: job.facilityName,
+        description: formatPay(job.payType, job.payAmount),
+        imageUrl: `${window.location.origin}${heroBannerImage}`,
+        link: { mobileWebUrl: url, webUrl: url },
+      },
+      buttons: [{ title: '상세보기', link: { mobileWebUrl: url, webUrl: url } }],
+    })
+  }
+
+  /** 공고 상세 링크를 클립보드에 복사. */
+  const handleCopyLink = async (job: Job) => {
+    const url = `${window.location.origin}/jobs/${job.id}`
     try {
       await navigator.clipboard.writeText(url)
       toast({ title: '링크가 복사되었습니다.', variant: 'success' })
@@ -259,14 +292,51 @@ export function NearbyMap({
                         상세보기
                       </Link>
                       <ScrapButton jobId={Number(job.id)} defaultScrapped={job.scrapped} size="sm" />
-                      <button
-                        type="button"
-                        aria-label="공유하기"
-                        onClick={() => handleShare(job)}
-                        className="grid size-9 shrink-0 place-items-center rounded-btn border border-border bg-surface text-fg-subtle hover:border-border-strong hover:text-fg-muted"
-                      >
-                        <Share2 className="size-[18px]" aria-hidden />
-                      </button>
+                      <div className="relative">
+                        <button
+                          type="button"
+                          aria-label="공유하기"
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            setShareMenuOpen((prev) => !prev)
+                          }}
+                          className="grid size-9 shrink-0 place-items-center rounded-btn border border-border bg-surface text-fg-subtle hover:border-border-strong hover:text-fg-muted"
+                        >
+                          <Share2 className="size-[18px]" aria-hidden />
+                        </button>
+                        {shareMenuOpen && (
+                          <div className="absolute right-0 top-full z-10 mt-1 w-40 overflow-hidden rounded-card border border-border bg-surface shadow-overlay">
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                setShareMenuOpen(false)
+                                handleKakaoShare(job)
+                              }}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-fg hover:bg-surface-sunken"
+                            >
+                              <MessageCircle
+                                className="size-4 shrink-0 rounded-full bg-[#FEE500] p-0.5 text-[#3C1E1E]"
+                                fill="currentColor"
+                                aria-hidden
+                              />
+                              카카오톡 공유
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                setShareMenuOpen(false)
+                                handleCopyLink(job)
+                              }}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-fg hover:bg-surface-sunken"
+                            >
+                              <Link2 className="size-4 shrink-0 text-fg-subtle" aria-hidden />
+                              링크 복사
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
