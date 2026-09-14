@@ -2,7 +2,6 @@ import {
   ChevronRight,
   FileText,
   Headset,
-  HeartHandshake,
   Mail,
   MapPin,
   Megaphone,
@@ -13,6 +12,7 @@ import {
   Users,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import heroBannerImage from '@/assets/hero-banner.png'
 import { LoadingState } from '@/components/common/loading-state'
 import { JobSearchBar } from '@/components/common/search-bar'
 import { JobCard } from '@/components/job/job-card'
@@ -122,14 +122,25 @@ function HeroBanner() {
         </p>
 
         {/*
-          일러스트 자리. 실제 이미지가 들어와도 영역 크기는 그대로 유지한다.
-          (DESIGN_SYSTEM.md §32)
+          배너 사진. 영역 크기는 기존 일러스트 자리 그대로 유지한다 (DESIGN_SYSTEM.md §32).
+          가장자리를 mask-image 로 부드럽게 지워 카드 자체의 그라데이션 배경과
+          자연스럽게 섞이도록 한다 — 사진이 사각형으로 뚝 잘려 붙어 보이지 않게.
         */}
-        <div
-          aria-hidden
-          className="hidden h-[180px] w-[300px] shrink-0 place-items-center rounded-card bg-surface/40 text-primary/40 lg:grid"
-        >
-          <HeartHandshake className="size-16" strokeWidth={1.5} />
+        <div aria-hidden className="hidden h-[180px] w-[300px] shrink-0 lg:block">
+          <img
+            src={heroBannerImage}
+            alt=""
+            width={300}
+            height={180}
+            className="h-full w-full object-cover"
+            style={{
+              objectPosition: '68% 38%',
+              maskImage:
+                'linear-gradient(96deg, transparent 0%, rgba(0,0,0,0.45) 8%, #000 16%)',
+              WebkitMaskImage:
+                'linear-gradient(96deg, transparent 0%, rgba(0,0,0,0.45) 8%, #000 16%)',
+            }}
+          />
         </div>
       </div>
     </section>
