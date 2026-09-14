@@ -61,6 +61,10 @@ public interface JobPostingRepository
     /** 이 시설(회원 기준)이 등록한 특정 상태의 공고 전부. 인재 ↔ 우리 공고 매칭 계산용. */
     List<JobPosting> findByFacilityProfileMemberIdAndStatus(Long facilityMemberId, JobPostingStatus status);
 
+    /** "등록한 공고" 마이페이지 — 이 시설(회원 기준)이 등록한 공고 전체(상태 무관), 최신순 페이지. */
+    @EntityGraph(attributePaths = {"facilityProfile", "facilityProfile.member"})
+    Page<JobPosting> findByFacilityProfileMemberId(Long facilityMemberId, Pageable pageable);
+
     /**
      * "내 주변 일자리" — 위경도 바운딩 박스 안의 OPEN 공고 (최신순, {@code pageable} 로 상한).
      * 정밀 반경 필터·정렬은 서비스에서 Haversine 으로 처리한다 (DB 벤더 함수 미사용).
