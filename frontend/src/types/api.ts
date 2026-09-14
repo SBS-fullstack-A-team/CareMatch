@@ -281,6 +281,26 @@ export interface PageResponse<T> {
 
 export type ApplicationStatus = 'APPLIED' | 'ACCEPTED' | 'REJECTED' | 'CANCELED'
 
+/**
+ * GET /api/job-postings/{id}/applications 목록 항목 (ApplicationDtos.ApplicantResponse) —
+ * 시설이 보는 지원자 카드. certificateNames 는 지원자 프로필에 이미 등록된 자격증들이다
+ * (지원 건별 첨부가 아니라 서버가 자동으로 붙여준다).
+ */
+export interface ApplicantResponse {
+  applicationId: number
+  status: ApplicationStatus
+  appliedAt: string
+  processedAt: string | null
+  message: string | null
+  profileId: number
+  memberId: number
+  applicantName: string
+  employmentStatus: string
+  desiredJobType: string | null
+  certificateNames: string[]
+  matchingScore: number | null
+}
+
 /** GET /api/members/me/applications 목록 항목 (ApplicationDtos.MyApplicationResponse) */
 export interface MyApplicationResponse {
   applicationId: number

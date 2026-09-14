@@ -65,6 +65,16 @@ export function getJobPosting(jobPostingId: number | string): Promise<JobPosting
   return apiFetch<JobPostingDetailResponse>(`/api/job-postings/${jobPostingId}`)
 }
 
+/** (시설) "등록한 공고" 마이페이지 — 내가 올린 공고 전체(상태 무관, 최신순) + 공고별 지원자 수. */
+export function getMyJobPostings(
+  page = 0,
+  size = 20,
+): Promise<PageResponse<JobPostingSummaryResponse>> {
+  return apiFetch<PageResponse<JobPostingSummaryResponse>>(
+    `/api/job-postings/me?page=${page}&size=${size}`,
+  )
+}
+
 /** 비슷한 공고 (같은 시군구 + 직종, 최대 6). */
 export function getSimilarJobPostings(jobPostingId: number | string): Promise<JobPostingSummaryResponse[]> {
   return apiFetch<JobPostingSummaryResponse[]>(`/api/job-postings/${jobPostingId}/similar`)
