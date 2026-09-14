@@ -38,10 +38,14 @@ const EMPTY_PAGE: PageResponse<MyApplicationResponse> = {
   totalPages: 0,
 }
 
-/** `/mypage/applications` — 구직자 전용. 백엔드가 `hasRole('JOBSEEKER')` 로 강제한다. */
+/**
+ * `/mypage/applications` — 구직자 전용. 백엔드가 `hasRole('JOBSEEKER')` 로 강제한다.
+ * 관리자는 각 회원 화면을 확인할 수 있어야 해서 화면 자체는 보되(보통 빈 목록), API는 호출하지 않는다.
+ */
 export function MyPageApplicationsPage() {
   const { user } = useApp()
   const isJobSeeker = user?.role === 'JOBSEEKER'
+  const canView = isJobSeeker || user?.role === 'ADMIN'
 
   const [status, setStatus] = useState<ApplicationStatus | 'ALL'>('ALL')
   const [page, setPage] = useState(1)
@@ -55,7 +59,7 @@ export function MyPageApplicationsPage() {
     [isJobSeeker, status, page],
   )
 
-  if (!isJobSeeker) {
+  if (!canView) {
     return (
       <div className="rounded-card border border-border bg-surface">
         <EmptyState

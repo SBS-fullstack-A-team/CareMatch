@@ -8,7 +8,7 @@ import {
   ShieldCheck,
   UserRound,
 } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Breadcrumb } from '@/components/common/breadcrumb'
 import { DetailRow, DetailSection } from '@/components/common/detail-section'
@@ -27,6 +27,7 @@ import { getJobPosting, getSimilarJobPostings } from '@/api/job-postings'
 import { employmentTypeLabel, facilityTypeLabel, jobCategoryLabel, workScheduleLabel } from '@/data/labels'
 import { useAsync } from '@/hooks/use-async'
 import { detailToJob, summaryToJob } from '@/lib/job-adapter'
+import { recordJobView } from '@/lib/recently-viewed-jobs'
 import { JOB_APPLY_NOTICES } from '@/lib/site'
 import { cn, formatDotDate, formatPay } from '@/lib/utils'
 import type { Job } from '@/types'
@@ -52,6 +53,11 @@ export function JobDetailPage() {
     () => (numericId != null ? getSimilarJobPostings(numericId) : Promise.resolve([])),
     [numericId],
   )
+
+  /** "오늘 본 공고" 마이페이지 노출용 — 상세를 실제로 불러온 경우에만 기록한다. */
+  useEffect(() => {
+    if (numericId != null && detail) recordJobView(numericId)
+  }, [numericId, detail])
 
   if (numericId == null || (!loading && (error || !detail))) {
     return <JobNotFound description={error ?? undefined} />

@@ -13,11 +13,17 @@ import { useApp, type SessionUser } from '@/hooks/use-app'
 import { useClickOutside } from '@/hooks/use-click-outside'
 import { cn, formatNumber } from '@/lib/utils'
 
-const PERSONAL_MENU = [
+const JOBSEEKER_MENU = [
   { to: '/mypage', label: '마이페이지', icon: UserRound },
   { to: '/mypage/applications', label: '지원 현황', icon: FileText },
   { to: '/mypage/scraps', label: '관심 공고', icon: Heart },
   { to: '/mypage/settings', label: '희망조건 설정', icon: Settings },
+]
+
+const GENERAL_MENU = [
+  { to: '/mypage', label: '마이페이지', icon: UserRound },
+  { to: '/mypage/scraps', label: '관심 공고', icon: Heart },
+  { to: '/mypage/settings', label: '설정', icon: Settings },
 ]
 
 const FACILITY_MENU = [
@@ -27,11 +33,34 @@ const FACILITY_MENU = [
   { to: '/mypage/settings', label: '계정 설정', icon: Settings },
 ]
 
+const ADMIN_MENU = [
+  { to: '/mypage', label: '마이페이지', icon: UserRound },
+  { to: '/mypage/applications', label: '지원 현황', icon: FileText },
+  { to: '/mypage/scraps', label: '관심 공고', icon: Heart },
+  { to: '/mypage/jobs', label: '등록한 공고', icon: Building2 },
+  { to: '/mypage/settings', label: '설정', icon: Settings },
+]
+
+const MEMBER_TYPE_LABEL: Record<SessionUser['role'], string> = {
+  JOBSEEKER: '개인회원',
+  FACILITY: '시설회원',
+  GENERAL: '일반회원',
+  ADMIN: '관리자',
+  GUEST: '회원',
+}
+
 export function ProfileDropdown({ user }: { user: SessionUser }) {
   const { logout } = useApp()
   const [open, setOpen] = useState(false)
   const ref = useClickOutside<HTMLDivElement>(open, () => setOpen(false))
-  const menu = user.memberType === 'facility' ? FACILITY_MENU : PERSONAL_MENU
+  const menu =
+    user.memberType === 'facility'
+      ? FACILITY_MENU
+      : user.role === 'ADMIN'
+        ? ADMIN_MENU
+        : user.role === 'GENERAL'
+          ? GENERAL_MENU
+          : JOBSEEKER_MENU
 
   return (
     <div className="relative" ref={ref}>
@@ -61,7 +90,7 @@ export function ProfileDropdown({ user }: { user: SessionUser }) {
             <p className="text-base font-bold text-fg">
               {user.name}
               <span className="ml-1.5 text-sm font-normal text-fg-muted">
-                {user.memberType === 'facility' ? '시설회원' : '개인회원'}
+                {MEMBER_TYPE_LABEL[user.role]}
               </span>
             </p>
             <p className="mt-0.5 truncate text-sm text-fg-muted">{user.subtitle}</p>
