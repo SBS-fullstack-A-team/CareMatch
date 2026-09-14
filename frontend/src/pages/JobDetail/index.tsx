@@ -16,6 +16,7 @@ import { EmptyState } from '@/components/common/empty-state'
 import { LoadingState } from '@/components/common/loading-state'
 import { JobCard } from '@/components/job/job-card'
 import { ElderlyInfoCard } from '@/components/job/elderly-info-card'
+import { JobApplyButton } from '@/components/job/job-apply-button'
 import { JobApplyPanel } from '@/components/job/job-apply-panel'
 import { JobDetailHeader } from '@/components/job/job-detail-header'
 import { SectionHeader } from '@/components/common/section-header'
@@ -259,12 +260,7 @@ function ApplicationSection({ job }: { job: Job }) {
           <p className="mt-1 text-base text-fg-muted">
             케어매치 구직신청서를 작성해 바로 지원할 수 있습니다.
           </p>
-          <Link
-            to={`/apply?jobId=${job.id}`}
-            className={cn(buttonVariants({ variant: 'primary', size: 'sm' }), 'mt-3')}
-          >
-            온라인으로 지원하기
-          </Link>
+          <JobApplyButton jobId={job.id} size="sm" className="mt-3" />
         </div>
 
         {job.managerPhone && (
