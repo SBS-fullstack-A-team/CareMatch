@@ -1,7 +1,7 @@
 import { Link2, LocateFixed, MapPin, MessageCircle, Share2, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { CustomOverlayMap, Map, useKakaoLoader } from 'react-kakao-maps-sdk'
+import { Circle, CustomOverlayMap, Map, useKakaoLoader } from 'react-kakao-maps-sdk'
 import { getJobPostingsInBounds } from '@/api/job-postings'
 import heroBannerImage from '@/assets/hero-banner.png'
 import { ScrapButton } from '@/components/common/scrap-button'
@@ -255,6 +255,21 @@ export function NearbyMap({
           onIdle={refreshMarkers}
           onClick={() => setActiveId(null)}
         >
+          {/* 반경을 마커가 끊기는 지점으로 짐작하게 하지 않고 원으로 직접 보여준다
+           * (요양나라 참고). 내 위치와 같은 accent 색 계열, 마커들보다 아래에 깔리게 낮은
+           * zIndex. */}
+          <Circle
+            center={center}
+            radius={radiusKm * 1000}
+            strokeWeight={1.5}
+            strokeColor="#b9612f"
+            strokeOpacity={0.5}
+            strokeStyle="shortdash"
+            fillColor="#b9612f"
+            fillOpacity={0.08}
+            zIndex={0}
+          />
+
           {/* 내 위치 — 점 + 펄스 링(accent 색). zIndex 를 공고 핀(10~30)보다 낮춰서,
            * 좌표가 겹쳐도 공고 이름/핀이 항상 내 위치 점 위로 보이게 한다. */}
           <CustomOverlayMap position={center} zIndex={1}>
