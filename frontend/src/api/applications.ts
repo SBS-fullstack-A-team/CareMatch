@@ -19,3 +19,17 @@ export function getMyApplications(
 export function cancelApplication(applicationId: number): Promise<void> {
   return apiFetch<void>(`/api/applications/${applicationId}/cancel`, { method: 'PATCH' })
 }
+
+/**
+ * 공고에 지원. 구직 프로필이 없으면 ApiError(COMMON_002)로 거절되고,
+ * 이미 지원한 공고면 ApiError(APPLICATION_002), 마감된 공고면 ApiError(APPLICATION_003).
+ */
+export function applyToJobPosting(
+  jobPostingId: number,
+  message?: string,
+): Promise<{ applicationId: number }> {
+  return apiFetch<{ applicationId: number }>(`/api/job-postings/${jobPostingId}/applications`, {
+    method: 'POST',
+    body: { message: message || null },
+  })
+}
