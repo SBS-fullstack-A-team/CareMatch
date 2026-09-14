@@ -10,9 +10,10 @@ import { cn } from '@/lib/utils'
 /**
  * 인재정보(`/talents`, `/talents/:id`) 접근 게이트.
  *
- * 인재 정보(이름·나이·경력·자격증·희망조건)는 개인정보라 **승인 시설회원·관리자**만
- * 열람할 수 있다 (백엔드 `GET /api/jobseekers` = `hasAnyRole('FACILITY','ADMIN')` + 승인,
- * docs/API.md §6). 비로그인·구직자·미승인 시설은 안내 화면을 보여준다.
+ * 인재 정보(이름·나이·경력·자격증·희망조건)는 개인정보라 **승인 시설회원·일반회원·관리자**만
+ * 열람할 수 있다 (백엔드 `GET /api/jobseekers` = `hasAnyRole('FACILITY','ADMIN','GENERAL')` +
+ * 시설은 승인 필요, 일반회원은 승인 절차 없이 바로 허용). 비로그인·구직자·미승인 시설은
+ * 안내 화면을 보여준다.
  */
 export function TalentAccessGate({ children }: { children: ReactNode }) {
   const { user, authReady } = useApp()
@@ -29,6 +30,7 @@ export function TalentAccessGate({ children }: { children: ReactNode }) {
   const allowed =
     user != null &&
     (user.role === 'ADMIN' ||
+      user.role === 'GENERAL' ||
       (user.role === 'FACILITY' && user.facilityApprovalStatus === 'APPROVED'))
 
   if (allowed) return <>{children}</>
@@ -87,8 +89,8 @@ function resolve(user: SessionUser | null, from: string) {
 
   // 구직자 / GUEST(유형 미선택)
   return {
-    title: '시설 회원 전용 기능입니다.',
-    description: '인재정보 열람은 승인된 시설 회원과 관리자만 이용할 수 있습니다.',
+    title: '시설 회원·일반회원 전용 기능입니다.',
+    description: '인재정보 열람은 승인된 시설 회원, 일반회원, 관리자만 이용할 수 있습니다.',
     action: (
       <Link to="/jobs" className={cn(buttonVariants({ variant: 'secondary' }))}>
         구인공고 보러 가기

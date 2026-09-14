@@ -49,9 +49,11 @@ spring:
             authorization-grant-type: authorization_code
             redirect-uri: "${OAUTH_REDIRECT_BASE:http://localhost:8080}/login/oauth2/code/kakao"
             client-authentication-method: client_secret_post
+            # account_email 은 카카오 "추가 기능 신청" 심사(수일 소요)가 필요해서 일단 뺌.
+            # 이메일 없이 들어와도 OAuthAttributes.emailOrPlaceholder() 가 임시 이메일을 채워준다.
+            # 심사 통과하면 이 줄에 account_email 다시 추가하면 됨.
             scope:
               - profile_nickname
-              - account_email
           google:
             client-id: ${OAUTH_GOOGLE_CLIENT_ID:dummy}
             client-secret: ${OAUTH_GOOGLE_CLIENT_SECRET:dummy}
@@ -140,6 +142,6 @@ carematch:
       secret-access-key: ${R2_SECRET_ACCESS_KEY:}
 
   support:
-    tel: ${SUPPORT_TEL:1600-0000}
+    tel: ${SUPPORT_TEL:1588-1234}
     kakao-channel-url: ${SUPPORT_KAKAO_URL:https://pf.kakao.com/_carematch}
     operating-hours: "평일 09:00~18:00 (점심 12:00~13:00 제외)"

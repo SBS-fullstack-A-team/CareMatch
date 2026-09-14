@@ -70,7 +70,7 @@ public class JobSeekerController {
      * 시설회원이면 각 카드에 "그 시설 OPEN 공고 중 최고 매칭 점수"(matchingScore)가 채워진다.
      */
     @GetMapping
-    @PreAuthorize("hasAnyRole('FACILITY','ADMIN')")
+    @PreAuthorize("hasAnyRole('FACILITY','ADMIN','GENERAL')")
     public PageResponse<TalentSummary> search(
             @AuthenticationPrincipal CustomUserDetails principal,
             @RequestParam(required = false) java.util.List<JobType> desiredJobTypes,
@@ -105,7 +105,7 @@ public class JobSeekerController {
      * 자격증 축은 이번 범위에서 제공하지 않는다.
      */
     @GetMapping("/facets")
-    @PreAuthorize("hasAnyRole('FACILITY','ADMIN')")
+    @PreAuthorize("hasAnyRole('FACILITY','ADMIN','GENERAL')")
     public FacetsResponse facets(
             @RequestParam(required = false) java.util.List<JobType> desiredJobTypes,
             @RequestParam(required = false) WorkType desiredWorkType,
@@ -130,7 +130,7 @@ public class JobSeekerController {
 
     /** 인재 상세 (시설회원/관리자). 연락처·거주지는 기본 마스킹, 열람 이력 있으면 언마스크 */
     @GetMapping("/{profileId}")
-    @PreAuthorize("hasAnyRole('FACILITY','ADMIN')")
+    @PreAuthorize("hasAnyRole('FACILITY','ADMIN','GENERAL')")
     public JobSeekerProfileResponse detail(@PathVariable Long profileId,
                                            @AuthenticationPrincipal CustomUserDetails principal) {
         return profileQueryService.getForFacility(profileId, principal.getMemberId());
@@ -143,7 +143,7 @@ public class JobSeekerController {
      * - 대상이 취업완료(EMPLOYED)면 409 로 차단
      */
     @PostMapping("/{profileId}/contact/unlock")
-    @PreAuthorize("hasRole('FACILITY')")
+    @PreAuthorize("hasAnyRole('FACILITY','GENERAL')")
     public ContactUnlockResponse unlockContact(@PathVariable Long profileId,
                                                @AuthenticationPrincipal CustomUserDetails principal) {
         return contactUnlockService.unlock(principal.getMemberId(), profileId);

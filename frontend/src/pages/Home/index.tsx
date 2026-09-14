@@ -123,8 +123,9 @@ function HeroBanner() {
 
         {/*
           배너 사진. 영역 크기는 기존 일러스트 자리 그대로 유지한다 (DESIGN_SYSTEM.md §32).
-          가장자리를 mask-image 로 부드럽게 지워 카드 자체의 그라데이션 배경과
-          자연스럽게 섞이도록 한다 — 사진이 사각형으로 뚝 잘려 붙어 보이지 않게.
+          원본 이미지는 이 박스 비율(5:3)에 맞춰 미리 크롭해 뒀다 — object-fit만으로
+          충분하고 object-position 보정이 필요 없다. 가장자리는 mask-image 로 부드럽게
+          지워 카드 자체의 그라데이션 배경과 자연스럽게 섞이도록 한다.
         */}
         <div aria-hidden className="hidden h-[180px] w-[300px] shrink-0 lg:block">
           <img
@@ -134,7 +135,6 @@ function HeroBanner() {
             height={180}
             className="h-full w-full object-cover"
             style={{
-              objectPosition: '68% 38%',
               maskImage:
                 'linear-gradient(96deg, transparent 0%, rgba(0,0,0,0.45) 8%, #000 16%)',
               WebkitMaskImage:

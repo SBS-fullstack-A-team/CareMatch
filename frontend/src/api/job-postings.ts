@@ -6,6 +6,7 @@ import type {
   JobPostingMapResult,
   JobPostingSearchParams,
   JobPostingSummaryResponse,
+  JobPostingWriteRequest,
   NearbyJobPostingResult,
   PageResponse,
 } from '@/types/api'
@@ -67,6 +68,16 @@ export function getJobPosting(jobPostingId: number | string): Promise<JobPosting
   return apiFetch<JobPostingDetailResponse>(`/api/job-postings/${jobPostingId}`)
 }
 
+/** (시설) "등록한 공고" 마이페이지 — 내가 올린 공고 전체(상태 무관, 최신순) + 공고별 지원자 수. */
+export function getMyJobPostings(
+  page = 0,
+  size = 20,
+): Promise<PageResponse<JobPostingSummaryResponse>> {
+  return apiFetch<PageResponse<JobPostingSummaryResponse>>(
+    `/api/job-postings/me?page=${page}&size=${size}`,
+  )
+}
+
 /** 비슷한 공고 (같은 시군구 + 직종, 최대 6). */
 export function getSimilarJobPostings(jobPostingId: number | string): Promise<JobPostingSummaryResponse[]> {
   return apiFetch<JobPostingSummaryResponse[]>(`/api/job-postings/${jobPostingId}/similar`)
@@ -102,4 +113,20 @@ export function getJobPostingsInBounds(bounds: {
     neLng: String(bounds.neLng),
   })
   return apiFetch<JobPostingMapResult[]>(`/api/job-postings/in-bounds?${query.toString()}`)
+}
+
+/** (시설) 공고 등록. 기본 500P + 노출옵션 비용이 차감된다(포인트 부족하면 ApiError). */
+export function createJobPosting(req: JobPostingWriteRequest): Promise<JobPostingDetailResponse> {
+  return apiFetch<JobPostingDetailResponse>('/api/job-postings', { method: 'POST', body: req })
+}
+
+/** (시설) 내 공고 수정. 작성 시설 본인만 가능. */
+export function updateJobPosting(
+  jobPostingId: number,
+  req: Omit<JobPostingWriteRequest, 'exposureType'>,
+): Promise<JobPostingDetailResponse> {
+  return apiFetch<JobPostingDetailResponse>(`/api/job-postings/${jobPostingId}`, {
+    method: 'PUT',
+    body: req,
+  })
 }

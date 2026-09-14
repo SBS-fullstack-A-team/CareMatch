@@ -29,22 +29,24 @@ const EMPTY_PAGE: PageResponse<JobPostingSummary> = {
 }
 
 /**
- * `/mypage/scraps` — 구직자의 관심 공고. 백엔드 스크랩 API 는 역할 제한이 없지만,
- * "관심 인재" 개념(시설회원용)은 서버에 없어 시설회원은 안내만 하고 목록을 부르지 않는다.
+ * `/mypage/scraps` — 관심 공고. 백엔드 스크랩 API 는 역할 제한이 없어 구직자·일반회원·관리자
+ * 모두 실제 목록을 쓸 수 있다. 다만 "관심 인재" 개념(시설회원용)은 서버에 없어
+ * 시설회원은 안내만 하고 목록을 부르지 않는다.
  */
 export function MyPageScrapsPage() {
   const { user } = useApp()
-  const isJobSeeker = user?.role === 'JOBSEEKER'
+  const canUseRealList =
+    user?.role === 'JOBSEEKER' || user?.role === 'GENERAL' || user?.role === 'ADMIN'
 
   const [page, setPage] = useState(1)
   const [removingId, setRemovingId] = useState<number | null>(null)
 
   const { data, loading, error, reload } = useAsync(
-    () => (isJobSeeker ? getMyScraps(page - 1, PAGE_SIZE) : Promise.resolve(EMPTY_PAGE)),
-    [isJobSeeker, page],
+    () => (canUseRealList ? getMyScraps(page - 1, PAGE_SIZE) : Promise.resolve(EMPTY_PAGE)),
+    [canUseRealList, page],
   )
 
-  if (!isJobSeeker) {
+  if (!canUseRealList) {
     return (
       <div className="rounded-card border border-border bg-surface">
         <EmptyState

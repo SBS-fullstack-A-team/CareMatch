@@ -8,7 +8,9 @@ package com.carematch.member.domain;
 public enum Role {
     JOBSEEKER,
     FACILITY,
-    ADMIN;
+    ADMIN,
+    /** 구직 의사 없이 개인적으로 요양보호사 등을 찾는 소비자 계정. 자격증/구직 프로필 없음. */
+    GENERAL;
 
     public String authority() {
         return "ROLE_" + name();

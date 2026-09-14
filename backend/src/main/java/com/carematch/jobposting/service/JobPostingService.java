@@ -141,6 +141,27 @@ public class JobPostingService {
     }
 
     /**
+     * "등록한 공고" 마이페이지 — 이 시설이 등록한 공고 전부(상태 무관, 최신순)를 공고별 지원자
+     * 수와 함께 반환한다. 승인 대기(PENDING) 시설도 자기 목록(보통 빈 목록)은 볼 수 있다 —
+     * 새 공고 등록(create)만 승인 이후로 막는다.
+     */
+    public PageResponse<SummaryResponse> myPostings(Long memberId, int page, int size) {
+        facilityProfileRepository.findByMemberId(memberId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.FACILITY_NOT_APPROVED, "no facility profile"));
+
+        int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
+        PageRequest pageable = PageRequest.of(Math.max(page, 0), safeSize, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<JobPosting> pageResult = jobPostingRepository.findByFacilityProfileMemberId(memberId, pageable);
+
+        Map<Long, Long> applicantCounts = applicantCountsAmong(pageResult.getContent());
+        List<SummaryResponse> mapped = pageResult.getContent().stream()
+                .map(jp -> SummaryResponse.from(jp, null, null, applicantCount(applicantCounts, jp.getId())))
+                .toList();
+        return new PageResponse<>(mapped, pageResult.getNumber(), pageResult.getSize(),
+                pageResult.getTotalElements(), pageResult.getTotalPages());
+    }
+
+    /**
      * 다중조건 검색 (상태 OPEN 고정). 로그인 회원이면 각 결과에 찜 여부(scrapped)·매칭점수를 채운다.
      *
      * <p><b>RECOMMENDED + 로그인 구직자</b>: SQL 은 노출등급→최신 순으로 뽑고, 그 페이지 안에서

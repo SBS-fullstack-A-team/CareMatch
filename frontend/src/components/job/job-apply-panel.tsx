@@ -1,6 +1,6 @@
 import { Phone } from 'lucide-react'
-import { Link } from 'react-router-dom'
 import { buttonVariants } from '@/components/ui/button'
+import { JobApplyButton } from '@/components/job/job-apply-button'
 import { employmentTypeLabel, workScheduleLabel } from '@/data/labels'
 import { cn, formatPay } from '@/lib/utils'
 import type { Job } from '@/types'
@@ -9,7 +9,6 @@ import type { Job } from '@/types'
  * 우측 sticky 지원 패널 (COMPONENT_RULES.md §21, §22)
  * 스크롤 중에도 급여·근무 조건을 보면서 바로 지원할 수 있게 하는 것이 목적이다.
  *
- * 온라인 지원 기능은 아직 없어 구직신청 라우트(/apply)로 연결만 해 둔다.
  * 전화 지원은 공고에 담당자 연락처가 있을 때만 노출한다.
  */
 export function JobApplyPanel({ job, className }: { job: Job; className?: string }) {
@@ -42,12 +41,7 @@ export function JobApplyPanel({ job, className }: { job: Job; className?: string
         </div>
       </dl>
 
-      <Link
-        to={`/apply?jobId=${job.id}`}
-        className={cn(buttonVariants({ variant: 'primary', block: true }), 'mt-5')}
-      >
-        온라인으로 지원하기
-      </Link>
+      <JobApplyButton jobId={job.id} block className="mt-5" />
 
       {job.managerPhone && (
         <a

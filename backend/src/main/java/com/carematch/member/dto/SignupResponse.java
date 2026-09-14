@@ -6,9 +6,9 @@ import com.carematch.member.domain.Member;
  * 회원가입 결과.
  *
  * @param memberId       생성된 회원 id
- * @param role           JOBSEEKER / FACILITY
+ * @param role           JOBSEEKER / FACILITY / GENERAL
  * @param status         회원 상태(ACTIVE)
- * @param approvalStatus 시설회원이면 PENDING, 구직자면 null
+ * @param approvalStatus 시설회원이면 PENDING, 그 외는 null
  * @param message        후속 안내 문구
  */
 public record SignupResponse(
@@ -26,5 +26,10 @@ public record SignupResponse(
     public static SignupResponse facility(Member member) {
         return new SignupResponse(member.getId(), member.getRole().name(), member.getStatus().name(),
                 "PENDING", "회원가입이 접수되었습니다. 관리자 승인 후 인재 열람/공고 등록이 가능합니다.");
+    }
+
+    public static SignupResponse general(Member member) {
+        return new SignupResponse(member.getId(), member.getRole().name(), member.getStatus().name(),
+                null, "회원가입이 완료되었습니다.");
     }
 }

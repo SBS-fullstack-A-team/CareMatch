@@ -8,7 +8,7 @@ import {
   ShieldCheck,
   UserRound,
 } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Breadcrumb } from '@/components/common/breadcrumb'
 import { DetailRow, DetailSection } from '@/components/common/detail-section'
@@ -16,6 +16,7 @@ import { EmptyState } from '@/components/common/empty-state'
 import { LoadingState } from '@/components/common/loading-state'
 import { JobCard } from '@/components/job/job-card'
 import { ElderlyInfoCard } from '@/components/job/elderly-info-card'
+import { JobApplyButton } from '@/components/job/job-apply-button'
 import { JobApplyPanel } from '@/components/job/job-apply-panel'
 import { JobDetailHeader } from '@/components/job/job-detail-header'
 import { SectionHeader } from '@/components/common/section-header'
@@ -26,6 +27,7 @@ import { getJobPosting, getSimilarJobPostings } from '@/api/job-postings'
 import { employmentTypeLabel, facilityTypeLabel, jobCategoryLabel, workScheduleLabel } from '@/data/labels'
 import { useAsync } from '@/hooks/use-async'
 import { detailToJob, summaryToJob } from '@/lib/job-adapter'
+import { recordJobView } from '@/lib/recently-viewed-jobs'
 import { JOB_APPLY_NOTICES } from '@/lib/site'
 import { cn, formatDotDate, formatPay } from '@/lib/utils'
 import type { Job } from '@/types'
@@ -51,6 +53,11 @@ export function JobDetailPage() {
     () => (numericId != null ? getSimilarJobPostings(numericId) : Promise.resolve([])),
     [numericId],
   )
+
+  /** "오늘 본 공고" 마이페이지 노출용 — 상세를 실제로 불러온 경우에만 기록한다. */
+  useEffect(() => {
+    if (numericId != null && detail) recordJobView(numericId)
+  }, [numericId, detail])
 
   if (numericId == null || (!loading && (error || !detail))) {
     return <JobNotFound description={error ?? undefined} />
@@ -259,12 +266,7 @@ function ApplicationSection({ job }: { job: Job }) {
           <p className="mt-1 text-base text-fg-muted">
             케어매치 구직신청서를 작성해 바로 지원할 수 있습니다.
           </p>
-          <Link
-            to={`/apply?jobId=${job.id}`}
-            className={cn(buttonVariants({ variant: 'primary', size: 'sm' }), 'mt-3')}
-          >
-            온라인으로 지원하기
-          </Link>
+          <JobApplyButton jobId={job.id} size="sm" className="mt-3" />
         </div>
 
         {job.managerPhone && (

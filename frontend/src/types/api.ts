@@ -15,7 +15,7 @@ export interface ApiErrorBody {
   fieldErrors?: { field: string; reason: string }[]
 }
 
-export type MemberRole = 'JOBSEEKER' | 'FACILITY' | 'ADMIN' | 'GUEST'
+export type MemberRole = 'JOBSEEKER' | 'FACILITY' | 'ADMIN' | 'GENERAL' | 'GUEST'
 
 /** POST /api/auth/login, POST /api/auth/reissue, POST /api/auth/social/select-role */
 export interface TokenResponse {
@@ -130,12 +130,45 @@ export interface JobSeekerSignupRequest {
   agreements: TermsAgreementRequest[]
 }
 
+/** POST /api/members/general (GeneralSignupRequest) — 구직 의사 없는 일반 소비자 계정 */
+export interface GeneralSignupRequest {
+  loginId: string
+  password: string
+  email: string
+  name: string
+  phone: string
+  verificationChannel: VerificationChannel
+  verificationTarget: string
+  agreements: TermsAgreementRequest[]
+}
+
+/**
+ * POST /api/members/facilities (FacilitySignupRequest).
+ * businessLicenseFileKey 는 먼저 POST /api/files/upload-url (purpose=BUSINESS_LICENSE) 로
+ * 업로드까지 마친 값. 가입 직후 승인상태 PENDING — 관리자 승인 전까지 인재 열람/공고 등록 불가.
+ */
+export interface FacilitySignupRequest {
+  loginId: string
+  password: string
+  email: string
+  name: string
+  phone: string
+  facilityName: string
+  facilityType: string
+  /** 10자리 숫자, 하이픈 선택 */
+  businessRegistrationNumber: string
+  businessLicenseFileKey: string
+  verificationChannel: VerificationChannel
+  verificationTarget: string
+  agreements: TermsAgreementRequest[]
+}
+
 /** 회원가입 결과 (SignupResponse). 토큰은 주지 않는다 — 가입 후 별도 로그인 필요. */
 export interface SignupResponse {
   memberId: number
   role: MemberRole
   status: string
-  /** 시설회원이면 PENDING, 구직자면 null */
+  /** 시설회원이면 PENDING, 그 외는 null */
   approvalStatus: string | null
   message: string
 }
@@ -247,6 +280,26 @@ export interface PageResponse<T> {
 }
 
 export type ApplicationStatus = 'APPLIED' | 'ACCEPTED' | 'REJECTED' | 'CANCELED'
+
+/**
+ * GET /api/job-postings/{id}/applications 목록 항목 (ApplicationDtos.ApplicantResponse) —
+ * 시설이 보는 지원자 카드. certificateNames 는 지원자 프로필에 이미 등록된 자격증들이다
+ * (지원 건별 첨부가 아니라 서버가 자동으로 붙여준다).
+ */
+export interface ApplicantResponse {
+  applicationId: number
+  status: ApplicationStatus
+  appliedAt: string
+  processedAt: string | null
+  message: string | null
+  profileId: number
+  memberId: number
+  applicantName: string
+  employmentStatus: string
+  desiredJobType: string | null
+  certificateNames: string[]
+  matchingScore: number | null
+}
 
 /** GET /api/members/me/applications 목록 항목 (ApplicationDtos.MyApplicationResponse) */
 export interface MyApplicationResponse {
@@ -523,6 +576,41 @@ export interface JobPostingSearchParams {
   keyword?: string
   page?: number
   size?: number
+}
+
+/**
+ * POST/PUT /api/job-postings (JobPostingDtos.CreateRequest/UpdateRequest) — 시설의 공고
+ * 등록/수정. UpdateRequest 는 이 타입에서 exposureType 만 빠진 형태라 하나로 같이 쓴다.
+ */
+export interface JobPostingWriteRequest {
+  title: string
+  jobType: ApiJobType
+  description?: string
+  workType: ApiWorkType
+  /** 입주형(LIVE_IN)이 아니면 필수 */
+  workSchedule?: ApiWorkSchedule
+  employmentType: ApiEmploymentType
+  workDays: string
+  /** "HH:mm" 또는 "HH:mm:ss" */
+  workStartTime: string
+  workEndTime: string
+  payType: ApiPayType
+  payAmount: number
+  recruitCount: number
+  /** "YYYY-MM-DD" */
+  deadline: string
+  sido: string
+  sigungu: string
+  addressDetail?: string
+  careGrade: ApiCareGrade
+  elderGender: ApiElderGender
+  elderAgeRange?: string
+  mobilityStatus: ApiMobilityStatus
+  mealStatus: ApiMealStatus
+  cognitiveStatus: ApiCognitiveStatus
+  elderNote?: string
+  /** 등록(create)에서만 의미 있음. null/미전달이면 NORMAL. */
+  exposureType?: ExposureType
 }
 
 /** GET /api/job-postings/facets — 좌측 필터 옵션별 결과 건수 (축 자신의 선택은 제외하고 센다) */

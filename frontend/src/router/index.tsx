@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router-dom'
 import { PlaceholderPage } from '@/components/common/placeholder-page'
 import { SiteLayout } from '@/components/layout/site-layout'
 import { TalentAccessGate } from '@/components/talent/talent-access-gate'
+import { AboutPage } from '@/pages/About'
 import { HomePage } from '@/pages/Home'
 import { JobApplyPage } from '@/pages/JobApply'
 import { JobDetailPage } from '@/pages/JobDetail'
@@ -13,6 +14,9 @@ import { TalentListPage } from '@/pages/TalentList'
 import { LoginPage } from '@/pages/Login'
 import { MyPageApplicationsPage } from '@/pages/MyPage/Applications'
 import { MyPageCertificatesPage } from '@/pages/MyPage/Certificates'
+import { MyPageJobApplicantsPage } from '@/pages/MyPage/JobApplicants'
+import { MyPageJobsPage } from '@/pages/MyPage/Jobs'
+import { JobPostingFormPage } from '@/pages/MyPage/JobPostingForm'
 import { MyPageLayout } from '@/pages/MyPage/MyPageLayout'
 import { MyPageOverviewPage } from '@/pages/MyPage/Overview'
 import { MyPageScrapsPage } from '@/pages/MyPage/Scraps'
@@ -73,12 +77,16 @@ export const router = createBrowserRouter([
           { path: 'applications', element: <MyPageApplicationsPage /> },
           { path: 'scraps', element: <MyPageScrapsPage /> },
           { path: 'certificates', element: <MyPageCertificatesPage /> },
+          { path: 'jobs', element: <MyPageJobsPage /> },
+          { path: 'jobs/new', element: <JobPostingFormPage /> },
+          { path: 'jobs/:jobPostingId/edit', element: <JobPostingFormPage /> },
+          { path: 'jobs/:jobPostingId/applicants', element: <MyPageJobApplicantsPage /> },
           { path: 'settings', element: <MyPageSettingsPage /> },
-          // 등록한 공고(시설)/포인트/알림설정 등 아직 없는 하위 화면
+          // 포인트/알림설정 등 아직 없는 하위 화면
           { path: '*', element: <PlaceholderPage title="마이페이지" /> },
         ],
       },
-      { path: '/about', element: <PlaceholderPage title="회사소개" /> },
+      { path: '/about', element: <AboutPage /> },
       { path: '/terms', element: <LegalPage type="SERVICE" /> },
       { path: '/privacy', element: <LegalPage type="PRIVACY" /> },
       {

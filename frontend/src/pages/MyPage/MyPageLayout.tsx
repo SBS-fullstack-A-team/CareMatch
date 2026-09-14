@@ -1,4 +1,4 @@
-import { Award, FileText, Heart, LogIn, Settings as SettingsIcon, UserRound } from 'lucide-react'
+import { Award, Briefcase, FileText, Heart, LogIn, Settings as SettingsIcon, UserRound } from 'lucide-react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { Breadcrumb } from '@/components/common/breadcrumb'
 import { EmptyState } from '@/components/common/empty-state'
@@ -17,11 +17,26 @@ const JOBSEEKER_MENU = [
 
 const FACILITY_MENU = [
   { to: '/mypage', label: '시설 관리', icon: UserRound, end: true },
+  { to: '/mypage/jobs', label: '등록한 공고', icon: Briefcase, end: false },
   { to: '/mypage/scraps', label: '관심 인재', icon: Heart, end: false },
   { to: '/mypage/settings', label: '계정 설정', icon: SettingsIcon, end: false },
 ]
 
-const ADMIN_MENU = [{ to: '/mypage', label: '마이페이지', icon: UserRound, end: true }]
+const GENERAL_MENU = [
+  { to: '/mypage', label: '마이페이지', icon: UserRound, end: true },
+  { to: '/mypage/scraps', label: '관심 공고', icon: Heart, end: false },
+  { to: '/mypage/settings', label: '설정', icon: SettingsIcon, end: false },
+]
+
+/** 관리자는 구직자/시설 화면을 모두 확인할 수 있어야 해서 두 메뉴를 합쳐서 보여준다. */
+const ADMIN_MENU = [
+  { to: '/mypage', label: '마이페이지', icon: UserRound, end: true },
+  { to: '/mypage/applications', label: '지원 현황', icon: FileText, end: false },
+  { to: '/mypage/scraps', label: '관심 공고', icon: Heart, end: false },
+  { to: '/mypage/certificates', label: '자격증', icon: Award, end: false },
+  { to: '/mypage/jobs', label: '등록한 공고', icon: Briefcase, end: false },
+  { to: '/mypage/settings', label: '설정', icon: SettingsIcon, end: false },
+]
 
 /**
  * `/mypage/*` 공통 껍데기 — Breadcrumb + 좌측 사이드내비(역할별) + 우측 하위 페이지.
@@ -77,7 +92,13 @@ export function MyPageLayout() {
   }
 
   const menu =
-    user.memberType === 'facility' ? FACILITY_MENU : user.role === 'ADMIN' ? ADMIN_MENU : JOBSEEKER_MENU
+    user.memberType === 'facility'
+      ? FACILITY_MENU
+      : user.role === 'ADMIN'
+        ? ADMIN_MENU
+        : user.role === 'GENERAL'
+          ? GENERAL_MENU
+          : JOBSEEKER_MENU
 
   return (
     <div className="container-page py-6 lg:py-8">
