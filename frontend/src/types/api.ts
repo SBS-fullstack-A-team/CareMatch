@@ -15,7 +15,7 @@ export interface ApiErrorBody {
   fieldErrors?: { field: string; reason: string }[]
 }
 
-export type MemberRole = 'JOBSEEKER' | 'FACILITY' | 'ADMIN' | 'GUEST'
+export type MemberRole = 'JOBSEEKER' | 'FACILITY' | 'ADMIN' | 'GENERAL' | 'GUEST'
 
 /** POST /api/auth/login, POST /api/auth/reissue, POST /api/auth/social/select-role */
 export interface TokenResponse {
@@ -130,12 +130,45 @@ export interface JobSeekerSignupRequest {
   agreements: TermsAgreementRequest[]
 }
 
+/** POST /api/members/general (GeneralSignupRequest) — 구직 의사 없는 일반 소비자 계정 */
+export interface GeneralSignupRequest {
+  loginId: string
+  password: string
+  email: string
+  name: string
+  phone: string
+  verificationChannel: VerificationChannel
+  verificationTarget: string
+  agreements: TermsAgreementRequest[]
+}
+
+/**
+ * POST /api/members/facilities (FacilitySignupRequest).
+ * businessLicenseFileKey 는 먼저 POST /api/files/upload-url (purpose=BUSINESS_LICENSE) 로
+ * 업로드까지 마친 값. 가입 직후 승인상태 PENDING — 관리자 승인 전까지 인재 열람/공고 등록 불가.
+ */
+export interface FacilitySignupRequest {
+  loginId: string
+  password: string
+  email: string
+  name: string
+  phone: string
+  facilityName: string
+  facilityType: string
+  /** 10자리 숫자, 하이픈 선택 */
+  businessRegistrationNumber: string
+  businessLicenseFileKey: string
+  verificationChannel: VerificationChannel
+  verificationTarget: string
+  agreements: TermsAgreementRequest[]
+}
+
 /** 회원가입 결과 (SignupResponse). 토큰은 주지 않는다 — 가입 후 별도 로그인 필요. */
 export interface SignupResponse {
   memberId: number
   role: MemberRole
   status: string
-  /** 시설회원이면 PENDING, 구직자면 null */
+  /** 시설회원이면 PENDING, 그 외는 null */
   approvalStatus: string | null
   message: string
 }

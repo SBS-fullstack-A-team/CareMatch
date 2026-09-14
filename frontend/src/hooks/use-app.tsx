@@ -131,6 +131,8 @@ function toSessionUser(me: MyPageResponse): SessionUser {
           : '시설회원 (승인 대기)'
   } else if (me.role === 'ADMIN') {
     subtitle = '관리자'
+  } else if (me.role === 'GENERAL') {
+    subtitle = '일반회원'
   } else {
     subtitle = me.employmentStatus === 'EMPLOYED' ? '재직 중' : '구직 중'
   }
