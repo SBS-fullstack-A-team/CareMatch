@@ -9,6 +9,7 @@ import com.carematch.member.domain.Member;
 import com.carematch.member.domain.MemberStatus;
 import com.carematch.member.domain.Role;
 import com.carematch.member.dto.FacilitySignupRequest;
+import com.carematch.member.dto.GeneralSignupRequest;
 import com.carematch.member.dto.JobSeekerSignupRequest;
 import com.carematch.member.dto.SignupResponse;
 import com.carematch.member.dto.MyPageResponse;
@@ -141,6 +142,34 @@ public class MemberService {
 
         termsService.recordSignupAgreements(member, req.agreements());
         return SignupResponse.facility(member);
+    }
+
+    // ---------------------------------------------------------------------
+    // 일반회원 가입 — 구직 의사 없이 개인적으로 요양보호사 등을 찾는 소비자 계정.
+    // 자격증/구직 프로필 없이 member 로우만 생성한다.
+    // ---------------------------------------------------------------------
+    @Transactional
+    public SignupResponse registerGeneral(GeneralSignupRequest req) {
+        validateDuplicate(req.loginId(), req.email());
+        PasswordPolicy.validate(req.password());
+        if (verificationRequiredForSignup) {
+            assertVerificationMatchesContact(req.verificationChannel(), req.verificationTarget(), req.email(), req.phone());
+            verificationService.assertVerified(req.verificationChannel(), req.verificationTarget());
+        }
+
+        Member member = memberRepository.save(Member.builder()
+                .loginId(req.loginId())
+                .password(passwordEncoder.encode(req.password()))
+                .email(req.email())
+                .name(req.name())
+                .phone(req.phone())
+                .role(Role.GENERAL)
+                .status(MemberStatus.ACTIVE)
+                .verified(true)
+                .build());
+
+        termsService.recordSignupAgreements(member, req.agreements());
+        return SignupResponse.general(member);
     }
 
     // ---------------------------------------------------------------------

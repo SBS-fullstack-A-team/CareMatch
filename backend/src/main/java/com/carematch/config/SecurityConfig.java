@@ -77,7 +77,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST,
                                 "/api/auth/login", "/api/auth/reissue", "/api/auth/logout").permitAll()
                         .requestMatchers(HttpMethod.POST,
-                                "/api/members/jobseekers", "/api/members/facilities").permitAll()
+                                "/api/members/jobseekers", "/api/members/facilities", "/api/members/general").permitAll()
                         .requestMatchers(HttpMethod.GET,
                                 "/api/members/exists").permitAll()
                         .requestMatchers("/api/verifications/**").permitAll()
