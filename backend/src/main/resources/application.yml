@@ -145,3 +145,10 @@ carematch:
     tel: ${SUPPORT_TEL:1588-1234}
     kakao-channel-url: ${SUPPORT_KAKAO_URL:https://pf.kakao.com/_carematch}
     operating-hours: "평일 09:00~18:00 (점심 12:00~13:00 제외)"
+
+  seed:
+    # DummyMarketplaceSeeder(구인공고/인재 더미) 실행 여부. local 프로필은 application-local.yml
+    # 에서 true 로 덮어써서 기본 실행. prod 에서 데모용으로 한 번 심고 싶으면 Render 환경변수
+    # SEED_MARKETPLACE_DUMMY=true 로 켰다가, 데이터 생긴 뒤엔 다시 false 로 꺼도 된다
+    # (이미 데이터 있으면 시더가 스스로 스킵하므로 켜둔 채 둬도 안전은 함).
+    marketplace-dummy: ${SEED_MARKETPLACE_DUMMY:false}
