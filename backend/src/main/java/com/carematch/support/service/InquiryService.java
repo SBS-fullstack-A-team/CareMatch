@@ -102,6 +102,10 @@ public class InquiryService {
                 .answeredBy(adminId)
                 .content(req.content())
                 .build());
+        // InquiryReply 는 IDENTITY 채번이라 flush 전엔 id 가 null 이다. 여기서 flush 안 하면
+        // 방금 추가한 답변만 id=null 인 채로 응답에 실려서, 프론트가 이걸 리스트 key로 쓸 때
+        // (여러 번 답변하는 경우) 다른 답변과 key 충돌이 난다.
+        inquiryRepository.flush();
         if (inquiry.getMemberId() == null) {
             return InquiryResponse.from(inquiry);
         }
