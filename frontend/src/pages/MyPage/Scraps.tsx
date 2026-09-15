@@ -29,7 +29,7 @@ const EMPTY_PAGE: PageResponse<JobPostingSummary> = {
 }
 
 /**
- * `/mypage/scraps` — 관심 공고. 백엔드 스크랩 API 는 역할 제한이 없어 구직자·일반회원·관리자
+ * `/mypage/scraps` — 관심 공고. 백엔드 스크랩 API 는 역할 제한이 없어 구직자·보호자회원·관리자
  * 모두 실제 목록을 쓸 수 있다. 다만 "관심 인재" 개념(시설회원용)은 서버에 없어
  * 시설회원은 안내만 하고 목록을 부르지 않는다.
  */

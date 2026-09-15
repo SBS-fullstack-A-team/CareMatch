@@ -66,7 +66,11 @@ function passwordError(value: string) {
 }
 
 /**
+feature/fe-guardian-member-point-guard
+ * 회원가입 (/signup) — 보호자(소비자) / 구직자 / 시설, 3단계
+=======
  * 회원가입 (/signup) — 보호자(소비자, 서버 role GENERAL) / 구직자 / 시설, 3단계
+main
  *
  * 실제 백엔드에 연결된다.
  *   POST /api/members/general · /jobseekers · /facilities · GET /api/members/exists
@@ -415,7 +419,11 @@ export function SignupPage() {
   /**
    * 가입 직후엔 토큰이 없어 인증이 필요한 화면(자격증 등록)에 바로 갈 수 없다.
    * 방금 입력한 아이디/비밀번호로 대신 로그인해 그 자리에서 자격증 등록창까지 이어준다.
+feature/fe-guardian-member-point-guard
+   * 구직자 전용 — 시설/보호자회원은 자격증 개념이 없다.
+=======
    * 구직자 전용 — 시설/보호자 회원은 자격증 개념이 없다.
+main
    */
   const handleGoRegisterCertificate = async () => {
     setAutoLoginError(null)
@@ -457,7 +465,7 @@ export function SignupPage() {
             size="lg"
           />
           <p className="mt-2 text-sm text-fg-muted">
-            {memberKind === 'general' && '구직 의사 없이 요양보호사 등 인재정보를 둘러보실 분'}
+            {memberKind === 'general' && '가족의 돌봄을 위해 요양보호사 등 인재정보를 찾으실 보호자분'}
             {memberKind === 'jobseeker' && '요양보호사·간병인·가사도우미로 일자리를 찾으실 분'}
             {memberKind === 'facility' && '요양시설·재가센터 등 인력을 채용하실 사업자'}
           </p>

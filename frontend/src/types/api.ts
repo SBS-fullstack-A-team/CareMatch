@@ -808,3 +808,17 @@ export interface TalentFacetsResponse {
   desiredWorkSchedule: Record<string, number>
   careerBucket: Record<string, number>
 }
+
+/** POST /api/points/charge/prepare 응답 — PortOne.requestPayment() 호출에 그대로 쓴다 */
+export interface PointChargePrepareResponse {
+  paymentId: string
+  storeId: string
+  amount: number
+  orderName: string
+}
+
+/** POST /api/points/charge/complete 응답 */
+export interface PointChargeCompleteResponse {
+  chargedAmount: number
+  balance: number
+}

@@ -8,7 +8,7 @@ package com.carematch.member.dto;
  * @param email          이메일
  * @param role           JOBSEEKER / FACILITY / ADMIN
  * @param membershipType 멤버십 유형(현재 BASIC 고정, 2차 확장 대비)
- * @param point          보유 포인트 (PointService 스텁 값)
+ * @param point          보유 포인트
  * @param employmentStatus 구직자면 SEEKING/EMPLOYED, 아니면 null
  * @param facilityApprovalStatus 시설회원이면 PENDING/APPROVED/REJECTED, 아니면 null
  */

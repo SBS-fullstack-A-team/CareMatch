@@ -9,8 +9,8 @@ import com.carematch.member.domain.JobSeekerProfile;
 import com.carematch.member.domain.Member;
 import com.carematch.member.repository.JobSeekerProfileRepository;
 import com.carematch.member.repository.MemberRepository;
+import com.carematch.point.PointPolicy;
 import com.carematch.point.PointService;
-import com.carematch.point.StubPointService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,12 +21,11 @@ import java.time.ZoneId;
 /**
  * 연락처 열람(마스킹 → 이력 확인 → (스텁)차감 → 언마스크) 흐름.
  *
- * 범위: 이번 작업은 아래 4단계의 "구조"까지다.
- *   1) 대상 상태 검증(EMPLOYED 면 열람 자체 차단) — 포인트와 무관, 지금 구현
+ * 흐름:
+ *   1) 대상 상태 검증(EMPLOYED 면 열람 자체 차단) — 포인트와 무관
  *   2) 이미 열람 이력 있으면 PointService 호출 없이 무료 언마스크
- *   3) 없으면 PointService(스텁)로 차감 가능 여부 확인 "자리"
+ *   3) 없으면 PointService 로 실제 잔액 차감(부족하면 402)
  *   4) 성공 시 이력 저장 후 언마스크 응답
- * 범위 밖: 포인트 잔액 관리/충전/동시성 락 (PointService 구현체 교체로 확장)
  */
 @Slf4j
 @Service
@@ -67,8 +66,8 @@ public class ContactUnlockService {
                     h.getUnlockedAt().atZone(ZoneId.systemDefault()).toOffsetDateTime());
         }
 
-        // 3) 최초 열람 → (스텁) 포인트 차감 자리. 지금은 항상 성공 반환.
-        int cost = StubPointService.CONTACT_UNLOCK_COST;
+        // 3) 최초 열람 → 실제 포인트 차감
+        int cost = PointPolicy.CONTACT_UNLOCK_COST;
         boolean deducted = pointService.deduct(
                 facilityMemberId, cost, "CONTACT_UNLOCK:jobSeekerProfileId=" + jobSeekerProfileId);
         if (!deducted) {

@@ -58,13 +58,15 @@ export function Header() {
             <>
               <span aria-hidden className="hidden h-6 w-px bg-border xl:block" />
 
-              <Link
-                to="/mypage/point"
-                className="hidden h-11 items-center gap-1.5 rounded-btn border border-border px-3 text-base font-semibold text-fg transition-colors hover:border-primary/40 hover:bg-primary-light xl:flex"
-              >
-                <Coins className="size-[18px] text-accent" aria-hidden />
-                <span className="tabular">{formatNumber(user.point)}P</span>
-              </Link>
+              {(user.role === 'GENERAL' || user.memberType === 'facility') && (
+                <Link
+                  to="/mypage/point"
+                  className="hidden h-11 items-center gap-1.5 rounded-btn border border-border px-3 text-base font-semibold text-fg transition-colors hover:border-primary/40 hover:bg-primary-light xl:flex"
+                >
+                  <Coins className="size-[18px] text-accent" aria-hidden />
+                  <span className="tabular">{formatNumber(user.point)}P</span>
+                </Link>
+              )}
 
               <Link
                 to="/notifications"

@@ -59,8 +59,11 @@ function ProfileSummary({ user }: { user: SessionUser }) {
       : user.role === 'ADMIN'
         ? '관리자'
         : user.role === 'GENERAL'
-          ? '일반회원'
-          : '개인회원'
+          ? '보호자회원'
+          : '구직회원'
+
+  /** 포인트는 보호자회원·시설회원만 사용한다 (구직회원은 포인트 개념이 없다). */
+  const canUsePoint = user.role === 'GENERAL' || user.memberType === 'facility'
 
   const [chargeOpen, setChargeOpen] = useState(false)
 
@@ -71,16 +74,18 @@ function ProfileSummary({ user }: { user: SessionUser }) {
       <p className="mt-1.5 text-base text-fg-muted">{user.subtitle}</p>
 
       <div className="mt-5 flex flex-wrap items-center gap-6 border-t border-border pt-4">
-        <div className="flex items-center gap-3">
-          <div>
-            <p className="text-sm text-fg-muted">보유 포인트</p>
-            <p className="mt-0.5 text-lg font-bold text-primary-deep tabular">{formatNumber(user.point)}P</p>
+        {canUsePoint && (
+          <div className="flex items-center gap-3">
+            <div>
+              <p className="text-sm text-fg-muted">보유 포인트</p>
+              <p className="mt-0.5 text-lg font-bold text-primary-deep tabular">{formatNumber(user.point)}P</p>
+            </div>
+            <Button type="button" variant="secondary" size="sm" onClick={() => setChargeOpen(true)}>
+              <Coins className="size-4" aria-hidden />
+              충전
+            </Button>
           </div>
-          <Button type="button" variant="secondary" size="sm" onClick={() => setChargeOpen(true)}>
-            <Coins className="size-4" aria-hidden />
-            충전
-          </Button>
-        </div>
+        )}
         {user.memberType === 'facility' && user.facilityApprovalStatus && (
           <div>
             <p className="text-sm text-fg-muted">승인 상태</p>
@@ -91,7 +96,7 @@ function ProfileSummary({ user }: { user: SessionUser }) {
         )}
       </div>
 
-      <PointChargeModal open={chargeOpen} onClose={() => setChargeOpen(false)} />
+      {canUsePoint && <PointChargeModal open={chargeOpen} onClose={() => setChargeOpen(false)} />}
     </section>
   )
 }

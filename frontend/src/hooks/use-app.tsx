@@ -22,7 +22,7 @@ export interface SessionUser {
   role: MemberRole
   /** 시설회원의 관리자 승인 상태. 그 외 역할은 null. */
   facilityApprovalStatus: MyPageResponse['facilityApprovalStatus']
-  /** 개인회원: 상태 / 시설회원: 승인 상태 문구 */
+  /** 구직회원·보호자회원: 상태 / 시설회원: 승인 상태 문구 */
   subtitle: string
   point: number
   unreadNotifications: number
@@ -71,6 +71,8 @@ interface AppContextValue {
   /** 아이디/비밀번호 로그인. 실패 시 ApiError 를 던진다. */
   login: (loginId: string, password: string) => Promise<TokenResponse>
   logout: () => Promise<void>
+  /** 서버에서 내 정보를 다시 불러와 세션(포인트 등)을 갱신한다. 예: 포인트 충전 완료 직후. */
+  refreshUser: () => Promise<void>
   fontScale: FontScale
   setFontScale: (scale: FontScale) => void
   easyMode: boolean
@@ -132,7 +134,7 @@ function toSessionUser(me: MyPageResponse): SessionUser {
   } else if (me.role === 'ADMIN') {
     subtitle = '관리자'
   } else if (me.role === 'GENERAL') {
-    subtitle = '일반회원'
+    subtitle = '보호자회원'
   } else {
     subtitle = me.employmentStatus === 'EMPLOYED' ? '재직 중' : '구직 중'
   }
@@ -256,9 +258,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await authLogout()
   }, [])
 
+  const refreshUser = useCallback(async () => {
+    if (!tokenStore.hasSession()) return
+    const me = await getMe()
+    setUser(toSessionUser(me))
+  }, [])
+
   const value = useMemo<AppContextValue>(
-    () => ({ user, authReady, login, logout, fontScale, setFontScale, easyMode, setEasyMode }),
-    [user, authReady, login, logout, fontScale, setFontScale, easyMode, setEasyMode],
+    () => ({ user, authReady, login, logout, refreshUser, fontScale, setFontScale, easyMode, setEasyMode }),
+    [user, authReady, login, logout, refreshUser, fontScale, setFontScale, easyMode, setEasyMode],
   )
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>

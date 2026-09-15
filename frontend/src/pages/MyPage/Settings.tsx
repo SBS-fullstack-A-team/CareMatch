@@ -23,7 +23,13 @@ export function MyPageSettingsPage() {
           </div>
           <div className="flex justify-between gap-4">
             <dt className="text-fg-muted">회원 유형</dt>
-            <dd className="text-fg">{user.memberType === 'facility' ? '시설회원' : '개인회원'}</dd>
+            <dd className="text-fg">
+              {user.memberType === 'facility'
+                ? '시설회원'
+                : user.role === 'GENERAL'
+                  ? '보호자회원'
+                  : '구직회원'}
+            </dd>
           </div>
           <div className="flex justify-between gap-4">
             <dt className="text-fg-muted">상태</dt>
