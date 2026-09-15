@@ -42,7 +42,9 @@ public class PointChargeService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
 
-        String paymentId = "point-" + UUID.randomUUID();
+        // KG이니시스 등 일부 PG는 주문번호(oid) 길이를 1~40자로 제한한다 — "point-" + 하이픈 포함
+        // UUID(36자)는 42자라 초과하므로, 하이픈을 뺀 UUID(32자)를 붙여 34자로 맞춘다.
+        String paymentId = "pt" + UUID.randomUUID().toString().replace("-", "");
         pointChargeRepository.save(PointCharge.builder()
                 .member(member)
                 .paymentId(paymentId)
