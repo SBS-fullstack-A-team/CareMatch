@@ -5,6 +5,8 @@ import com.carematch.common.exception.ErrorCode;
 import com.carematch.member.domain.FacilityApprovalStatus;
 import com.carematch.member.domain.FacilityProfile;
 import com.carematch.member.repository.FacilityProfileRepository;
+import com.carematch.notification.domain.NotificationType;
+import com.carematch.notification.service.NotificationService;
 import com.carematch.storage.FileStorageService;
 import com.carematch.storage.StorageProperties;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +30,7 @@ public class FacilityApprovalService {
     private final FacilityProfileRepository facilityProfileRepository;
     private final FileStorageService fileStorageService;
     private final StorageProperties storageProperties;
+    private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public Page<FacilityApprovalItem> list(FacilityApprovalStatus status, Pageable pageable) {
@@ -45,6 +48,8 @@ public class FacilityApprovalService {
         }
         profile.approve(LocalDateTime.now());
         log.info("[FacilityApproval] approved profileId={}", facilityProfileId);
+        notificationService.notify(profile.getMember().getId(), NotificationType.FACILITY_APPROVED,
+                "시설 회원 승인이 완료되었습니다. 이제 인재 열람과 공고 등록을 이용하실 수 있어요.", "/mypage");
         return toItem(profile);
     }
 
@@ -56,6 +61,11 @@ public class FacilityApprovalService {
         }
         profile.reject(reason, LocalDateTime.now());
         log.info("[FacilityApproval] rejected profileId={} reason={}", facilityProfileId, reason);
+        notificationService.notify(profile.getMember().getId(), NotificationType.FACILITY_REJECTED,
+                reason == null || reason.isBlank()
+                        ? "시설 회원 승인이 반려되었습니다."
+                        : "시설 회원 승인이 반려되었습니다: " + reason,
+                "/mypage");
         return toItem(profile);
     }
 
