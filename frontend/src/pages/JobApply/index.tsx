@@ -76,15 +76,26 @@ export function JobApplyPage() {
 
   if (!user) return <LoginRequired />
 
-  // 구직자 프로필 API 는 JOBSEEKER 전용이라, 다른 역할은 폼(=API 호출)까지 가지 않는다
-  if (user.role !== 'JOBSEEKER') return <RoleNotice user={user} />
+  // 구직자 프로필 API 는 JOBSEEKER 전용이라, 구직자가 아닌 회원은 폼(=API 호출)까지 가지 않는다.
+  // 단 관리자는 계정 관리를 위해 전체 화면을 볼 수 있어야 하므로, 서버 호출 없는 읽기 전용으로 연다.
+  if (user.role !== 'JOBSEEKER' && user.role !== 'ADMIN') return <RoleNotice user={user} />
 
-  return <JobApplyForm userName={user.name} />
+  return <JobApplyForm userName={user.name} adminPreview={user.role === 'ADMIN'} />
 }
 
 type LoadError = { status: number; message: string }
 
-function JobApplyForm({ userName }: { userName: string }) {
+/**
+ * adminPreview: 관리자가 화면 점검용으로 열었을 때. 구직자 전용 API(`/api/jobseekers/me`,
+ * `/api/certificates/me`)를 호출하지 않고 빈 폼을 읽기 전용으로만 보여준다.
+ */
+function JobApplyForm({
+  userName,
+  adminPreview = false,
+}: {
+  userName: string
+  adminPreview?: boolean
+}) {
   const { toast } = useToast()
   const navigate = useNavigate()
 
@@ -128,11 +139,18 @@ function JobApplyForm({ userName }: { userName: string }) {
   }, [])
 
   useEffect(() => {
+    // 관리자 미리보기는 구직자 전용 API 를 호출하지 않는다 (호출해도 403)
+    if (adminPreview) {
+      setLoading(false)
+      return
+    }
     load()
-  }, [load])
+  }, [load, adminPreview])
 
   /** 이미 등록해 둔 자격증 파일이 있으면 함께 보여준다. 없어도 화면은 그대로 동작해야 한다. */
   useEffect(() => {
+    // 자격증 목록도 구직자 전용 API 라 관리자 미리보기에서는 부르지 않는다
+    if (adminPreview) return
     let alive = true
     getMyCertificates()
       .then((list) => {
@@ -144,7 +162,7 @@ function JobApplyForm({ userName }: { userName: string }) {
     return () => {
       alive = false
     }
-  }, [])
+  }, [adminPreview])
   const update = (patch: Partial<JobApplyDraft>) => setDraft((prev) => ({ ...prev, ...patch }))
 
   const handleCertificateRegistered = (certificate: CertificateDetailResponse) => {
@@ -308,11 +326,18 @@ function JobApplyForm({ userName }: { userName: string }) {
         <div className="mt-5 overflow-hidden rounded-card border border-border">
           <LoadingState rows={4} />
         </div>
-      ) : loadError || !serverProfile ? (
+      ) : !adminPreview && (loadError || !serverProfile) ? (
         <ProfileLoadFailed error={loadError} onRetry={load} />
       ) : (
         <>
-          {storedDraft && (
+          {adminPreview && (
+            <p className="mt-4 rounded-card border border-border bg-surface px-4 py-3 text-base text-fg-muted">
+              관리자 계정에서는 구직신청 화면을 확인용으로만 볼 수 있습니다. 구직 프로필 조회·저장은
+              구직자 회원 전용이라 입력과 저장은 막혀 있습니다.
+            </p>
+          )}
+
+          {!adminPreview && storedDraft && (
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-card border border-border bg-surface px-4 py-3">
               <p className="text-base text-fg-muted">
                 이 브라우저에 임시저장한 내용이 있습니다. 불러오시겠습니까?
@@ -329,6 +354,8 @@ function JobApplyForm({ userName }: { userName: string }) {
           )}
 
           <form onSubmit={handleSubmit} noValidate className="mt-5 gap-6 lg:flex lg:items-start">
+            {/* 관리자 미리보기는 입력·저장을 막는다. display:contents 라 기존 레이아웃은 그대로다 */}
+            <fieldset disabled={adminPreview} className="contents">
             {/* ---------------- 본문 ---------------- */}
             <div className="min-w-0 flex-1 space-y-5">
               {/* ① 기본 정보 */}
@@ -632,7 +659,7 @@ function JobApplyForm({ userName }: { userName: string }) {
                     {formError}
                   </p>
                 )}
-                <Button type="submit" block disabled={saving}>
+                <Button type="submit" block disabled={saving || adminPreview}>
                   {saving ? '저장 중…' : '구직신청 등록'}
                 </Button>
                 <Button type="button" variant="secondary" block onClick={handleSaveDraft}>
@@ -644,6 +671,7 @@ function JobApplyForm({ userName }: { userName: string }) {
                 </p>
               </div>
             </aside>
+            </fieldset>
           </form>
         </>
       )}

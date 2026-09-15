@@ -116,6 +116,18 @@ export interface VerifyCodeResponse {
   verified: boolean
 }
 
+/**
+ * POST /api/auth/password-reset — 비밀번호 찾기(재설정).
+ * 사전에 verificationChannel/verificationTarget 으로 /api/verifications/send·verify 를
+ * 거쳐 loginId 소유자 본인의 이메일/휴대폰 인증을 완료해둬야 한다(회원가입과 동일 인프라).
+ */
+export interface PasswordResetRequest {
+  loginId: string
+  verificationChannel: VerificationChannel
+  verificationTarget: string
+  newPassword: string
+}
+
 /** POST /api/members/jobseekers (JobSeekerSignupRequest) */
 export interface JobSeekerSignupRequest {
   loginId: string

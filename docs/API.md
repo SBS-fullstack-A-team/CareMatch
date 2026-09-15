@@ -149,6 +149,7 @@ PUT /api/members/me/phone     (Authorization: Bearer ...)
 | POST | `/api/auth/reissue` | 공개 | Refresh 로 Access 재발급(+Refresh rotation) |
 | POST | `/api/auth/logout` | 공개 | Refresh Token 무효화 |
 | POST | `/api/auth/social/select-role` | 인증(GUEST) | 소셜 최초 로그인 후 회원 유형 확정 |
+| POST | `/api/auth/password-reset` | 공개 | 비밀번호 찾기(재설정) |
 | GET | `/oauth2/authorization/{naver\|kakao\|google}` | 공개 | 소셜 로그인 시작(리다이렉트) |
 
 ```http
@@ -160,6 +161,29 @@ POST /api/auth/login
 }
 ```
 - 로그인 5회 연속 실패 → `423 ACCOUNT_LOCKED` (기본 15분 잠금)
+
+### 비밀번호 찾기 (`POST /api/auth/password-reset`)
+
+회원가입과 동일한 인증코드 인프라(§1)를 재사용한다 — 새 엔드포인트 없이 기존 `/api/verifications/send`+`/verify` 로
+loginId 소유자 본인의 이메일 또는 휴대폰을 먼저 인증한 뒤, 그 결과로 이 API를 호출해 비밀번호를 바꾼다.
+
+1. `POST /api/verifications/send { "channel": "EMAIL", "target": "hong@example.com" }` → 인증코드 발송(목업: 로그 출력, local 은 `devCodeHint`)
+2. `POST /api/verifications/verify { "channel": "EMAIL", "target": "hong@example.com", "code": "204913" }` → `{ "verified": true }`
+3. 아래 API로 비밀번호 재설정
+
+```http
+POST /api/auth/password-reset
+{ "loginId": "hong123", "verificationChannel": "EMAIL", "verificationTarget": "hong@example.com",
+  "newPassword": "NewPassw0rd!" }
+204
+```
+
+- 인증한 `verificationTarget` 이 그 `loginId` 회원의 실제 email/phone 과 다르면 `400 MEMBER_005 VERIFICATION_REQUIRED` (남의 인증 재사용 방지, 회원가입 검증과 동일 규칙)
+- 아직 인증을 안 거쳤으면 동일하게 `400 MEMBER_005`
+- 비밀번호 정책 위반 → `400 MEMBER_003 WEAK_PASSWORD` (8~64자, 영문·숫자·특수문자 모두 포함)
+- 소셜 전용 계정(비밀번호 없음) → `400 MEMBER_007 SOCIAL_ONLY_ACCOUNT`
+- 존재하지 않는 `loginId` → `404 MEMBER_004 MEMBER_NOT_FOUND`
+- 성공 시 로그인 실패 잠금(있었다면) 해제 + 기존 Refresh Token 전부 무효화(다른 기기 자동 로그아웃)
 
 ```http
 POST /api/auth/reissue

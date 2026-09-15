@@ -79,6 +79,22 @@ export function maskName(name: string) {
   return `${name.slice(0, -1)}○`
 }
 
+/**
+ * 휴대폰 번호 입력에 하이픈을 자동으로 넣는다 — "01012345678" -> "010-1234-5678".
+ * 숫자만 남겨 11자리까지 받고, 010 계열은 3-4-4, 그 외 10자리 번호(011 등)는 3-3-4 로 끊는다.
+ * 백엔드 가입 DTO 는 하이픈 유무를 모두 허용하고(`^01[0-9]-?\d{3,4}-?\d{4}$`),
+ * 인증 API 는 숫자만 남겨 비교하므로 하이픈이 붙은 값을 그대로 보내도 된다.
+ */
+export function formatPhoneNumber(value: string) {
+  const digits = value.replace(/\D/g, '').slice(0, 11)
+  if (digits.length <= 3) return digits
+
+  // 010 으로 시작하면 항상 3-4-4. 그 외는 10자리까지 3-3-4 로 보고, 11자리면 3-4-4.
+  const middleEnd = !digits.startsWith('010') && digits.length <= 10 ? 6 : 7
+  if (digits.length <= middleEnd) return `${digits.slice(0, 3)}-${digits.slice(3)}`
+  return `${digits.slice(0, 3)}-${digits.slice(3, middleEnd)}-${digits.slice(middleEnd)}`
+}
+
 /** 어르신 정보 한 줄 요약 — "4등급 · 여 · 보행 가능" */
 export function formatElderlySummary(elderly: {
   grade: string

@@ -15,7 +15,7 @@ import { FACILITY_TYPE_OPTIONS } from '@/data/filters'
 import { useApp } from '@/hooks/use-app'
 import { ApiError } from '@/lib/api-client'
 import { ACCEPT_ATTR, FileUploadError, uploadFile } from '@/lib/file-upload'
-import { cn } from '@/lib/utils'
+import { cn, formatPhoneNumber } from '@/lib/utils'
 import type {
   TermsResponse,
   TermsTypeName,
@@ -66,7 +66,11 @@ function passwordError(value: string) {
 }
 
 /**
+feature/fe-guardian-member-point-guard
  * 회원가입 (/signup) — 보호자(소비자) / 구직자 / 시설, 3단계
+=======
+ * 회원가입 (/signup) — 보호자(소비자, 서버 role GENERAL) / 구직자 / 시설, 3단계
+main
  *
  * 실제 백엔드에 연결된다.
  *   POST /api/members/general · /jobseekers · /facilities · GET /api/members/exists
@@ -415,7 +419,11 @@ export function SignupPage() {
   /**
    * 가입 직후엔 토큰이 없어 인증이 필요한 화면(자격증 등록)에 바로 갈 수 없다.
    * 방금 입력한 아이디/비밀번호로 대신 로그인해 그 자리에서 자격증 등록창까지 이어준다.
+feature/fe-guardian-member-point-guard
    * 구직자 전용 — 시설/보호자회원은 자격증 개념이 없다.
+=======
+   * 구직자 전용 — 시설/보호자 회원은 자격증 개념이 없다.
+main
    */
   const handleGoRegisterCertificate = async () => {
     setAutoLoginError(null)
@@ -584,10 +592,12 @@ export function SignupPage() {
               type="tel"
               autoComplete="tel"
               placeholder="010-1234-5678"
+              maxLength={13}
               value={phone}
               invalid={Boolean(errors.phone)}
               onChange={(event) => {
-                setPhone(event.target.value)
+                // 입력하는 대로 하이픈을 넣어 placeholder 와 같은 모양으로 보여준다
+                setPhone(formatPhoneNumber(event.target.value))
                 clearError('phone')
               }}
             />

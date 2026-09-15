@@ -1,6 +1,8 @@
 package com.carematch.auth.dto;
 
+import com.carematch.verification.domain.VerificationChannel;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 /**
  * 인증 관련 요청/응답 DTO 모음.
@@ -13,6 +15,18 @@ public final class AuthDtos {
     public record LoginRequest(
             @NotBlank String loginId,
             @NotBlank String password
+    ) {
+    }
+
+    /**
+     * 비밀번호 재설정. 사전에 {@code /api/verifications/send}+{@code /verify} 로
+     * loginId 소유자 본인의 이메일/휴대폰을 인증해뒀어야 한다 (회원가입과 동일한 인증코드 인프라 재사용).
+     */
+    public record PasswordResetRequest(
+            @NotBlank String loginId,
+            @NotNull VerificationChannel verificationChannel,
+            @NotBlank String verificationTarget,
+            @NotBlank String newPassword
     ) {
     }
 

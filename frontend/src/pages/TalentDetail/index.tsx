@@ -214,7 +214,9 @@ function ContactPanel({ talent, onUnlocked }: { talent: Talent; onUnlocked: () =
               ? '처리 중…'
               : canUnlock
                 ? `연락처 열람 (${formatNumber(talent.unlockCost ?? 0)}P)`
-                : '시설회원만 열람할 수 있습니다'}
+                : user?.role === 'ADMIN'
+                  ? '관리자 계정은 연락처 열람 대상이 아닙니다'
+                  : '시설회원·보호자 회원만 열람할 수 있습니다'}
           </Button>
         </div>
       )}

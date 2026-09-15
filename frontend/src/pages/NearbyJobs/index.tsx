@@ -1,5 +1,6 @@
-import { MapPin } from 'lucide-react'
+import { LocateFixed, MapPin, Search } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useKakaoLoader } from 'react-kakao-maps-sdk'
 import { getNearbyJobPostings } from '@/api/job-postings'
 import { Breadcrumb } from '@/components/common/breadcrumb'
 import { EmptyState } from '@/components/common/empty-state'
@@ -11,10 +12,11 @@ import { NearbyMap } from '@/components/job/nearby-map'
 import { Button } from '@/components/ui/button'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { Tag } from '@/components/ui/tag'
+import { useToast } from '@/components/ui/toast'
 import { CATEGORY_OPTIONS, FACILITY_TYPE_OPTIONS, PAY_TYPE_OPTIONS, WORK_SCHEDULE_OPTIONS } from '@/data/filters'
 import { useAsync } from '@/hooks/use-async'
 import { useGeolocation } from '@/hooks/use-geolocation'
-import { summaryToJob } from '@/lib/job-adapter'
+import { sortByPromotion, summaryToJob } from '@/lib/job-adapter'
 import {
   applyFilters,
   countByOption,
@@ -54,7 +56,7 @@ function withDistanceTag(job: Job, distanceKm: number): Job {
  * 범위(최대 100건)라 좌측 필터는 서버 재조회 없이 클라이언트에서 적용한다.
  */
 export function NearbyJobsPage() {
-  const { status, coords, request } = useGeolocation()
+  const { status, coords: gpsCoords, request } = useGeolocation()
   const requestedRef = useRef(false)
   useEffect(() => {
     if (!requestedRef.current) {
@@ -63,9 +65,58 @@ export function NearbyJobsPage() {
     }
   }, [request])
 
+  const [kakaoLoading, kakaoError] = useKakaoLoader({
+    appkey: import.meta.env.VITE_KAKAO_MAP_KEY,
+    libraries: ['services'],
+  })
+  const { toast } = useToast()
+  /** 주소 검색으로 위치를 직접 지정하면 GPS 대신 이 좌표를 기준으로 찾는다 — GPS 권한이 없거나
+   * 다른 지역을 미리 둘러보고 싶을 때를 위한 보조 수단. */
+  const [manualLocation, setManualLocation] = useState<{ lat: number; lng: number; label: string } | null>(null)
+  const coords = manualLocation ?? gpsCoords
+
+  /** 카카오 우편번호(주소 검색) 서비스 스크립트 — 지도 SDK 와 별도 스크립트라 따로 로드한다.
+   * 건물명/지번/도로명을 다 지원하는 공식 검색 팝업이라 직접 만든 자동완성보다 정확하다. */
+  const [postcodeLoaded, setPostcodeLoaded] = useState(false)
+  useEffect(() => {
+    if (typeof kakao !== 'undefined' && kakao.Postcode) {
+      setPostcodeLoaded(true)
+      return
+    }
+    const script = document.createElement('script')
+    script.src = '//t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js'
+    script.onload = () => setPostcodeLoaded(true)
+    document.head.appendChild(script)
+  }, [])
+
+  const applyLocation = (lat: number, lng: number, label: string) => {
+    setManualLocation({ lat, lng, label })
+    setPage(1)
+  }
+  const handleAddressSearch = () => {
+    if (!postcodeLoaded || kakaoLoading || kakaoError) return
+    new kakao.Postcode({
+      oncomplete: (data) => {
+        const address = data.roadAddress || data.jibunAddress
+        const geocoder = new kakao.maps.services.Geocoder()
+        geocoder.addressSearch(address, (result, resultStatus) => {
+          if (resultStatus === kakao.maps.services.Status.OK && result[0]) {
+            applyLocation(Number(result[0].y), Number(result[0].x), address)
+          } else {
+            toast({ title: '주소를 찾을 수 없어요. 다른 주소로 다시 시도해보세요.', variant: 'error' })
+          }
+        })
+      },
+    }).open()
+  }
+  const handleUseGps = () => {
+    setManualLocation(null)
+    if (status !== 'granted') request()
+  }
+
   const [radiusKm, setRadiusKm] = useState<RadiusKm>(10)
   const [mapRadiusKm, setMapRadiusKm] = useState<MapRadiusKm>(1)
-  const [view, setView] = useState<'list' | 'map'>('list')
+  const [view, setView] = useState<'list' | 'map'>('map')
   const [filters, setFilters] = useState<JobFilterState>(EMPTY_JOB_FILTERS)
   const [page, setPage] = useState(1)
   /** 지도가 지금 자기 반경 안에서 들고 있는 원본 공고 — 지도 뷰에서는 필터 건수 배지를
@@ -81,7 +132,7 @@ export function NearbyJobsPage() {
   )
 
   const jobs = useMemo(
-    () => (data ?? []).map((result) => withDistanceTag(summaryToJob(result.posting), result.distanceKm)),
+    () => sortByPromotion((data ?? []).map((result) => withDistanceTag(summaryToJob(result.posting), result.distanceKm))),
     [data],
   )
   const filtered = useMemo(() => applyFilters(jobs, filters), [jobs, filters])
@@ -122,7 +173,8 @@ export function NearbyJobsPage() {
   }
   const handleMapRadiusChange = (value: string) => setMapRadiusKm(Number(value) as MapRadiusKm)
 
-  const located = status === 'granted' && coords != null
+  /** GPS 권한 상태와 무관하게, 주소를 직접 검색해 찾았다면 그 좌표로 위치가 확정된 것으로 본다. */
+  const located = coords != null
 
   return (
     <div className="container-page py-6 lg:py-8">
@@ -134,46 +186,72 @@ export function NearbyJobsPage() {
       </header>
 
       {/* ---------------- 위치 상태 안내 ---------------- */}
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-card border border-primary/35 bg-primary-light/60 px-5 py-4">
-        <div className="flex items-start gap-2.5">
-          <MapPin className="mt-0.5 size-5 shrink-0 text-primary-deep" aria-hidden />
-          <div>
-            {located && (
-              <>
-                <p className="text-base font-bold text-fg">현재 위치 기준으로 찾고 있어요</p>
-                <p className="mt-0.5 text-base text-fg-muted">
-                  반경 {formatDistanceKm(view === 'map' ? mapRadiusKm : radiusKm)} 이내 공고를 보여드립니다.
-                </p>
-              </>
-            )}
-            {(status === 'idle' || status === 'loading') && (
-              <p className="text-base font-bold text-fg">현재 위치를 확인하고 있어요...</p>
-            )}
-            {status === 'denied' && (
-              <>
-                <p className="text-base font-bold text-fg">위치 권한이 필요해요</p>
-                <p className="mt-0.5 text-base text-fg-muted">
-                  브라우저 위치 권한을 허용한 뒤 다시 시도해 주세요.
-                </p>
-              </>
-            )}
-            {status === 'unsupported' && (
-              <p className="text-base font-bold text-fg">이 브라우저는 위치 확인을 지원하지 않아요.</p>
-            )}
-            {status === 'error' && (
-              <>
-                <p className="text-base font-bold text-fg">위치를 확인하지 못했어요</p>
-                <p className="mt-0.5 text-base text-fg-muted">잠시 후 다시 시도해 주세요.</p>
-              </>
-            )}
+      <div className="mt-5 rounded-card border border-primary/35 bg-primary-light/60 px-5 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+          <div className="flex items-start gap-2.5">
+            <MapPin className="mt-0.5 size-5 shrink-0 text-primary-deep" aria-hidden />
+            <div>
+              {located && (
+                <>
+                  <p className="text-base font-bold text-fg">
+                    {manualLocation ? '검색한 위치 기준으로 찾고 있어요' : '현재 위치 기준으로 찾고 있어요'}
+                  </p>
+                  <p className="mt-0.5 text-base text-fg-muted">
+                    {manualLocation && `${manualLocation.label} · `}반경{' '}
+                    {formatDistanceKm(view === 'map' ? mapRadiusKm : radiusKm)} 이내 공고를 보여드립니다.
+                  </p>
+                </>
+              )}
+              {!located && (status === 'idle' || status === 'loading') && (
+                <p className="text-base font-bold text-fg">현재 위치를 확인하고 있어요...</p>
+              )}
+              {!located && status === 'denied' && (
+                <>
+                  <p className="text-base font-bold text-fg">위치 권한이 필요해요</p>
+                  <p className="mt-0.5 text-base text-fg-muted">
+                    브라우저 위치 권한을 허용하거나, 아래에서 주소를 직접 검색해 주세요.
+                  </p>
+                </>
+              )}
+              {!located && status === 'unsupported' && (
+                <p className="text-base font-bold text-fg">이 브라우저는 위치 확인을 지원하지 않아요.</p>
+              )}
+              {!located && status === 'error' && (
+                <>
+                  <p className="text-base font-bold text-fg">위치를 확인하지 못했어요</p>
+                  <p className="mt-0.5 text-base text-fg-muted">잠시 후 다시 시도하거나, 주소를 직접 검색해 주세요.</p>
+                </>
+              )}
+            </div>
           </div>
+
+          {!located && status !== 'unsupported' && (
+            <Button variant="secondary" size="sm" onClick={request} disabled={status === 'loading'}>
+              {status === 'loading' ? '확인 중...' : '다시 시도'}
+            </Button>
+          )}
         </div>
 
-        {!located && status !== 'unsupported' && (
-          <Button variant="secondary" size="sm" onClick={request} disabled={status === 'loading'}>
-            {status === 'loading' ? '확인 중...' : '다시 시도'}
-          </Button>
-        )}
+        {/* ---------------- 주소 직접 검색 (카카오 우편번호 서비스) ---------------- */}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleAddressSearch}
+            disabled={!postcodeLoaded || kakaoLoading}
+            className={cn(
+              'flex h-11 max-w-xs flex-1 items-center gap-2 rounded-input border border-border-strong bg-surface px-4',
+              'text-left text-base text-fg-muted transition-colors hover:border-primary disabled:opacity-50',
+            )}
+          >
+            <Search className="size-[18px] shrink-0" aria-hidden />
+            <span className="truncate">{manualLocation ? manualLocation.label : '주소로 검색'}</span>
+          </button>
+          {manualLocation && (
+            <Button type="button" variant="ghost" size="sm" onClick={handleUseGps}>
+              <LocateFixed className="size-[18px]" aria-hidden /> 내 위치로
+            </Button>
+          )}
+        </div>
       </div>
 
       {located && coords && (
@@ -198,8 +276,8 @@ export function NearbyJobsPage() {
             </div>
             <SegmentedControl
               items={[
-                { value: 'list', label: '리스트' },
                 { value: 'map', label: '지도' },
+                { value: 'list', label: '리스트' },
               ]}
               value={view}
               onChange={(value) => setView(value as 'list' | 'map')}

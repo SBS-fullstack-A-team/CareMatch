@@ -1,19 +1,23 @@
-import { MapPin, Share2, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { Link2, LocateFixed, MapPin, MessageCircle, Share2, X } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { CustomOverlayMap, Map, useKakaoLoader } from 'react-kakao-maps-sdk'
+import { Circle, CustomOverlayMap, Map, useKakaoLoader } from 'react-kakao-maps-sdk'
 import { getJobPostingsInBounds } from '@/api/job-postings'
+import heroBannerImage from '@/assets/hero-banner.png'
 import { ScrapButton } from '@/components/common/scrap-button'
+import { JobBadge } from '@/components/job/job-badge'
+import { JobListItem } from '@/components/job/job-list-item'
 import { useToast } from '@/components/ui/toast'
-import { summaryToJob } from '@/lib/job-adapter'
+import { sortByPromotion, summaryToJob } from '@/lib/job-adapter'
 import { applyFilters, type JobFilterState } from '@/lib/job-filters'
-import { cn, formatPay } from '@/lib/utils'
+import { cn, formatDistanceKm, formatPay } from '@/lib/utils'
 import type { Job } from '@/types'
 
 interface MapMarkerItem {
   job: Job
   lat: number
   lng: number
+  distanceKm: number
 }
 
 const EARTH_RADIUS_KM = 6371
@@ -62,11 +66,45 @@ export function NearbyMap({
   onJobsChange?: (jobs: Job[]) => void
   className?: string
 }) {
-  const [loading, error] = useKakaoLoader({ appkey: import.meta.env.VITE_KAKAO_MAP_KEY })
+  const [loading, error] = useKakaoLoader({
+    appkey: import.meta.env.VITE_KAKAO_MAP_KEY,
+    libraries: ['services'],
+  })
   const [rawMarkers, setRawMarkers] = useState<MapMarkerItem[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [shareMenuOpen, setShareMenuOpen] = useState(false)
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
   const [tooMany, setTooMany] = useState(false)
+  const [address, setAddress] = useState<string | null>(null)
+  const mapRef = useRef<kakao.maps.Map | null>(null)
   const { toast } = useToast()
+
+  /** 마커 팝업이 닫히거나 다른 공고로 바뀌면 공유 메뉴도 같이 닫는다. */
+  useEffect(() => {
+    setShareMenuOpen(false)
+  }, [activeId])
+
+  /** react-kakao-maps-sdk 의 `onCreate` 는 (마운트 시가 아니라) 콜백의 참조가 바뀔 때마다 다시
+   * 호출된다 — refreshMarkers 를 매 렌더마다 새로 만들면 렌더 -> onCreate 재호출 -> setState ->
+   * 렌더 -> ... 로 무한 루프(+무한 재조회)가 생긴다. center/radiusKm 은 ref 로 최신값만 읽어서
+   * refreshMarkers 자체는 참조가 절대 바뀌지 않게 만든다. */
+  const centerRef = useRef(center)
+  centerRef.current = center
+  const radiusKmRef = useRef(radiusKm)
+  radiusKmRef.current = radiusKm
+
+  /** 내 위치 좌표 -> 주소 텍스트(도로명 우선, 없으면 지번). 지도 아래에 사람이 읽을 수 있는
+   * 형태로 보여주기 위한 역지오코딩 — 좌표만으로는 사용자가 위치를 가늠하기 어렵다. */
+  useEffect(() => {
+    if (loading || error) return
+    const geocoder = new kakao.maps.services.Geocoder()
+    geocoder.coord2Address(center.lng, center.lat, (result, status) => {
+      if (status === kakao.maps.services.Status.OK && result[0]) {
+        const { road_address, address: jibun } = result[0]
+        setAddress(road_address?.address_name ?? jibun.address_name)
+      }
+    })
+  }, [center.lat, center.lng, loading, error])
 
   /** 필터에 걸리는 마커는 원색 배지로 눈에 띄게, 나머지는 흐리게 — 지도에서 아예 없애지 않고
    * 위치 맥락은 남겨둔 채 "필터에 맞는 곳"만 두드러지게 한다. */
@@ -75,21 +113,58 @@ export function NearbyMap({
     return rawMarkers.map((m) => ({ ...m, matched: matchedIds.has(m.job.id) }))
   }, [rawMarkers, filters])
 
+  /** 내 위치와 가까운 순으로 — 리스트에서 위쪽부터 훑어보면 가까운 공고부터 보이게 한다. */
+  const nearestFirst = useMemo(
+    () => sortByPromotion([...markers].sort((a, b) => a.distanceKm - b.distanceKm), (item) => item.job.status),
+    [markers],
+  )
+
+  const selectedJob = useMemo(
+    () => markers.find((m) => m.job.id === selectedJobId)?.job ?? null,
+    [markers, selectedJobId],
+  )
+
   useEffect(() => {
     onJobsChange?.(rawMarkers.map((m) => m.job))
   }, [rawMarkers, onJobsChange])
 
-  /** 공고 상세 링크를 공유. Web Share API 지원 브라우저는 공유 시트, 아니면 링크를 클립보드에 복사. */
-  const handleShare = async (job: Job) => {
-    const url = `${window.location.origin}/jobs/${job.id}`
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: job.title, url })
-      } catch {
-        // 사용자가 공유를 취소한 경우 — 별도 처리 없음
-      }
+  /** 카카오톡 공유 SDK — 지도/우편번호 SDK 와는 별도 스크립트(대문자 Kakao)라 따로 로드한다. */
+  const [kakaoShareReady, setKakaoShareReady] = useState(false)
+  useEffect(() => {
+    if (typeof Kakao !== 'undefined' && Kakao.isInitialized()) {
+      setKakaoShareReady(true)
       return
     }
+    const script = document.createElement('script')
+    script.src = 'https://developers.kakao.com/sdk/js/kakao.min.js'
+    script.onload = () => {
+      if (!Kakao.isInitialized()) Kakao.init(import.meta.env.VITE_KAKAO_MAP_KEY)
+      setKakaoShareReady(true)
+    }
+    document.head.appendChild(script)
+  }, [])
+
+  const handleKakaoShare = (job: Job) => {
+    if (!kakaoShareReady || typeof Kakao === 'undefined') {
+      toast({ title: '카카오톡 공유를 준비 중이에요. 잠시 후 다시 시도해주세요.', variant: 'error' })
+      return
+    }
+    const url = `${window.location.origin}/jobs/${job.id}`
+    Kakao.Share.sendDefault({
+      objectType: 'feed',
+      content: {
+        title: job.facilityName,
+        description: formatPay(job.payType, job.payAmount),
+        imageUrl: `${window.location.origin}${heroBannerImage}`,
+        link: { mobileWebUrl: url, webUrl: url },
+      },
+      buttons: [{ title: '상세보기', link: { mobileWebUrl: url, webUrl: url } }],
+    })
+  }
+
+  /** 공고 상세 링크를 클립보드에 복사. */
+  const handleCopyLink = async (job: Job) => {
+    const url = `${window.location.origin}/jobs/${job.id}`
     try {
       await navigator.clipboard.writeText(url)
       toast({ title: '링크가 복사되었습니다.', variant: 'success' })
@@ -98,7 +173,7 @@ export function NearbyMap({
     }
   }
 
-  const refreshMarkers = (map: kakao.maps.Map) => {
+  const refreshMarkers = useCallback((map: kakao.maps.Map) => {
     const bounds = map.getBounds()
     const sw = bounds.getSouthWest()
     const ne = bounds.getNorthEast()
@@ -109,13 +184,43 @@ export function NearbyMap({
       neLng: ne.getLng(),
     })
       .then((results) => {
-        const withinRadius = results.filter(
-          (r) => distanceKm(center.lat, center.lng, r.latitude, r.longitude) <= radiusKm,
-        )
+        const { lat, lng } = centerRef.current
+        const withinRadius = results
+          .map((r) => ({ r, d: distanceKm(lat, lng, r.latitude, r.longitude) }))
+          .filter(({ d }) => d <= radiusKmRef.current)
         setTooMany(withinRadius.length >= 200)
-        setRawMarkers(withinRadius.map((r) => ({ job: summaryToJob(r.posting), lat: r.latitude, lng: r.longitude })))
+        setRawMarkers(
+          withinRadius.map(({ r, d }) => ({
+            job: summaryToJob(r.posting),
+            lat: r.latitude,
+            lng: r.longitude,
+            distanceKm: d,
+          })),
+        )
       })
       .catch(() => setRawMarkers([]))
+  }, [])
+
+  const handleMapCreate = useCallback(
+    (map: kakao.maps.Map) => {
+      mapRef.current = map
+      refreshMarkers(map)
+    },
+    [refreshMarkers],
+  )
+
+  /** 지도를 손으로 옮기거나 확대/축소한 뒤에도 버튼 한 번으로 내 위치 기준으로 되돌아온다. */
+  const handleRecenter = () => {
+    const map = mapRef.current
+    if (!map) return
+    map.setLevel(levelForRadiusKm(radiusKm))
+    map.setCenter(new kakao.maps.LatLng(center.lat, center.lng))
+  }
+
+  /** 목록에서 공고를 고르면 지도가 그 위치로 이동하고, 아래에 상세 카드가 뜬다. */
+  const handleSelectJob = (item: MapMarkerItem) => {
+    setSelectedJobId((prev) => (prev === item.job.id ? null : item.job.id))
+    mapRef.current?.panTo(new kakao.maps.LatLng(item.lat, item.lng))
   }
 
   if (error) {
@@ -139,17 +244,32 @@ export function NearbyMap({
   }
 
   return (
-    <div className={className}>
-      <div className="relative h-full overflow-hidden rounded-card border border-border">
+    <div className={cn('flex flex-col', className)}>
+      <div className="relative min-h-0 flex-1 overflow-hidden rounded-card border border-border">
         <Map
           key={radiusKm}
           center={center}
           level={levelForRadiusKm(radiusKm)}
           style={{ width: '100%', height: '100%' }}
-          onCreate={refreshMarkers}
+          onCreate={handleMapCreate}
           onIdle={refreshMarkers}
           onClick={() => setActiveId(null)}
         >
+          {/* 반경을 마커가 끊기는 지점으로 짐작하게 하지 않고 원으로 직접 보여준다
+           * (요양나라 참고). 내 위치와 같은 accent 색 계열, 마커들보다 아래에 깔리게 낮은
+           * zIndex. */}
+          <Circle
+            center={center}
+            radius={radiusKm * 1000}
+            strokeWeight={1.5}
+            strokeColor="#b9612f"
+            strokeOpacity={0.5}
+            strokeStyle="shortdash"
+            fillColor="#b9612f"
+            fillOpacity={0.08}
+            zIndex={0}
+          />
+
           {/* 내 위치 — 점 + 펄스 링(accent 색). zIndex 를 공고 핀(10~30)보다 낮춰서,
            * 좌표가 겹쳐도 공고 이름/핀이 항상 내 위치 점 위로 보이게 한다. */}
           <CustomOverlayMap position={center} zIndex={1}>
@@ -160,7 +280,13 @@ export function NearbyMap({
           </CustomOverlayMap>
 
           {markers.map(({ job, lat, lng, matched }) => (
-            <CustomOverlayMap key={job.id} position={{ lat, lng }} yAnchor={1} clickable zIndex={matched ? 30 : 10}>
+            <CustomOverlayMap
+              key={job.id}
+              position={{ lat, lng }}
+              yAnchor={1}
+              clickable
+              zIndex={job.status === 'premium' ? 40 : job.status === 'special' ? 35 : matched ? 30 : 10}
+            >
               {/* 팝업은 absolute 로 띄운다 — flow 안에 넣으면 열고 닫을 때 이 박스의 높이가
                * 바뀌어서, yAnchor(바닥 기준 좌표 고정)가 팝업 높이만큼 매번 다시 계산돼 핀이
                * 튀어 보인다. absolute 로 빼면 이 박스 높이는 핀 하나로 항상 고정된다. */}
@@ -170,6 +296,7 @@ export function NearbyMap({
                     <button
                       type="button"
                       aria-label="닫기"
+                      title="닫기"
                       onClick={(event) => {
                         event.stopPropagation()
                         setActiveId(null)
@@ -178,7 +305,10 @@ export function NearbyMap({
                     >
                       <X className="size-4" aria-hidden />
                     </button>
-                    <p className="pr-8 font-bold text-fg">{job.facilityName}</p>
+                    <div className="flex items-center gap-1.5 pr-8">
+                      <JobBadge status={job.status} className="shrink-0" />
+                      <p className="truncate font-bold text-fg">{job.facilityName}</p>
+                    </div>
                     <p className="mt-0.5 text-fg-muted">{formatPay(job.payType, job.payAmount)}</p>
                     <div className="mt-2 flex items-center gap-1.5">
                       <Link
@@ -191,14 +321,52 @@ export function NearbyMap({
                         상세보기
                       </Link>
                       <ScrapButton jobId={Number(job.id)} defaultScrapped={job.scrapped} size="sm" />
-                      <button
-                        type="button"
-                        aria-label="공유하기"
-                        onClick={() => handleShare(job)}
-                        className="grid size-9 shrink-0 place-items-center rounded-btn border border-border bg-surface text-fg-subtle hover:border-border-strong hover:text-fg-muted"
-                      >
-                        <Share2 className="size-[18px]" aria-hidden />
-                      </button>
+                      <div className="relative">
+                        <button
+                          type="button"
+                          aria-label="공유하기"
+                          title="공유하기"
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            setShareMenuOpen((prev) => !prev)
+                          }}
+                          className="grid size-9 shrink-0 place-items-center rounded-btn border border-border bg-surface text-fg-subtle hover:border-border-strong hover:text-fg-muted"
+                        >
+                          <Share2 className="size-[18px]" aria-hidden />
+                        </button>
+                        {shareMenuOpen && (
+                          <div className="absolute right-0 top-full z-10 mt-1 w-40 overflow-hidden rounded-card border border-border bg-surface shadow-overlay">
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                setShareMenuOpen(false)
+                                handleKakaoShare(job)
+                              }}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-fg hover:bg-surface-sunken"
+                            >
+                              <MessageCircle
+                                className="size-4 shrink-0 rounded-full bg-[#FEE500] p-0.5 text-[#3C1E1E]"
+                                fill="currentColor"
+                                aria-hidden
+                              />
+                              카카오톡 공유
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                setShareMenuOpen(false)
+                                handleCopyLink(job)
+                              }}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-fg hover:bg-surface-sunken"
+                            >
+                              <Link2 className="size-4 shrink-0 text-fg-subtle" aria-hidden />
+                              링크 복사
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -209,17 +377,27 @@ export function NearbyMap({
                 >
                   <span
                     className={cn(
-                      'mb-0.5 max-w-[130px] truncate rounded-full px-2 py-0.5 text-xs font-bold text-white shadow',
-                      matched ? 'bg-primary' : 'bg-fg-subtle',
+                      'mb-0.5 max-w-[130px] truncate rounded-full px-2 py-0.5 text-xs font-bold shadow',
+                      job.status === 'special' && 'bg-accent text-white',
+                      job.status === 'premium' && 'border border-accent bg-surface text-accent-deep',
+                      job.status !== 'special' &&
+                        job.status !== 'premium' &&
+                        (matched ? 'bg-primary text-white' : 'bg-fg-subtle text-white'),
                     )}
                   >
                     {job.facilityName}
                   </span>
                   <MapPin
-                    className={cn('size-8 drop-shadow-md', matched ? 'text-primary' : 'text-fg-subtle')}
-                    fill="currentColor"
-                    stroke="white"
-                    strokeWidth={1.5}
+                    className={cn(
+                      job.status === 'premium' ? 'size-10 drop-shadow-lg' : 'size-8 drop-shadow-md',
+                      (job.status === 'special' || job.status === 'premium') && 'text-accent',
+                      job.status !== 'special' &&
+                        job.status !== 'premium' &&
+                        (matched ? 'text-primary' : 'text-fg-subtle'),
+                    )}
+                    fill={job.status === 'premium' ? 'white' : 'currentColor'}
+                    stroke={job.status === 'premium' ? 'currentColor' : 'white'}
+                    strokeWidth={job.status === 'premium' ? 2 : 1.5}
                     aria-hidden
                   />
                 </button>
@@ -233,7 +411,72 @@ export function NearbyMap({
             공고가 많아 일부만 표시돼요. 반경을 좁혀보세요.
           </p>
         )}
+
+        <button
+          type="button"
+          onClick={handleRecenter}
+          aria-label="내 위치로 이동"
+          title="내 위치로 이동"
+          className="absolute bottom-3 right-3 z-[999] grid size-11 place-items-center rounded-full border border-border bg-surface text-fg-muted shadow-overlay hover:border-primary hover:text-primary-deep"
+        >
+          <LocateFixed className="size-5" aria-hidden />
+        </button>
       </div>
+
+      {/* 지도 아래 내 현재 위치 주소 + 주변 공고 목록. 핀을 정확히 찍기 어려운 터치 환경을
+       * 고려해서, 목록에서 골라도 지도 이동 + 아래 상세 카드로 이어지게 한다. */}
+      <div className="mt-2 rounded-card border border-border bg-surface px-3 py-2.5">
+        <div className="flex items-center gap-1.5 text-sm text-fg-muted">
+          <span className="relative flex size-2.5 shrink-0 items-center justify-center">
+            <span className="absolute inline-flex size-2.5 rounded-full bg-accent opacity-60" />
+            <span className="relative inline-flex size-1.5 rounded-full bg-accent" />
+          </span>
+          <span className="truncate">
+            {address ? (
+              <>
+                내 위치: <span className="font-medium text-fg">{address}</span>
+              </>
+            ) : (
+              '내 위치 확인 중...'
+            )}
+          </span>
+          {nearestFirst.length > 0 && (
+            <span className="ml-auto shrink-0 text-fg-subtle">
+              주변 채용공고 <span className="font-bold text-primary-deep">{nearestFirst.length}</span>건
+            </span>
+          )}
+        </div>
+
+        {nearestFirst.length > 0 && (
+          <div className="-mx-1 mt-2 flex gap-1.5 overflow-x-auto px-1 pb-0.5">
+            {nearestFirst.map((item) => (
+              <button
+                key={item.job.id}
+                type="button"
+                onClick={() => handleSelectJob(item)}
+                className={cn(
+                  'shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors',
+                  selectedJobId === item.job.id
+                    ? 'border-primary bg-primary text-white'
+                    : item.job.status === 'special'
+                      ? 'border-accent bg-accent text-white hover:brightness-95'
+                      : item.job.status === 'premium'
+                        ? 'border-accent bg-surface text-accent-deep hover:bg-accent-light'
+                        : 'border-border bg-surface text-fg-muted hover:border-primary/50 hover:text-primary-deep',
+                )}
+              >
+                {item.job.facilityName} · {formatDistanceKm(item.distanceKm)}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {selectedJob && (
+        <div className="mt-2 overflow-hidden rounded-card border border-primary/40">
+          <JobListItem job={selectedJob} showMatching={false} />
+        </div>
+      )}
     </div>
   )
 }
