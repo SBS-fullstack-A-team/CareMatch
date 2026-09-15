@@ -277,6 +277,7 @@ public class MemberService {
                 member.getId(),
                 member.getName(),
                 member.getEmail(),
+                member.getPhone(),
                 member.getRole() == null ? "GUEST" : member.getRole().name(),
                 member.getMembershipType(),
                 pointService.getBalance(memberId),

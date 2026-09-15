@@ -6,6 +6,7 @@ package com.carematch.member.dto;
  * @param memberId       회원 id
  * @param name           이름
  * @param email          이메일
+ * @param phone          휴대폰 번호. 소셜 전용 회원 등은 null 일 수 있다(포트원 결제창 customer 정보로도 쓰임).
  * @param role           JOBSEEKER / FACILITY / ADMIN
  * @param membershipType 멤버십 유형(현재 BASIC 고정, 2차 확장 대비)
  * @param point          보유 포인트
@@ -16,6 +17,7 @@ public record MyPageResponse(
         Long memberId,
         String name,
         String email,
+        String phone,
         String role,
         String membershipType,
         long point,

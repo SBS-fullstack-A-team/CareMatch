@@ -33,6 +33,8 @@ export interface MyPageResponse {
   memberId: number
   name: string
   email: string
+  /** 소셜 전용 회원 등은 null 일 수 있다 */
+  phone: string | null
   role: MemberRole
   membershipType: string
   point: number

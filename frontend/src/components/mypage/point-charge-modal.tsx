@@ -72,10 +72,11 @@ export function PointChargeModal({ open, onClose }: { open: boolean; onClose: ()
         totalAmount: prepared.amount,
         currency: 'KRW',
         payMethod: 'CARD',
-        // 이니시스 V2 일반결제는 구매자 이메일이 필수 — 세션 사용자 정보로 채운다.
+        // 이니시스 V2 일반결제는 구매자 이메일·휴대폰 번호가 필수 — 세션 사용자 정보로 채운다.
         customer: {
           email: user?.email,
           fullName: user?.name,
+          phoneNumber: user?.phone ?? undefined,
         },
       })
 
