@@ -2,6 +2,8 @@ package com.carematch.support.service;
 
 import com.carematch.common.exception.BusinessException;
 import com.carematch.common.exception.ErrorCode;
+import com.carematch.notification.domain.NotificationType;
+import com.carematch.notification.service.NotificationService;
 import com.carematch.support.domain.Inquiry;
 import com.carematch.support.domain.InquiryReply;
 import com.carematch.support.domain.InquiryStatus;
@@ -28,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class InquiryService {
 
     private final InquiryRepository inquiryRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public InquiryResponse create(Long memberId, InquiryCreateRequest req) {
@@ -74,7 +77,11 @@ public class InquiryService {
                 .answeredBy(adminId)
                 .content(req.content())
                 .build());
-        log.info("[Inquiry][MOCK-NOTIFY] 문의 답변 등록 id={} → 작성자 알림(목업)", inquiryId);
+        if (inquiry.getMemberId() != null) {
+            notificationService.notify(inquiry.getMemberId(), NotificationType.INQUIRY_ANSWERED,
+                    "문의하신 '" + inquiry.getTitle() + "'에 답변이 등록되었습니다.",
+                    "/support/inquiries/" + inquiryId);
+        }
         return InquiryResponse.from(inquiry);
     }
 }

@@ -18,6 +18,8 @@ import com.carematch.jobposting.repository.JobPostingRepository;
 import com.carematch.jobposting.service.MatchScoreCalculator;
 import com.carematch.member.domain.JobSeekerProfile;
 import com.carematch.member.repository.JobSeekerProfileRepository;
+import com.carematch.notification.domain.NotificationType;
+import com.carematch.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -46,6 +48,7 @@ public class ApplicationService {
     private final CertificateRepository certificateRepository;
     private final MatchScoreCalculator matchScoreCalculator;
     private final ContactUnlockService contactUnlockService;
+    private final NotificationService notificationService;
 
     /**
      * 구직자가 공고에 지원. 취소했던 이력이 있으면 되살린다.
@@ -102,6 +105,16 @@ public class ApplicationService {
         } else {
             application.reject();
         }
+
+        String title = application.getJobPosting().getTitle();
+        boolean accepted = decision == ApplicationStatus.ACCEPTED;
+        notificationService.notify(
+                application.getJobSeekerProfile().getMember().getId(),
+                accepted ? NotificationType.APPLICATION_ACCEPTED : NotificationType.APPLICATION_REJECTED,
+                accepted
+                        ? "지원하신 '" + title + "' 공고에 합격하셨습니다."
+                        : "지원하신 '" + title + "' 공고 지원 결과가 반려되었습니다.",
+                "/mypage/applications");
     }
 
     /** 시설이 보는 특정 공고의 지원자 목록. */
