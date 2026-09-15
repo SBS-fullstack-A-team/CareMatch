@@ -15,7 +15,7 @@ import { FACILITY_TYPE_OPTIONS } from '@/data/filters'
 import { useApp } from '@/hooks/use-app'
 import { ApiError } from '@/lib/api-client'
 import { ACCEPT_ATTR, FileUploadError, uploadFile } from '@/lib/file-upload'
-import { cn } from '@/lib/utils'
+import { cn, formatPhoneNumber } from '@/lib/utils'
 import type {
   TermsResponse,
   TermsTypeName,
@@ -584,10 +584,12 @@ export function SignupPage() {
               type="tel"
               autoComplete="tel"
               placeholder="010-1234-5678"
+              maxLength={13}
               value={phone}
               invalid={Boolean(errors.phone)}
               onChange={(event) => {
-                setPhone(event.target.value)
+                // 입력하는 대로 하이픈을 넣어 placeholder 와 같은 모양으로 보여준다
+                setPhone(formatPhoneNumber(event.target.value))
                 clearError('phone')
               }}
             />
