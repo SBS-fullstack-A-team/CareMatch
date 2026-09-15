@@ -7,7 +7,7 @@ import { MobileNav } from '@/components/layout/mobile-nav'
 import { ProfileDropdown } from '@/components/layout/profile-dropdown'
 import { buttonVariants } from '@/components/ui/button'
 import { useApp } from '@/hooks/use-app'
-import { MAIN_NAV } from '@/lib/nav'
+import { mainNavFor } from '@/lib/nav'
 import { cn, formatNumber } from '@/lib/utils'
 
 /** DESIGN_SYSTEM.md §25 */
@@ -31,7 +31,7 @@ export function Header() {
 
         <nav aria-label="주 메뉴" className="hidden min-w-0 flex-1 justify-center lg:flex">
           <ul className="flex items-center">
-            {MAIN_NAV.map((item) => (
+            {mainNavFor(user?.role).map((item) => (
               <li key={item.to}>
                 <NavLink
                   to={item.to}
