@@ -61,6 +61,14 @@ public class JobSeekerProfileQueryService {
                 talentMatcher.bestScore(matches), matches);
     }
 
+    /** 관리자가 보는 인재 상세 (전체 공개). 포인트 차감·열람 이력 없음. */
+    @Transactional(readOnly = true)
+    public JobSeekerProfileResponse getForAdmin(Long profileId) {
+        JobSeekerProfile profile = load(profileId);
+        return build(profile, profile.getMember().getName(), profile.getMember().getPhone(), profile.getResidence(),
+                true, signedCertificates(profile), null, List.of());
+    }
+
     /** 본인이 보는 내 프로필 (전체 공개). */
     @Transactional(readOnly = true)
     public JobSeekerProfileResponse getMine(Long memberId) {

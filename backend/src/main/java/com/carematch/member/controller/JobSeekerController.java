@@ -128,11 +128,17 @@ public class JobSeekerController {
         return talentSearchService.facets(cond);
     }
 
-    /** 인재 상세 (시설회원/관리자). 연락처·거주지는 기본 마스킹, 열람 이력 있으면 언마스크 */
+    /**
+     * 인재 상세. 관리자는 전체 공개(마스킹 없음, 계정 관리 목적) — 시설회원/보호자회원은
+     * 연락처·거주지 기본 마스킹, 열람 이력 있으면 언마스크.
+     */
     @GetMapping("/{profileId}")
     @PreAuthorize("hasAnyRole('FACILITY','ADMIN','GENERAL')")
     public JobSeekerProfileResponse detail(@PathVariable Long profileId,
                                            @AuthenticationPrincipal CustomUserDetails principal) {
+        if (principal.isAdmin()) {
+            return profileQueryService.getForAdmin(profileId);
+        }
         return profileQueryService.getForFacility(profileId, principal.getMemberId());
     }
 
