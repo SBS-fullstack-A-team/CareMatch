@@ -123,10 +123,12 @@ function clusterMarkers(items: MapMarkerWithMatch[], thresholdKm: number): Marke
  * 마커는 그대로 두고 필터링은 클라이언트에서 계산해서, 필터만 바꿨을 땐 재조회 없이 즉시 반영된다.
  * 지도를 드래그하는 동안 "내 위치" 점과 반경 원은 화면 중심을 실시간으로 따라가고(요양나라
  * "내 주변 채용정보" 지도 참고), 움직임이 멈추면(onIdle) 그 중심 기준으로 마커/주소를 다시
- * 불러온다 — 반경 필터는 계속 유지한다. 반경(중심/확대 레벨도 마찬가지)은 `Map`/`Circle`
- * 컴포넌트가 prop 변화에 반응해 알아서 갱신하므로 리마운트가 필요 없다 — 그래서 반경 원 가장자리
- * 핸들을 드래그해서 실시간으로 반경을 조절해도(onRadiusChange) 지도가 깜빡이거나 원래 위치로
- * 튕기지 않는다.
+ * 불러온다 — 반경 필터는 계속 유지한다. 반경 원(`Circle`)은 `radiusKm` prop 변화에 반응해
+ * 알아서 갱신하므로 리마운트가 필요 없다. 다만 지도 확대 레벨(`level`)은 최초 한 번만 반경에
+ * 맞춰 잡고 그 뒤로는 `radiusKm` 변화를 따라가지 않는다 — 위쪽 반경 프리셋 버튼을 눌러도
+ * "지금 보고 있는 화면"(줌/위치)은 그대로 두고 반경 원 크기만 바뀌게 하기 위해서다. 줌을 다시
+ * 맞추는 시점은 명시적으로만 처리한다: 초기 진입, "내 위치로 이동" 버튼, 반경 핸들을 드래그해서
+ * 놓았을 때.
  */
 export function NearbyMap({
   center,
@@ -160,6 +162,12 @@ export function NearbyMap({
   const [address, setAddress] = useState<string | null>(null)
   const mapRef = useRef<kakao.maps.Map | null>(null)
   const { toast } = useToast()
+
+  /** 지도 최초 확대 레벨 — 처음 한 번만 계산해서 고정한다. 반경 프리셋 버튼을 눌러도 지금 보고
+   * 있는 화면(줌/위치)은 그대로 두고 반경 원 크기만 바뀌게 하기 위해, `radiusKm` 이 바뀔 때마다
+   * 지도를 다시 줌하지 않는다 — 줌을 다시 맞추는 시점은 명시적으로 처리하는 곳(초기 진입,
+   * "내 위치로 이동" 버튼, 반경 핸들 드래그를 놓았을 때)뿐이다. */
+  const initialLevelRef = useRef(levelForRadiusKm(radiusKm))
 
   /** 마커 팝업이 닫히거나 다른 공고로 바뀌면 공유 메뉴도 같이 닫는다. */
   useEffect(() => {
@@ -394,7 +402,13 @@ export function NearbyMap({
       target.removeEventListener('pointerup', handleUp)
       setRadiusHandle((current) => {
         onRadiusChangeRef.current?.(current.km)
-        if (mapRef.current) refreshMarkers(mapRef.current, current.km)
+        if (mapRef.current) {
+          refreshMarkers(mapRef.current, current.km)
+          // 프리셋 버튼과 달리 드래그는 손을 놓은 지점의 반경이 화면에 다 들어오는지 보장이
+          // 안 되니(자유값이라 프리셋보다 훨씬 커질 수 있음), 놓는 순간만 새 반경에 맞게
+          // 명시적으로 재줌한다.
+          mapRef.current.setLevel(levelForRadiusKm(current.km), { animate: true })
+        }
         return current
       })
     }
@@ -621,7 +635,7 @@ export function NearbyMap({
       <div className="relative min-h-0 flex-1 overflow-hidden rounded-card border border-border">
         <Map
           center={center}
-          level={levelForRadiusKm(radiusKm)}
+          level={initialLevelRef.current}
           style={{ width: '100%', height: '100%' }}
           onCreate={handleMapCreate}
           onCenterChanged={handleCenterChanged}
