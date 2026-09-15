@@ -56,6 +56,13 @@ public enum ErrorCode {
     CONTACT_UNLOCK_BLOCKED_EMPLOYED(HttpStatus.CONFLICT, "UNLOCK_001", "이미 취업이 완료된 구직자의 연락처는 열람할 수 없습니다."),
     POINT_CHARGE_FAILED(HttpStatus.PAYMENT_REQUIRED, "UNLOCK_002", "포인트가 부족합니다."),
 
+    // --- 포인트 충전(포트원) ---
+    POINT_CHARGE_INVALID_AMOUNT(HttpStatus.BAD_REQUEST, "POINT_001", "충전 금액이 올바르지 않습니다."),
+    POINT_CHARGE_REQUEST_NOT_FOUND(HttpStatus.NOT_FOUND, "POINT_002", "충전 요청을 찾을 수 없습니다."),
+    POINT_CHARGE_NOT_PAID(HttpStatus.BAD_REQUEST, "POINT_003", "결제가 완료되지 않았습니다."),
+    POINT_CHARGE_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, "POINT_004", "요청 금액과 실제 결제 금액이 일치하지 않습니다."),
+    POINT_CHARGE_VERIFICATION_FAILED(HttpStatus.BAD_GATEWAY, "POINT_005", "결제 검증에 실패했습니다. 잠시 후 다시 시도해 주세요."),
+
     // --- 파일/스토리지 ---
     INVALID_FILE_TYPE(HttpStatus.BAD_REQUEST, "FILE_001", "허용되지 않은 파일 형식입니다."),
     FILE_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, "FILE_002", "파일 용량이 허용치를 초과했습니다."),

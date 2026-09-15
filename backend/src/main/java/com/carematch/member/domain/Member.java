@@ -87,6 +87,13 @@ public class Member extends BaseTimeEntity {
     @Column(name = "font_scale", nullable = false, length = 10)
     private FontScale fontScale;
 
+    /**
+     * 보유 포인트. 보호자회원(GENERAL)·시설회원만 실제로 적립/차감한다(구직회원은 항상 0).
+     * 적립은 PointChargeService(포트원 결제 검증 후), 차감은 PointService.deduct 를 통해서만 변경한다.
+     */
+    @Column(name = "point", nullable = false)
+    private long point;
+
     @Builder
     private Member(String loginId, String password, String email, String name, String phone,
                    Role role, MemberStatus status, boolean verified, String membershipType) {
@@ -102,6 +109,7 @@ public class Member extends BaseTimeEntity {
         this.loginFailCount = 0;
         this.easyMode = false;
         this.fontScale = FontScale.NORMAL;
+        this.point = 0L;
     }
 
     // ---------------------------------------------------------------------
@@ -166,6 +174,18 @@ public class Member extends BaseTimeEntity {
     public void changeDisplayPreference(boolean easyMode, FontScale fontScale) {
         this.easyMode = easyMode;
         this.fontScale = fontScale == null ? FontScale.NORMAL : fontScale;
+    }
+
+    /** 포트원 결제 검증 성공 후 포인트 적립. */
+    public void creditPoint(long amount) {
+        this.point += amount;
+    }
+
+    /** 잔액이 모자라면 차감하지 않고 false 를 반환한다(호출부가 409/402 등으로 처리). */
+    public boolean deductPoint(long amount) {
+        if (this.point < amount) return false;
+        this.point -= amount;
+        return true;
     }
 
     public void suspend() {

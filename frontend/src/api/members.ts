@@ -40,7 +40,7 @@ export function checkExists(params: { loginId?: string; email?: string }): Promi
 }
 
 /**
- * 구직자(개인회원) 회원가입. 성공해도 토큰은 오지 않으므로 가입 후 별도 로그인이 필요하다.
+ * 구직자(구직회원) 회원가입. 성공해도 토큰은 오지 않으므로 가입 후 별도 로그인이 필요하다.
  * 실패 시 ApiError — fieldErrors 로 필드별 서버 검증 메시지가 온다.
  */
 export function signupJobSeeker(req: JobSeekerSignupRequest): Promise<SignupResponse> {
@@ -63,7 +63,7 @@ export function signupFacility(req: FacilitySignupRequest): Promise<SignupRespon
   })
 }
 
-/** 일반(소비자) 회원가입. 구직 의사 없이 개인적으로 요양보호사 등을 찾는 계정 — 자격증 불필요. */
+/** 보호자(소비자) 회원가입. 구직 의사 없이 가족을 위해 요양보호사 등을 찾는 계정 — 자격증 불필요. */
 export function signupGeneral(req: GeneralSignupRequest): Promise<SignupResponse> {
   return apiFetch<SignupResponse>('/api/members/general', {
     method: 'POST',

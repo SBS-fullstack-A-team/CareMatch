@@ -11,7 +11,7 @@ import com.carematch.member.dto.JobSeekerProfileResponse;
 import com.carematch.member.dto.PostingMatchResponse;
 import com.carematch.member.dto.RegionDto;
 import com.carematch.member.repository.JobSeekerProfileRepository;
-import com.carematch.point.StubPointService;
+import com.carematch.point.PointPolicy;
 import com.carematch.storage.FileStorageService;
 import com.carematch.storage.StorageProperties;
 import lombok.RequiredArgsConstructor;
@@ -97,7 +97,7 @@ public class JobSeekerProfileQueryService {
                 residence,
                 profile.getIntroduction(),
                 unlocked,
-                StubPointService.CONTACT_UNLOCK_COST,
+                PointPolicy.CONTACT_UNLOCK_COST,
                 certs,
                 name(profile.getGender()),
                 age,

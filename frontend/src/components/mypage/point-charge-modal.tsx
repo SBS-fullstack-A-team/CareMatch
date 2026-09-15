@@ -1,22 +1,31 @@
+import PortOne from '@portone/browser-sdk/v2'
 import { CreditCard } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Modal } from '@/components/ui/modal'
 import { useToast } from '@/components/ui/toast'
+import { completePointCharge, preparePointCharge } from '@/api/points'
+import { useApp } from '@/hooks/use-app'
+import { ApiError } from '@/lib/api-client'
 import { formatNumber } from '@/lib/utils'
 
 const PRESET_AMOUNTS = [10_000, 30_000, 50_000, 100_000]
 
+/** 결제 채널 키. 포트원 콘솔 > 연동 관리 > 채널 관리에서 발급 — 없으면 결제창을 열 수 없다. */
+const PORTONE_CHANNEL_KEY = import.meta.env.VITE_PORTONE_CHANNEL_KEY
+
 /**
- * "포인트 충전" 모달 — 금액 선택 UI까지만. 결제(포트원) 연동 전이라
- * "충전하기"는 실제 결제를 진행하지 않고 안내만 띄운다.
- * 포트원 연동 시 이 컴포넌트의 handleCharge 만 실제 결제 요청으로 교체하면 된다.
+ * "포인트 충전" 모달.
+ * 흐름: 서버에 결제건 준비(prepare) → 포트원 결제창(PortOne.requestPayment) → 완료 콜백에서
+ * 서버 검증(complete, 포트원 서버 재조회로 금액/상태 확인) → 세션 포인트 갱신.
  */
 export function PointChargeModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { toast } = useToast()
+  const { refreshUser } = useApp()
   const [amount, setAmount] = useState<number | null>(null)
   const [custom, setCustom] = useState('')
+  const [charging, setCharging] = useState(false)
 
   const reset = () => {
     setAmount(null)
@@ -24,6 +33,7 @@ export function PointChargeModal({ open, onClose }: { open: boolean; onClose: ()
   }
 
   const handleClose = () => {
+    if (charging) return
     reset()
     onClose()
   }
@@ -39,11 +49,56 @@ export function PointChargeModal({ open, onClose }: { open: boolean; onClose: ()
     setAmount(digitsOnly ? Number(digitsOnly) : null)
   }
 
-  const handleCharge = () => {
-    toast({
-      title: '결제 연동 준비 중입니다.',
-      description: '포트원 결제 연동이 완료되면 바로 충전하실 수 있어요.',
-    })
+  const handleCharge = async () => {
+    if (!amount) return
+    if (!PORTONE_CHANNEL_KEY) {
+      toast({
+        variant: 'error',
+        title: '결제 채널이 설정되지 않았습니다.',
+        description: '관리자에게 문의해 주세요. (VITE_PORTONE_CHANNEL_KEY 미설정)',
+      })
+      return
+    }
+
+    setCharging(true)
+    try {
+      const prepared = await preparePointCharge(amount)
+
+      const payment = await PortOne.requestPayment({
+        storeId: prepared.storeId,
+        channelKey: PORTONE_CHANNEL_KEY,
+        paymentId: prepared.paymentId,
+        orderName: prepared.orderName,
+        totalAmount: prepared.amount,
+        currency: 'KRW',
+        payMethod: 'CARD',
+      })
+
+      if (!payment || payment.code) {
+        toast({
+          variant: 'error',
+          title: '결제가 완료되지 않았습니다.',
+          description: payment?.message ?? '결제창을 닫으셨거나 결제에 실패했습니다.',
+        })
+        return
+      }
+
+      const result = await completePointCharge(prepared.paymentId)
+      await refreshUser()
+      toast({
+        title: '포인트 충전이 완료되었습니다.',
+        description: `${formatNumber(result.chargedAmount)}P 충전되어 보유 포인트 ${formatNumber(result.balance)}P 입니다.`,
+      })
+      handleClose()
+    } catch (err) {
+      toast({
+        variant: 'error',
+        title: '충전에 실패했습니다.',
+        description: err instanceof ApiError ? err.message : '잠시 후 다시 시도해 주세요.',
+      })
+    } finally {
+      setCharging(false)
+    }
   }
 
   return (
@@ -55,12 +110,12 @@ export function PointChargeModal({ open, onClose }: { open: boolean; onClose: ()
       size="sm"
       footer={
         <>
-          <Button type="button" variant="secondary" size="sm" onClick={handleClose}>
+          <Button type="button" variant="secondary" size="sm" disabled={charging} onClick={handleClose}>
             취소
           </Button>
-          <Button type="button" size="sm" disabled={!amount} onClick={handleCharge}>
+          <Button type="button" size="sm" disabled={!amount || charging} onClick={handleCharge}>
             <CreditCard className="size-4" aria-hidden />
-            {amount ? `${formatNumber(amount)}P 충전하기` : '충전하기'}
+            {charging ? '결제 진행 중…' : amount ? `${formatNumber(amount)}P 충전하기` : '충전하기'}
           </Button>
         </>
       }
@@ -73,6 +128,7 @@ export function PointChargeModal({ open, onClose }: { open: boolean; onClose: ()
               <button
                 key={value}
                 type="button"
+                disabled={charging}
                 onClick={() => handlePreset(value)}
                 className={
                   selected
@@ -93,15 +149,16 @@ export function PointChargeModal({ open, onClose }: { open: boolean; onClose: ()
           <Input
             id="custom-amount"
             inputMode="numeric"
-            placeholder="충전할 포인트 (숫자만)"
+            placeholder="충전할 포인트 (숫자만, 1,000P~1,000,000P)"
             value={custom}
+            disabled={charging}
             onChange={(event) => handleCustomChange(event.target.value)}
           />
         </div>
 
         <p className="mt-4 text-sm text-fg-subtle">
-          결제는 포트원(PortOne)을 통해 안전하게 처리될 예정입니다. 현재는 연동 준비 중이라 실제
-          충전은 이루어지지 않습니다.
+          결제는 포트원(PortOne)을 통해 안전하게 처리됩니다. 결제창에서 결제를 완료하면 검증 후
+          바로 포인트가 적립됩니다.
         </p>
       </div>
     </Modal>

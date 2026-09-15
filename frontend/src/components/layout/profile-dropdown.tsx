@@ -42,9 +42,9 @@ const ADMIN_MENU = [
 ]
 
 const MEMBER_TYPE_LABEL: Record<SessionUser['role'], string> = {
-  JOBSEEKER: '개인회원',
+  JOBSEEKER: '구직회원',
   FACILITY: '시설회원',
-  GENERAL: '일반회원',
+  GENERAL: '보호자회원',
   ADMIN: '관리자',
   GUEST: '회원',
 }
@@ -94,12 +94,14 @@ export function ProfileDropdown({ user }: { user: SessionUser }) {
               </span>
             </p>
             <p className="mt-0.5 truncate text-sm text-fg-muted">{user.subtitle}</p>
-            <p className="mt-2 flex items-baseline justify-between text-sm text-fg-muted">
-              보유 포인트
-              <span className="text-base font-bold text-primary-deep tabular">
-                {formatNumber(user.point)}P
-              </span>
-            </p>
+            {(user.role === 'GENERAL' || user.memberType === 'facility') && (
+              <p className="mt-2 flex items-baseline justify-between text-sm text-fg-muted">
+                보유 포인트
+                <span className="text-base font-bold text-primary-deep tabular">
+                  {formatNumber(user.point)}P
+                </span>
+              </p>
+            )}
           </div>
 
           <div className="py-1">

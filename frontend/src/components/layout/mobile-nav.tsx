@@ -17,23 +17,32 @@ export function MobileNav({ open, onClose }: { open: boolean; onClose: () => voi
           <p className="text-lg font-bold text-fg">
             {user.name}
             <span className="ml-1.5 text-sm font-normal text-fg-muted">
-              {user.memberType === 'facility' ? '시설회원' : '개인회원'}
+              {user.memberType === 'facility'
+                ? '시설회원'
+                : user.role === 'GENERAL'
+                  ? '보호자회원'
+                  : '구직회원'}
             </span>
           </p>
           <p className="mt-0.5 text-base text-fg-muted">{user.subtitle}</p>
           <div className="mt-3 grid grid-cols-2 gap-2">
-            <Link
-              to="/mypage/point"
-              onClick={onClose}
-              className="flex h-11 items-center justify-center gap-1.5 rounded-btn bg-surface text-base font-bold text-fg"
-            >
-              <Coins className="size-[18px] text-accent" aria-hidden />
-              <span className="tabular">{formatNumber(user.point)}P</span>
-            </Link>
+            {(user.role === 'GENERAL' || user.memberType === 'facility') && (
+              <Link
+                to="/mypage/point"
+                onClick={onClose}
+                className="flex h-11 items-center justify-center gap-1.5 rounded-btn bg-surface text-base font-bold text-fg"
+              >
+                <Coins className="size-[18px] text-accent" aria-hidden />
+                <span className="tabular">{formatNumber(user.point)}P</span>
+              </Link>
+            )}
             <Link
               to="/notifications"
               onClick={onClose}
-              className="flex h-11 items-center justify-center gap-1.5 rounded-btn bg-surface text-base font-bold text-fg"
+              className={cn(
+                'flex h-11 items-center justify-center gap-1.5 rounded-btn bg-surface text-base font-bold text-fg',
+                user.role !== 'GENERAL' && user.memberType !== 'facility' && 'col-span-2',
+              )}
             >
               <Bell className="size-[18px] text-fg-muted" aria-hidden />
               알림 {user.unreadNotifications}

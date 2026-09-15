@@ -166,7 +166,7 @@ export function TalentDetailPage() {
 }
 
 /**
- * 연락처 열람 패널. 시설회원·일반회원만 호출 가능한 API 라 그 외 역할(관리자)에서는 버튼을 숨긴다.
+ * 연락처 열람 패널. 시설회원·보호자회원만 호출 가능한 API 라 그 외 역할(관리자)에서는 버튼을 숨긴다.
  * 열람 성공 시 상세를 다시 불러와(reload) contactUnlocked/phone/residence 를 갱신한다.
  */
 function ContactPanel({ talent, onUnlocked }: { talent: Talent; onUnlocked: () => void }) {
