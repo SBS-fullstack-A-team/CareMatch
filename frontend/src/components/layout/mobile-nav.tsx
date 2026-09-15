@@ -4,7 +4,7 @@ import { Drawer } from '@/components/ui/drawer'
 import { buttonVariants } from '@/components/ui/button'
 import { FontSizeControl } from '@/components/layout/font-size-control'
 import { useApp } from '@/hooks/use-app'
-import { MAIN_NAV } from '@/lib/nav'
+import { mainNavFor } from '@/lib/nav'
 import { cn, formatNumber } from '@/lib/utils'
 
 export function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -61,7 +61,7 @@ export function MobileNav({ open, onClose }: { open: boolean; onClose: () => voi
 
       <nav aria-label="전체 메뉴" className="mt-5">
         <ul className="divide-y divide-border border-y border-border">
-          {MAIN_NAV.map((item) => (
+          {mainNavFor(user?.role).map((item) => (
             <li key={item.to}>
               <Link
                 to={item.to}
