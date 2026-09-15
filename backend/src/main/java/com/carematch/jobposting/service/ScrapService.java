@@ -11,7 +11,6 @@ import com.carematch.jobposting.repository.ScrapRepository;
 import com.carematch.member.domain.Member;
 import com.carematch.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -34,18 +33,18 @@ public class ScrapService {
 
     @Transactional
     public void scrap(Long memberId, Long jobPostingId) {
+        // 회원 row 에 비관적 락 — 확인→저장 구간의 동시요청 경쟁을 없앤다(같은 회원의 스크랩
+        // 요청끼리만 직렬화되고 다른 회원에는 영향 없음). unique 제약 위반을 catch 하고 계속
+        // 진행하는 방식은 트랜잭션을 rollback-only 로 표시해 정상 커밋 시점에
+        // UnexpectedRollbackException 을 유발한다 — ContactUnlockService 참고.
+        Member member = memberRepository.findByIdForUpdate(memberId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
         if (scrapRepository.existsByMemberIdAndJobPostingId(memberId, jobPostingId)) {
             return;
         }
         JobPosting jobPosting = jobPostingRepository.findById(jobPostingId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.JOB_POSTING_NOT_FOUND, "id=" + jobPostingId));
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
-        try {
-            scrapRepository.save(Scrap.builder().member(member).jobPosting(jobPosting).build());
-        } catch (DataIntegrityViolationException e) {
-            // 동시 요청으로 유니크 제약 위반 — 이미 스크랩된 것으로 간주하고 통과
-        }
+        scrapRepository.save(Scrap.builder().member(member).jobPosting(jobPosting).build());
     }
 
     @Transactional
