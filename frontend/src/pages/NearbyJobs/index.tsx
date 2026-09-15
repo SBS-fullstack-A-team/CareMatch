@@ -32,9 +32,10 @@ const PAGE_SIZE = 10
 /** 리스트 반경 — 통근 가능 거리 기준이라 km 단위로 넓게 잡는다. */
 const RADIUS_OPTIONS_KM = [1, 3, 5, 10, 20] as const
 type RadiusKm = (typeof RADIUS_OPTIONS_KM)[number]
-/** 지도 반경 — 지도에서 한눈에 비교하기엔 도보권이 더 유용해 m 단위로 좁게 잡는다. */
-const MAP_RADIUS_OPTIONS_KM = [0.1, 0.25, 0.5, 1] as const
-type MapRadiusKm = (typeof MAP_RADIUS_OPTIONS_KM)[number]
+/** 지도 반경 — 지도에서 한눈에 비교하기엔 도보권이 더 유용해 m 단위로 좁게 잡는다. 버튼은
+ * 이 프리셋 중에서만 고르지만, 지도 위 반경 원 핸들을 드래그하면 이 사이 값도 자유롭게 쓸 수
+ * 있어서 실제 상태(mapRadiusKm)는 이 프리셋 유니온이 아니라 그냥 number 다. */
+const MAP_RADIUS_OPTIONS_KM = [0.25, 0.5, 1, 3] as const
 
 /** 값(CAREGIVER, hourly)과 표기 라벨(요양보호사, 시급)이 다른 필터의 칩 표기용 라벨 */
 const FILTER_VALUE_LABEL = Object.fromEntries(
@@ -115,7 +116,7 @@ export function NearbyJobsPage() {
   }
 
   const [radiusKm, setRadiusKm] = useState<RadiusKm>(10)
-  const [mapRadiusKm, setMapRadiusKm] = useState<MapRadiusKm>(1)
+  const [mapRadiusKm, setMapRadiusKm] = useState<number>(1)
   const [view, setView] = useState<'list' | 'map'>('map')
   const [filters, setFilters] = useState<JobFilterState>(EMPTY_JOB_FILTERS)
   const [page, setPage] = useState(1)
@@ -171,7 +172,7 @@ export function NearbyJobsPage() {
     setRadiusKm(Number(value) as RadiusKm)
     setPage(1)
   }
-  const handleMapRadiusChange = (value: string) => setMapRadiusKm(Number(value) as MapRadiusKm)
+  const handleMapRadiusChange = (value: string) => setMapRadiusKm(Number(value))
 
   /** GPS 권한 상태와 무관하게, 주소를 직접 검색해 찾았다면 그 좌표로 위치가 확정된 것으로 본다. */
   const located = coords != null
@@ -330,6 +331,7 @@ export function NearbyJobsPage() {
                 radiusKm={mapRadiusKm}
                 filters={filters}
                 onJobsChange={setMapJobs}
+                onRadiusChange={setMapRadiusKm}
                 className="h-[560px] min-w-0 flex-1 lg:sticky lg:top-[88px] lg:self-start"
               />
             ) : (

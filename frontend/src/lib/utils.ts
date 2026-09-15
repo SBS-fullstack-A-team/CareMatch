@@ -10,10 +10,11 @@ export function formatNumber(value: number) {
   return value.toLocaleString('ko-KR')
 }
 
-/** 0.5 -> "500m", 1 -> "1km", 10 -> "10km" — 반경/거리 표기 공통 규칙 (내 주변 일자리) */
+/** 0.5 -> "500m", 1 -> "1km", 3.847293 -> "3.8km" — 반경/거리 표기 공통 규칙 (내 주변 일자리).
+ * 실제 거리(하버사인 계산값)는 소수점이 길게 나올 수 있어 소수점 한 자리까지만 반올림한다. */
 export function formatDistanceKm(km: number): string {
   if (km < 1) return `${Math.round(km * 1000)}m`
-  return `${km}km`
+  return `${Math.round(km * 10) / 10}km`
 }
 
 /**
