@@ -13,6 +13,14 @@ import { NotificationsPage } from '@/pages/Notifications'
 import { TalentDetailPage } from '@/pages/TalentDetail'
 import { TalentListPage } from '@/pages/TalentList'
 import { LoginPage } from '@/pages/Login'
+import { AdminFacilitiesPage } from '@/pages/MyPage/admin/AdminFacilities'
+import { AdminInquiriesPage } from '@/pages/MyPage/admin/AdminInquiries'
+import { AdminInquiryDetailPage } from '@/pages/MyPage/admin/AdminInquiryDetail'
+import { AdminMembersPage } from '@/pages/MyPage/admin/AdminMembers'
+import { AdminNoticeFormPage } from '@/pages/MyPage/admin/AdminNoticeForm'
+import { AdminNoticesPage } from '@/pages/MyPage/admin/AdminNotices'
+import { AdminPointChargesPage } from '@/pages/MyPage/admin/AdminPointCharges'
+import { AdminRoute } from '@/pages/MyPage/admin/shared'
 import { MyPageApplicationsPage } from '@/pages/MyPage/Applications'
 import { MyPageCertificatesPage } from '@/pages/MyPage/Certificates'
 import { MyPageJobApplicantsPage } from '@/pages/MyPage/JobApplicants'
@@ -85,6 +93,70 @@ export const router = createBrowserRouter([
           { path: 'jobs/:jobPostingId/edit', element: <JobPostingFormPage /> },
           { path: 'jobs/:jobPostingId/applicants', element: <MyPageJobApplicantsPage /> },
           { path: 'settings', element: <MyPageSettingsPage /> },
+          {
+            path: 'admin/members',
+            element: (
+              <AdminRoute>
+                <AdminMembersPage />
+              </AdminRoute>
+            ),
+          },
+          {
+            path: 'admin/point-charges',
+            element: (
+              <AdminRoute>
+                <AdminPointChargesPage />
+              </AdminRoute>
+            ),
+          },
+          {
+            path: 'admin/facilities',
+            element: (
+              <AdminRoute>
+                <AdminFacilitiesPage />
+              </AdminRoute>
+            ),
+          },
+          {
+            path: 'admin/inquiries',
+            element: (
+              <AdminRoute>
+                <AdminInquiriesPage />
+              </AdminRoute>
+            ),
+          },
+          {
+            path: 'admin/inquiries/:inquiryId',
+            element: (
+              <AdminRoute>
+                <AdminInquiryDetailPage />
+              </AdminRoute>
+            ),
+          },
+          {
+            path: 'admin/notices',
+            element: (
+              <AdminRoute>
+                <AdminNoticesPage />
+              </AdminRoute>
+            ),
+          },
+          {
+            path: 'admin/notices/new',
+            element: (
+              <AdminRoute>
+                <AdminNoticeFormPage />
+              </AdminRoute>
+            ),
+          },
+          {
+            path: 'admin/notices/:noticeId/edit',
+            element: (
+              <AdminRoute>
+                <AdminNoticeFormPage />
+              </AdminRoute>
+            ),
+          },
           // 포인트/알림설정 등 아직 없는 하위 화면
           { path: '*', element: <PlaceholderPage title="마이페이지" /> },
         ],

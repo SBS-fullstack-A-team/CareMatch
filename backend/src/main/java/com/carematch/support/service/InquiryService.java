@@ -2,6 +2,8 @@ package com.carematch.support.service;
 
 import com.carematch.common.exception.BusinessException;
 import com.carematch.common.exception.ErrorCode;
+import com.carematch.member.domain.Member;
+import com.carematch.member.repository.MemberRepository;
 import com.carematch.notification.domain.NotificationType;
 import com.carematch.notification.service.NotificationService;
 import com.carematch.support.domain.Inquiry;
@@ -18,6 +20,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+
 /**
  * 1:1 문의.
  * - 등록: 인증 사용자만(비회원 문의 정책 미확정)
@@ -30,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class InquiryService {
 
     private final InquiryRepository inquiryRepository;
+    private final MemberRepository memberRepository;
     private final NotificationService notificationService;
 
     @Transactional
@@ -50,15 +57,20 @@ public class InquiryService {
                 .map(InquiryResponse::summary);
     }
 
+    /** 관리자 전체 목록. 작성자 이름/이메일까지 함께 내려준다(비회원 문의는 null). */
     @Transactional(readOnly = true)
     public Page<InquiryResponse> listAll(InquiryStatus status, Pageable pageable) {
         Page<Inquiry> page = (status == null)
                 ? inquiryRepository.findAll(pageable)
                 : inquiryRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
-        return page.map(InquiryResponse::summary);
+        Map<Long, Member> members = loadMembers(page.getContent());
+        return page.map(i -> {
+            Member m = members.get(i.getMemberId());
+            return InquiryResponse.adminSummary(i, m == null ? null : m.getName(), m == null ? null : m.getEmail());
+        });
     }
 
-    /** 상세 조회. 관리자가 아니면 본인 글만 허용. */
+    /** 상세 조회. 관리자가 아니면 본인 글만 허용. 관리자 조회 시 작성자 이름/이메일도 함께 채운다. */
     @Transactional(readOnly = true)
     public InquiryResponse get(Long inquiryId, Long requesterId, boolean isAdmin) {
         Inquiry inquiry = inquiryRepository.findWithRepliesById(inquiryId)
@@ -66,9 +78,22 @@ public class InquiryService {
         if (!isAdmin && !inquiry.isOwnedBy(requesterId)) {
             throw new BusinessException(ErrorCode.INQUIRY_ACCESS_DENIED);
         }
-        return InquiryResponse.from(inquiry);
+        if (!isAdmin || inquiry.getMemberId() == null) {
+            return InquiryResponse.from(inquiry);
+        }
+        Member member = memberRepository.findById(inquiry.getMemberId()).orElse(null);
+        return InquiryResponse.adminFrom(inquiry, member == null ? null : member.getName(),
+                member == null ? null : member.getEmail());
     }
 
+    private Map<Long, Member> loadMembers(List<Inquiry> inquiries) {
+        List<Long> memberIds = inquiries.stream().map(Inquiry::getMemberId).filter(java.util.Objects::nonNull).distinct().toList();
+        if (memberIds.isEmpty()) return Map.of();
+        return memberRepository.findAllById(memberIds).stream()
+                .collect(java.util.stream.Collectors.toMap(Member::getId, Function.identity()));
+    }
+
+    /** 관리자 전용(현재 AdminSupportController 에서만 호출) — 응답에도 작성자 이름/이메일을 채운다. */
     @Transactional
     public InquiryResponse reply(Long inquiryId, Long adminId, InquiryReplyRequest req) {
         Inquiry inquiry = inquiryRepository.findWithRepliesById(inquiryId)
@@ -77,11 +102,14 @@ public class InquiryService {
                 .answeredBy(adminId)
                 .content(req.content())
                 .build());
-        if (inquiry.getMemberId() != null) {
-            notificationService.notify(inquiry.getMemberId(), NotificationType.INQUIRY_ANSWERED,
-                    "문의하신 '" + inquiry.getTitle() + "'에 답변이 등록되었습니다.",
-                    "/support/inquiries/" + inquiryId);
+        if (inquiry.getMemberId() == null) {
+            return InquiryResponse.from(inquiry);
         }
-        return InquiryResponse.from(inquiry);
+        notificationService.notify(inquiry.getMemberId(), NotificationType.INQUIRY_ANSWERED,
+                "문의하신 '" + inquiry.getTitle() + "'에 답변이 등록되었습니다.",
+                "/support/inquiries/" + inquiryId);
+        Member member = memberRepository.findById(inquiry.getMemberId()).orElse(null);
+        return InquiryResponse.adminFrom(inquiry, member == null ? null : member.getName(),
+                member == null ? null : member.getEmail());
     }
 }

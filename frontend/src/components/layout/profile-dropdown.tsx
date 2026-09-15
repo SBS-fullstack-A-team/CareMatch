@@ -1,10 +1,14 @@
 import {
   ChevronDown,
+  Coins,
   FileText,
   Heart,
   LogOut,
+  Megaphone,
+  MessageSquare,
   Settings,
   UserRound,
+  UsersRound,
   Building2,
 } from 'lucide-react'
 import { useState } from 'react'
@@ -34,11 +38,12 @@ const FACILITY_MENU = [
 ]
 
 const ADMIN_MENU = [
-  { to: '/mypage', label: '마이페이지', icon: UserRound },
-  { to: '/mypage/applications', label: '지원 현황', icon: FileText },
-  { to: '/mypage/scraps', label: '관심 공고', icon: Heart },
-  { to: '/mypage/jobs', label: '등록한 공고', icon: Building2 },
-  { to: '/mypage/settings', label: '설정', icon: Settings },
+  { to: '/mypage', label: '관리자 페이지', icon: UserRound },
+  { to: '/mypage/admin/members', label: '회원관리', icon: UsersRound },
+  { to: '/mypage/admin/point-charges', label: '포인트충전관리', icon: Coins },
+  { to: '/mypage/admin/facilities', label: '시설관리', icon: Building2 },
+  { to: '/mypage/admin/inquiries', label: '문의관리', icon: MessageSquare },
+  { to: '/mypage/admin/notices', label: '공지사항', icon: Megaphone },
 ]
 
 const MEMBER_TYPE_LABEL: Record<SessionUser['role'], string> = {
@@ -94,7 +99,7 @@ export function ProfileDropdown({ user }: { user: SessionUser }) {
               </span>
             </p>
             <p className="mt-0.5 truncate text-sm text-fg-muted">{user.subtitle}</p>
-            {(user.role === 'GENERAL' || user.memberType === 'facility') && (
+            {(user.role === 'GENERAL' || user.role === 'ADMIN' || user.memberType === 'facility') && (
               <p className="mt-2 flex items-baseline justify-between text-sm text-fg-muted">
                 보유 포인트
                 <span className="text-base font-bold text-primary-deep tabular">

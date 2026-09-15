@@ -74,6 +74,9 @@ public final class SupportDtos {
     public record InquiryResponse(
             Long id,
             Long memberId,
+            /** 작성자 이름/이메일. 관리자 조회(adminFrom/adminSummary)에서만 채워진다(비회원 문의면 null). */
+            String memberName,
+            String memberEmail,
             String title,
             String content,
             String status,
@@ -82,15 +85,23 @@ public final class SupportDtos {
             List<InquiryReplyResponse> replies
     ) {
         public static InquiryResponse from(Inquiry i) {
+            return adminFrom(i, null, null);
+        }
+
+        public static InquiryResponse summary(Inquiry i) {
+            return adminSummary(i, null, null);
+        }
+
+        public static InquiryResponse adminFrom(Inquiry i, String memberName, String memberEmail) {
             return new InquiryResponse(
-                    i.getId(), i.getMemberId(), i.getTitle(), i.getContent(),
+                    i.getId(), i.getMemberId(), memberName, memberEmail, i.getTitle(), i.getContent(),
                     i.getStatus().name(), i.getAttachmentFileKey(), i.getCreatedAt(),
                     i.getReplies().stream().map(InquiryReplyResponse::from).toList());
         }
 
-        public static InquiryResponse summary(Inquiry i) {
+        public static InquiryResponse adminSummary(Inquiry i, String memberName, String memberEmail) {
             return new InquiryResponse(
-                    i.getId(), i.getMemberId(), i.getTitle(), null,
+                    i.getId(), i.getMemberId(), memberName, memberEmail, i.getTitle(), null,
                     i.getStatus().name(), null, i.getCreatedAt(), List.of());
         }
     }

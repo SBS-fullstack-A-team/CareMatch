@@ -26,9 +26,11 @@ export function MyPageSettingsPage() {
             <dd className="text-fg">
               {user.memberType === 'facility'
                 ? '시설회원'
-                : user.role === 'GENERAL'
-                  ? '보호자회원'
-                  : '구직회원'}
+                : user.role === 'ADMIN'
+                  ? '관리자'
+                  : user.role === 'GENERAL'
+                    ? '보호자회원'
+                    : '구직회원'}
             </dd>
           </div>
           <div className="flex justify-between gap-4">

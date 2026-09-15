@@ -1,4 +1,17 @@
-import { Award, Briefcase, FileText, Heart, LogIn, Settings as SettingsIcon, UserRound } from 'lucide-react'
+import {
+  Award,
+  Briefcase,
+  Building2,
+  Coins,
+  FileText,
+  Heart,
+  LogIn,
+  Megaphone,
+  MessageSquare,
+  Settings as SettingsIcon,
+  UserRound,
+  UsersRound,
+} from 'lucide-react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { Breadcrumb } from '@/components/common/breadcrumb'
 import { EmptyState } from '@/components/common/empty-state'
@@ -28,14 +41,13 @@ const GENERAL_MENU = [
   { to: '/mypage/settings', label: '설정', icon: SettingsIcon, end: false },
 ]
 
-/** 관리자는 구직자/시설 화면을 모두 확인할 수 있어야 해서 두 메뉴를 합쳐서 보여준다. */
 const ADMIN_MENU = [
-  { to: '/mypage', label: '마이페이지', icon: UserRound, end: true },
-  { to: '/mypage/applications', label: '지원 현황', icon: FileText, end: false },
-  { to: '/mypage/scraps', label: '관심 공고', icon: Heart, end: false },
-  { to: '/mypage/certificates', label: '자격증', icon: Award, end: false },
-  { to: '/mypage/jobs', label: '등록한 공고', icon: Briefcase, end: false },
-  { to: '/mypage/settings', label: '설정', icon: SettingsIcon, end: false },
+  { to: '/mypage', label: '관리자 페이지', icon: UserRound, end: true },
+  { to: '/mypage/admin/members', label: '회원관리', icon: UsersRound, end: false },
+  { to: '/mypage/admin/point-charges', label: '포인트충전관리', icon: Coins, end: false },
+  { to: '/mypage/admin/facilities', label: '시설관리', icon: Building2, end: false },
+  { to: '/mypage/admin/inquiries', label: '문의관리', icon: MessageSquare, end: false },
+  { to: '/mypage/admin/notices', label: '공지사항', icon: Megaphone, end: false },
 ]
 
 /**
@@ -102,7 +114,9 @@ export function MyPageLayout() {
 
   return (
     <div className="container-page py-6 lg:py-8">
-      <Breadcrumb items={[{ label: '홈', to: '/' }, { label: '마이페이지' }]} />
+      <Breadcrumb
+        items={[{ label: '홈', to: '/' }, { label: user.role === 'ADMIN' ? '관리자 페이지' : '마이페이지' }]}
+      />
 
       <div className="mt-3 gap-6 lg:flex lg:items-start">
         <aside className="w-full shrink-0 lg:w-[220px]">

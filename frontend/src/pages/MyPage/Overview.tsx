@@ -1,4 +1,4 @@
-import { Award, Briefcase, Coins, Eye, FileText, Heart, UsersRound } from 'lucide-react'
+import { Award, Briefcase, Building2, Coins, Eye, FileText, Heart, Megaphone, MessageSquare, UsersRound } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { LoadingState } from '@/components/common/loading-state'
@@ -47,7 +47,17 @@ export function MyPageOverviewPage() {
         </div>
       )}
 
-      {user.role !== 'FACILITY' && <RecentlyViewedJobs />}
+      {user.role === 'ADMIN' && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <QuickLink to="/mypage/admin/members" icon={UsersRound} label="회원관리" />
+          <QuickLink to="/mypage/admin/point-charges" icon={Coins} label="포인트충전관리" />
+          <QuickLink to="/mypage/admin/facilities" icon={Building2} label="시설관리" />
+          <QuickLink to="/mypage/admin/inquiries" icon={MessageSquare} label="문의관리" />
+          <QuickLink to="/mypage/admin/notices" icon={Megaphone} label="공지사항" />
+        </div>
+      )}
+
+      {user.role !== 'FACILITY' && user.role !== 'ADMIN' && <RecentlyViewedJobs />}
     </div>
   )
 }
@@ -62,8 +72,8 @@ function ProfileSummary({ user }: { user: SessionUser }) {
           ? '보호자회원'
           : '구직회원'
 
-  /** 포인트는 보호자회원·시설회원만 사용한다 (구직회원은 포인트 개념이 없다). */
-  const canUsePoint = user.role === 'GENERAL' || user.memberType === 'facility'
+  /** 포인트는 보호자회원·시설회원·관리자만 사용한다 (구직회원은 포인트 개념이 없다). */
+  const canUsePoint = user.role === 'GENERAL' || user.role === 'ADMIN' || user.memberType === 'facility'
 
   const [chargeOpen, setChargeOpen] = useState(false)
 
