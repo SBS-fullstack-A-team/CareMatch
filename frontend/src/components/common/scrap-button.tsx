@@ -66,6 +66,7 @@ export function ScrapButton({
       type="button"
       aria-pressed={scrapped}
       aria-label={scrapped ? `${label} 해제` : `${label} 등록`}
+      title={scrapped ? `${label} 해제` : `${label} 등록`}
       onClick={handleClick}
       disabled={pending}
       className={cn(
