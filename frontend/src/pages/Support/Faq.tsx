@@ -92,7 +92,7 @@ export function SupportFaqPage() {
                     />
                   </summary>
                   <div className="border-t border-border bg-surface-sunken px-6 py-4">
-                    <p className="text-base leading-relaxed whitespace-pre-line text-fg-muted">
+                    <p className="text-base leading-relaxed whitespace-pre-line break-words text-fg-muted">
                       {faq.answer}
                     </p>
                   </div>

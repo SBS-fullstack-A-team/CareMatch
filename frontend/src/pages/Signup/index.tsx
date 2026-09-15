@@ -855,7 +855,7 @@ main
         description={termsDetail ? `버전 ${termsDetail.version}` : undefined}
         size="md"
       >
-        <p className="text-base leading-relaxed whitespace-pre-line text-fg-muted">
+        <p className="text-base leading-relaxed whitespace-pre-line break-words text-fg-muted">
           {termsDetail?.content ?? '약관 내용이 없습니다.'}
         </p>
       </Modal>

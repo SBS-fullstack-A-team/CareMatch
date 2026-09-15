@@ -81,7 +81,7 @@ export function SupportNoticeDetailPage() {
             </header>
 
             <div className="pt-6">
-              <p className="text-base leading-relaxed whitespace-pre-line text-fg">
+              <p className="text-base leading-relaxed whitespace-pre-line break-words text-fg">
                 {notice.content}
               </p>
             </div>
