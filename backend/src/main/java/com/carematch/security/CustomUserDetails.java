@@ -2,6 +2,7 @@ package com.carematch.security;
 
 import com.carematch.member.domain.Member;
 import com.carematch.member.domain.MemberStatus;
+import com.carematch.member.domain.Role;
 import com.carematch.security.jwt.JwtTokenProvider;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
@@ -34,6 +35,11 @@ public class CustomUserDetails implements UserDetails {
         this.locked = member.isLocked(LocalDateTime.now());
         String authority = member.isRoleSelected() ? member.getRole().authority() : JwtTokenProvider.GUEST_ROLE;
         this.authorities = List.of(new SimpleGrantedAuthority(authority));
+    }
+
+    /** 관리자 여부. 인재 상세 마스킹 예외처럼 역할에 따라 갈라지는 처리에 쓴다. */
+    public boolean isAdmin() {
+        return authorities.stream().anyMatch(a -> Role.ADMIN.authority().equals(a.getAuthority()));
     }
 
     @Override

@@ -70,6 +70,18 @@ public class JobSeekerProfileQueryService {
                 true, signedCertificates(profile), null, List.of());
     }
 
+    /**
+     * 관리자가 보는 인재 상세 (전체 공개).
+     * 계정 관리를 위해 이름·연락처·거주지를 마스킹하지 않는다. 포인트 차감이나 열람 이력도 만들지 않는다.
+     * 매칭 점수는 시설의 공고 기준이라 관리자에게는 채우지 않는다.
+     */
+    @Transactional(readOnly = true)
+    public JobSeekerProfileResponse getForAdmin(Long profileId) {
+        JobSeekerProfile profile = load(profileId);
+        return build(profile, profile.getMember().getName(), profile.getMember().getPhone(), profile.getResidence(),
+                true, signedCertificates(profile), null, List.of());
+    }
+
     private JobSeekerProfile load(Long profileId) {
         return jobSeekerProfileRepository.findWithDetailsById(profileId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "jobSeekerProfile " + profileId));
