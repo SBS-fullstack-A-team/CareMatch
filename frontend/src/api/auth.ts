@@ -1,7 +1,7 @@
 /** 인증 API. docs/API.md §3 */
 import { apiFetch } from '@/lib/api-client'
 import { tokenStore } from '@/lib/token-store'
-import type { SocialRoleSelectionRequest, TokenResponse } from '@/types/api'
+import type { PasswordResetRequest, SocialRoleSelectionRequest, TokenResponse } from '@/types/api'
 
 /** 아이디/비밀번호 로그인. 성공 시 토큰을 저장한다. 실패 시 ApiError (423 = 계정 잠금). */
 export async function login(loginId: string, password: string): Promise<TokenResponse> {
@@ -26,6 +26,14 @@ export async function logout(): Promise<void> {
   } finally {
     tokenStore.clear()
   }
+}
+
+/**
+ * 비밀번호 찾기(재설정). 사전에 /api/verifications/send·verify 로 본인 이메일/휴대폰 인증을
+ * 마쳐야 한다(회원가입과 동일한 인증코드 재사용). 성공하면 다른 기기 세션도 모두 로그아웃된다.
+ */
+export function resetPassword(req: PasswordResetRequest): Promise<void> {
+  return apiFetch<void>('/api/auth/password-reset', { method: 'POST', auth: false, body: req })
 }
 
 /** 소셜 최초 로그인 후 회원 유형(구직자/시설) 확정. GUEST 토큰 필요. 새 토큰으로 교체된다. */
