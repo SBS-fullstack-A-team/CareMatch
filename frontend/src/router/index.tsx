@@ -9,6 +9,7 @@ import { JobDetailPage } from '@/pages/JobDetail'
 import { JobListPage } from '@/pages/JobList'
 import { LegalPage } from '@/pages/Legal'
 import { NearbyJobsPage } from '@/pages/NearbyJobs'
+import { NotificationsPage } from '@/pages/Notifications'
 import { TalentDetailPage } from '@/pages/TalentDetail'
 import { TalentListPage } from '@/pages/TalentList'
 import { LoginPage } from '@/pages/Login'
@@ -70,7 +71,7 @@ export const router = createBrowserRouter([
       { path: '/oauth/callback', element: <OAuthCallbackPage /> },
       { path: '/oauth/select-role', element: <OAuthSelectRolePage /> },
       { path: '/signup', element: <SignupPage /> },
-      { path: '/notifications', element: <PlaceholderPage title="알림" /> },
+      { path: '/notifications', element: <NotificationsPage /> },
       {
         path: '/mypage',
         element: <MyPageLayout />,
