@@ -19,14 +19,16 @@ export function MobileNav({ open, onClose }: { open: boolean; onClose: () => voi
             <span className="ml-1.5 text-sm font-normal text-fg-muted">
               {user.memberType === 'facility'
                 ? '시설회원'
-                : user.role === 'GENERAL'
-                  ? '보호자회원'
-                  : '구직회원'}
+                : user.role === 'ADMIN'
+                  ? '관리자'
+                  : user.role === 'GENERAL'
+                    ? '보호자회원'
+                    : '구직회원'}
             </span>
           </p>
           <p className="mt-0.5 text-base text-fg-muted">{user.subtitle}</p>
           <div className="mt-3 grid grid-cols-2 gap-2">
-            {(user.role === 'GENERAL' || user.memberType === 'facility') && (
+            {(user.role === 'GENERAL' || user.role === 'ADMIN' || user.memberType === 'facility') && (
               <Link
                 to="/mypage/point"
                 onClick={onClose}
@@ -41,7 +43,10 @@ export function MobileNav({ open, onClose }: { open: boolean; onClose: () => voi
               onClick={onClose}
               className={cn(
                 'flex h-11 items-center justify-center gap-1.5 rounded-btn bg-surface text-base font-bold text-fg',
-                user.role !== 'GENERAL' && user.memberType !== 'facility' && 'col-span-2',
+                user.role !== 'GENERAL' &&
+                  user.role !== 'ADMIN' &&
+                  user.memberType !== 'facility' &&
+                  'col-span-2',
               )}
             >
               <Bell className="size-[18px] text-fg-muted" aria-hidden />

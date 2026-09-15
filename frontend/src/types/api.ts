@@ -37,7 +37,7 @@ export interface MyPageResponse {
   membershipType: string
   point: number
   employmentStatus: 'SEEKING' | 'EMPLOYED' | null
-  facilityApprovalStatus: 'PENDING' | 'APPROVED' | 'REJECTED' | null
+  facilityApprovalStatus: FacilityApprovalStatus | null
 }
 
 export type FontScaleServer = 'NORMAL' | 'LARGE' | 'XLARGE'
@@ -287,12 +287,35 @@ export interface InquiryReplyResponse {
 export interface InquiryResponse {
   id: number
   memberId: number
+  /** 작성자 이름/이메일. 관리자 조회에서만 채워진다(비회원 문의면 null) */
+  memberName: string | null
+  memberEmail: string | null
   title: string
   content: string | null
   status: InquiryStatus
   attachmentFileKey: string | null
   createdAt: string
   replies: InquiryReplyResponse[]
+}
+
+/** POST /api/admin/support/inquiries/{id}/replies */
+export interface InquiryReplyRequest {
+  content: string
+}
+
+/** POST/PUT /api/admin/support/notices */
+export interface NoticeUpsertRequest {
+  title: string
+  content: string
+  pinned: boolean
+}
+
+/** POST/PUT /api/admin/support/faqs */
+export interface FaqUpsertRequest {
+  category: string
+  question: string
+  answer: string
+  sortOrder: number
 }
 
 /* ---------------------------------------------------------------------------
@@ -844,4 +867,57 @@ export interface PointChargePrepareResponse {
 export interface PointChargeCompleteResponse {
   chargedAmount: number
   balance: number
+}
+
+/* ---------------------------------------------------------------------------
+   관리자 페이지 — 회원관리 / 포인트충전관리 / 시설관리
+   --------------------------------------------------------------------------- */
+
+export type FacilityApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+
+export type MemberStatus = 'ACTIVE' | 'SUSPENDED' | 'WITHDRAWN'
+
+/** GET /api/admin/members — 관리자 회원관리 한 줄 */
+export interface AdminMemberSummary {
+  id: number
+  loginId: string | null
+  name: string
+  email: string
+  phone: string | null
+  role: MemberRole | null
+  status: MemberStatus
+  verified: boolean
+  point: number
+  createdAt: string
+}
+
+/** GET /api/admin/points/charges — 관리자 포인트충전관리 한 줄 */
+export interface AdminPointChargeSummary {
+  id: number
+  memberId: number
+  memberName: string
+  memberLoginId: string | null
+  paymentId: string
+  amount: number
+  status: 'PENDING' | 'PAID'
+  createdAt: string
+  completedAt: string | null
+}
+
+/** GET /api/admin/facilities, POST .../approve, .../reject — 관리자 시설관리 한 줄 */
+export interface FacilityApprovalItem {
+  facilityProfileId: number
+  memberId: number
+  memberName: string
+  memberEmail: string
+  memberPhone: string | null
+  facilityName: string
+  facilityType: string | null
+  businessRegistrationNumber: string
+  approvalStatus: FacilityApprovalStatus
+  createdAt: string
+  processedAt: string | null
+  rejectReason: string | null
+  /** 사업자등록증 미리보기/다운로드용 서명 URL(TTL 있음). 없으면 null. */
+  businessLicenseUrl: string | null
 }

@@ -81,9 +81,14 @@ public class FacilityApprovalService {
         return new FacilityApprovalItem(
                 p.getId(),
                 p.getMember().getId(),
+                p.getMember().getName(),
+                p.getMember().getEmail(),
+                p.getMember().getPhone(),
                 p.getFacilityName(),
+                p.getFacilityType() == null ? null : p.getFacilityType().name(),
                 p.getBusinessRegistrationNumber(),
                 p.getApprovalStatus().name(),
+                p.getCreatedAt(),
                 p.getApprovedAt(),
                 p.getRejectReason(),
                 licenseUrl);
@@ -92,9 +97,14 @@ public class FacilityApprovalService {
     public record FacilityApprovalItem(
             Long facilityProfileId,
             Long memberId,
+            String memberName,
+            String memberEmail,
+            String memberPhone,
             String facilityName,
+            String facilityType,
             String businessRegistrationNumber,
             String approvalStatus,
+            LocalDateTime createdAt,
             LocalDateTime processedAt,
             String rejectReason,
             String businessLicenseUrl
