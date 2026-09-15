@@ -75,7 +75,8 @@ public class SecurityConfig {
 
                         // --- 인증 없이 허용 (회원가입/로그인/인증코드) ---
                         .requestMatchers(HttpMethod.POST,
-                                "/api/auth/login", "/api/auth/reissue", "/api/auth/logout").permitAll()
+                                "/api/auth/login", "/api/auth/reissue", "/api/auth/logout",
+                                "/api/auth/password-reset").permitAll()
                         .requestMatchers(HttpMethod.POST,
                                 "/api/members/jobseekers", "/api/members/facilities", "/api/members/general").permitAll()
                         .requestMatchers(HttpMethod.GET,

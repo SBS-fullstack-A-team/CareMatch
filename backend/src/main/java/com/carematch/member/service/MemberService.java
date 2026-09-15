@@ -1,5 +1,6 @@
 package com.carematch.member.service;
 
+import com.carematch.auth.service.RefreshTokenService;
 import com.carematch.common.exception.BusinessException;
 import com.carematch.common.exception.ErrorCode;
 import com.carematch.member.domain.EmploymentStatus;
@@ -44,6 +45,7 @@ public class MemberService {
     private final VerificationService verificationService;
     private final FileStorageService fileStorageService;
     private final PointService pointService;
+    private final RefreshTokenService refreshTokenService;
 
     /**
      * 본인인증(이메일/휴대폰 코드 확인) 필수 여부. 프론트 연동 초기 단계라 임시로 기본 false.
@@ -225,6 +227,32 @@ public class MemberService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
         member.changePhone(phone);
+    }
+
+    // ---------------------------------------------------------------------
+    // 비밀번호 찾기(재설정)
+    // ---------------------------------------------------------------------
+    /**
+     * 로그인 전 비밀번호 재설정. 사전에 verificationChannel/verificationTarget 으로
+     * {@code /api/verifications/send}+{@code /verify} 를 거쳐 인증을 완료해뒀어야 한다.
+     * - 인증한 대상이 그 loginId 회원의 실제 email/phone 과 다르면 거부(남의 인증 재사용 방지)
+     * - 소셜 전용 계정(password 없음)은 재설정 대상이 아님
+     * - 성공 시 로그인 실패 잠금 해제 + 기존 Refresh Token 전부 무효화(다른 기기 강제 로그아웃)
+     */
+    @Transactional
+    public void resetPassword(String loginId, VerificationChannel channel, String target, String newPassword) {
+        Member member = memberRepository.findByLoginId(loginId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+        if (member.getPassword() == null) {
+            throw new BusinessException(ErrorCode.SOCIAL_ONLY_ACCOUNT);
+        }
+        PasswordPolicy.validate(newPassword);
+        assertVerificationMatchesContact(channel, target, member.getEmail(), member.getPhone());
+        verificationService.assertVerified(channel, target);
+
+        member.changePassword(passwordEncoder.encode(newPassword));
+        member.resetLoginFail();
+        refreshTokenService.revokeAll(member.getId());
     }
 
     // ---------------------------------------------------------------------
