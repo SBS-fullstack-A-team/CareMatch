@@ -49,6 +49,13 @@ function withDistanceTag(job: Job, distanceKm: number): Job {
   return { ...job, tags: [formatDistanceKm(distanceKm), ...(job.tags ?? [])] }
 }
 
+/** `options` 중 `value` 에 가장 가까운 값. 지도⟷리스트 전환 시 반경을 "느슨하게" 동기화하는 데
+ * 쓴다 — 두 뷰가 쓰는 반경 단위(지도는 m~km, 리스트는 km) 자체가 달라 완전히 합칠 순 없지만,
+ * 뷰를 바꿀 때 지금 보던 범위와 제일 비슷한 프리셋으로 맞춰주면 전환이 덜 뜬금없다. */
+function nearestOption(value: number, options: readonly number[]): number {
+  return options.reduce((closest, option) => (Math.abs(option - value) < Math.abs(closest - value) ? option : closest))
+}
+
 /**
  * 내 주변 일자리 (/nearby)
  *
@@ -174,6 +181,20 @@ export function NearbyJobsPage() {
   }
   const handleMapRadiusChange = (value: string) => setMapRadiusKm(Number(value))
 
+  /** 지도⟷리스트 전환 시 반경 "느슨한 동기화" — 완전히 같은 값을 쓰진 않지만(단위 범위가 서로
+   * 다름), 지금 보던 뷰의 반경과 제일 가까운 프리셋으로 다음 뷰의 반경을 맞춰준다. */
+  const handleViewChange = (value: string) => {
+    const nextView = value as 'list' | 'map'
+    if (nextView === view) return
+    if (nextView === 'list') {
+      setRadiusKm(nearestOption(mapRadiusKm, RADIUS_OPTIONS_KM) as RadiusKm)
+    } else {
+      setMapRadiusKm(nearestOption(radiusKm, MAP_RADIUS_OPTIONS_KM))
+    }
+    setView(nextView)
+    setPage(1)
+  }
+
   /** GPS 권한 상태와 무관하게, 주소를 직접 검색해 찾았다면 그 좌표로 위치가 확정된 것으로 본다. */
   const located = coords != null
 
@@ -281,7 +302,7 @@ export function NearbyJobsPage() {
                 { value: 'list', label: '리스트' },
               ]}
               value={view}
-              onChange={(value) => setView(value as 'list' | 'map')}
+              onChange={handleViewChange}
             />
           </div>
 
