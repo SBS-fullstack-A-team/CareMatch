@@ -22,7 +22,7 @@ const PORTONE_CHANNEL_KEY = import.meta.env.VITE_PORTONE_CHANNEL_KEY
  */
 export function PointChargeModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { toast } = useToast()
-  const { refreshUser } = useApp()
+  const { user, refreshUser } = useApp()
   const [amount, setAmount] = useState<number | null>(null)
   const [custom, setCustom] = useState('')
   const [charging, setCharging] = useState(false)
@@ -72,6 +72,11 @@ export function PointChargeModal({ open, onClose }: { open: boolean; onClose: ()
         totalAmount: prepared.amount,
         currency: 'KRW',
         payMethod: 'CARD',
+        // 이니시스 V2 일반결제는 구매자 이메일이 필수 — 세션 사용자 정보로 채운다.
+        customer: {
+          email: user?.email,
+          fullName: user?.name,
+        },
       })
 
       if (!payment || payment.code) {
