@@ -36,6 +36,7 @@ public enum ErrorCode {
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "MEMBER_004", "회원을 찾을 수 없습니다."),
     VERIFICATION_REQUIRED(HttpStatus.BAD_REQUEST, "MEMBER_005", "이메일 또는 휴대폰 인증이 완료되지 않았습니다."),
     INVALID_BUSINESS_NUMBER(HttpStatus.BAD_REQUEST, "MEMBER_006", "사업자등록번호 형식이 올바르지 않습니다."),
+    SOCIAL_ONLY_ACCOUNT(HttpStatus.BAD_REQUEST, "MEMBER_007", "소셜 로그인 전용 계정은 비밀번호를 재설정할 수 없습니다."),
 
     // --- 약관 ---
     REQUIRED_TERMS_NOT_AGREED(HttpStatus.BAD_REQUEST, "TERMS_001", "필수 약관에 동의해야 합니다."),
