@@ -229,6 +229,24 @@ public class MemberService {
         member.changePhone(phone);
     }
 
+    /**
+     * 회원 탈퇴. 아이디/비밀번호 계정은 본인 확인을 위해 현재 비밀번호를 검증한다
+     * (소셜 전용 계정은 비밀번호가 없어 검증을 건너뛴다). 탈퇴 후에도 데이터는 남기고
+     * status 만 WITHDRAWN 으로 바꾼다(CustomUserDetails.isEnabled() 가 이 상태를 보고
+     * 로그인 자체를 막는다). 다른 기기에 남아있던 세션도 전부 무효화한다.
+     */
+    @Transactional
+    public void withdraw(Long memberId, String rawPassword) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+        if (member.getPassword() != null
+                && (rawPassword == null || !passwordEncoder.matches(rawPassword, member.getPassword()))) {
+            throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
+        }
+        member.withdraw();
+        refreshTokenService.revokeAll(memberId);
+    }
+
     // ---------------------------------------------------------------------
     // 비밀번호 찾기(재설정)
     // ---------------------------------------------------------------------

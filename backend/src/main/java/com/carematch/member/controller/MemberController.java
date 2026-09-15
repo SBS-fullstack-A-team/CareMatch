@@ -4,6 +4,7 @@ import com.carematch.member.dto.DisplayPreferenceDtos;
 import com.carematch.member.dto.FacilitySignupRequest;
 import com.carematch.member.dto.GeneralSignupRequest;
 import com.carematch.member.dto.JobSeekerSignupRequest;
+import com.carematch.member.dto.MemberWithdrawRequest;
 import com.carematch.member.dto.MyPageResponse;
 import com.carematch.member.dto.PhoneUpdateRequest;
 import com.carematch.member.dto.SignupResponse;
@@ -16,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -96,6 +98,19 @@ public class MemberController {
             @AuthenticationPrincipal CustomUserDetails principal,
             @Valid @RequestBody PhoneUpdateRequest request) {
         memberService.updatePhone(principal.getMemberId(), request.phone());
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 회원 탈퇴. 아이디/비밀번호 계정은 본인 확인을 위해 현재 비밀번호가 필요하다
+     * (소셜 전용 계정은 비밀번호가 없어 생략 가능). 처리 후 모든 기기의 세션이 무효화된다.
+     */
+    @PatchMapping("/me/withdraw")
+    public ResponseEntity<Void> withdraw(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @RequestBody(required = false) MemberWithdrawRequest request) {
+        String password = request == null ? null : request.password();
+        memberService.withdraw(principal.getMemberId(), password);
         return ResponseEntity.noContent().build();
     }
 }
