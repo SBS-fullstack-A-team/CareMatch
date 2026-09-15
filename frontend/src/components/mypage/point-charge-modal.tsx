@@ -15,10 +15,17 @@ const PRESET_AMOUNTS = [10_000, 30_000, 50_000, 100_000]
 /** 결제 채널 키. 포트원 콘솔 > 연동 관리 > 채널 관리에서 발급 — 없으면 결제창을 열 수 없다. */
 const PORTONE_CHANNEL_KEY = import.meta.env.VITE_PORTONE_CHANNEL_KEY
 
+/** 백엔드 signup 검증 규칙과 동일 (Signup/index.tsx 참고) */
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const PHONE_RE = /^01[0-9]-?\d{3,4}-?\d{4}$/
+
 /**
  * "포인트 충전" 모달.
  * 흐름: 서버에 결제건 준비(prepare) → 포트원 결제창(PortOne.requestPayment) → 완료 콜백에서
  * 서버 검증(complete, 포트원 서버 재조회로 금액/상태 확인) → 세션 포인트 갱신.
+ *
+ * 이니시스 V2 일반결제는 구매자 이메일·휴대폰 번호가 필수인데, 소셜 가입 등으로 계정에
+ * 둘 중 하나가 비어있는 회원도 있다 — 그런 경우에만 결제창을 열기 전에 입력창을 보여준다.
  */
 export function PointChargeModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { toast } = useToast()
@@ -27,9 +34,18 @@ export function PointChargeModal({ open, onClose }: { open: boolean; onClose: ()
   const [custom, setCustom] = useState('')
   const [charging, setCharging] = useState(false)
 
+  const needsEmail = !user?.email
+  const needsPhone = !user?.phone
+  const [emailInput, setEmailInput] = useState('')
+  const [phoneInput, setPhoneInput] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; phone?: string }>({})
+
   const reset = () => {
     setAmount(null)
     setCustom('')
+    setEmailInput('')
+    setPhoneInput('')
+    setFieldErrors({})
   }
 
   const handleClose = () => {
@@ -60,6 +76,19 @@ export function PointChargeModal({ open, onClose }: { open: boolean; onClose: ()
       return
     }
 
+    const nextErrors: { email?: string; phone?: string } = {}
+    if (needsEmail && !EMAIL_RE.test(emailInput.trim())) {
+      nextErrors.email = '이메일 형식이 올바르지 않습니다.'
+    }
+    if (needsPhone && !PHONE_RE.test(phoneInput.trim())) {
+      nextErrors.phone = '휴대폰 번호 형식이 올바르지 않습니다.'
+    }
+    setFieldErrors(nextErrors)
+    if (Object.keys(nextErrors).length > 0) return
+
+    const email = user?.email || emailInput.trim()
+    const phoneNumber = user?.phone || phoneInput.trim()
+
     setCharging(true)
     try {
       const prepared = await preparePointCharge(amount)
@@ -72,11 +101,11 @@ export function PointChargeModal({ open, onClose }: { open: boolean; onClose: ()
         totalAmount: prepared.amount,
         currency: 'KRW',
         payMethod: 'CARD',
-        // 이니시스 V2 일반결제는 구매자 이메일·휴대폰 번호가 필수 — 세션 사용자 정보로 채운다.
+        // 이니시스 V2 일반결제는 구매자 이메일·휴대폰 번호가 필수 — 계정에 없으면 방금 입력받은 값을 쓴다.
         customer: {
-          email: user?.email,
+          email,
           fullName: user?.name,
-          phoneNumber: user?.phone ?? undefined,
+          phoneNumber,
         },
       })
 
@@ -127,6 +156,62 @@ export function PointChargeModal({ open, onClose }: { open: boolean; onClose: ()
       }
     >
       <div className="py-2">
+        {(needsEmail || needsPhone) && (
+          <div className="mb-4 space-y-3 rounded-input border border-border-strong bg-surface-sunken p-3">
+            <p className="text-sm text-fg-muted">
+              결제창 호출에 필요한 정보가 계정에 없어 먼저 입력해 주세요.
+            </p>
+            {needsEmail && (
+              <div>
+                <label htmlFor="charge-email" className="mb-1.5 block text-sm font-semibold text-fg">
+                  이메일
+                </label>
+                <Input
+                  id="charge-email"
+                  type="email"
+                  placeholder="example@carematch.co.kr"
+                  value={emailInput}
+                  invalid={Boolean(fieldErrors.email)}
+                  disabled={charging}
+                  onChange={(event) => {
+                    setEmailInput(event.target.value)
+                    setFieldErrors((prev) => ({ ...prev, email: undefined }))
+                  }}
+                />
+                {fieldErrors.email && (
+                  <p className="mt-1.5 text-sm text-danger" role="alert">
+                    {fieldErrors.email}
+                  </p>
+                )}
+              </div>
+            )}
+            {needsPhone && (
+              <div>
+                <label htmlFor="charge-phone" className="mb-1.5 block text-sm font-semibold text-fg">
+                  휴대폰 번호
+                </label>
+                <Input
+                  id="charge-phone"
+                  type="tel"
+                  placeholder="010-1234-5678"
+                  value={phoneInput}
+                  invalid={Boolean(fieldErrors.phone)}
+                  disabled={charging}
+                  onChange={(event) => {
+                    setPhoneInput(event.target.value)
+                    setFieldErrors((prev) => ({ ...prev, phone: undefined }))
+                  }}
+                />
+                {fieldErrors.phone && (
+                  <p className="mt-1.5 text-sm text-danger" role="alert">
+                    {fieldErrors.phone}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-2">
           {PRESET_AMOUNTS.map((value) => {
             const selected = amount === value && custom === ''
