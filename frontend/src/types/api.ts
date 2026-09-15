@@ -116,6 +116,29 @@ export interface VerifyCodeResponse {
   verified: boolean
 }
 
+export type NotificationType =
+  | 'APPLICATION_ACCEPTED'
+  | 'APPLICATION_REJECTED'
+  | 'FACILITY_APPROVED'
+  | 'FACILITY_REJECTED'
+  | 'INQUIRY_ANSWERED'
+
+/** GET /api/notifications — NotificationResponse */
+export interface NotificationResponse {
+  id: number
+  type: NotificationType
+  message: string
+  /** 클릭 시 이동할 프론트 경로. 없으면 이동 없이 읽음 처리만 */
+  link: string | null
+  read: boolean
+  createdAt: string
+}
+
+/** GET /api/notifications/unread-count */
+export interface UnreadCountResponse {
+  count: number
+}
+
 /**
  * POST /api/auth/password-reset — 비밀번호 찾기(재설정).
  * 사전에 verificationChannel/verificationTarget 으로 /api/verifications/send·verify 를

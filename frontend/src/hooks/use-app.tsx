@@ -10,6 +10,7 @@ import {
 } from 'react'
 import { login as authLogin, logout as authLogout } from '@/api/auth'
 import { getDisplayPreference, getMe, updateDisplayPreference } from '@/api/members'
+import { getUnreadNotificationCount } from '@/api/notifications'
 import { tokenStore } from '@/lib/token-store'
 import type { FontScaleServer, MemberRole, MyPageResponse, TokenResponse } from '@/types/api'
 
@@ -73,6 +74,8 @@ interface AppContextValue {
   logout: () => Promise<void>
   /** 서버에서 내 정보를 다시 불러와 세션(포인트 등)을 갱신한다. 예: 포인트 충전 완료 직후. */
   refreshUser: () => Promise<void>
+  /** 안읽은 알림 개수만 다시 불러온다. 알림 화면에서 읽음 처리 직후 배지를 즉시 갱신할 때 사용. */
+  refreshUnreadCount: () => Promise<void>
   fontScale: FontScale
   setFontScale: (scale: FontScale) => void
   easyMode: boolean
@@ -146,7 +149,8 @@ function toSessionUser(me: MyPageResponse): SessionUser {
     facilityApprovalStatus: me.facilityApprovalStatus,
     subtitle,
     point: me.point,
-    unreadNotifications: 0, // TODO: 알림 API 연동 시 교체
+    // getMe() 응답엔 없음 — 세션 진입 직후 폴링 effect(fetchUnreadCount)가 곧바로 채운다.
+    unreadNotifications: 0,
   }
 }
 
@@ -200,6 +204,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
     void sync()
     return tokenStore.subscribe(() => void sync())
   }, [])
+
+  const fetchUnreadCount = useCallback(async () => {
+    if (!tokenStore.hasSession()) return
+    try {
+      const { count } = await getUnreadNotificationCount()
+      setUser((prev) => (prev ? { ...prev, unreadNotifications: count } : prev))
+    } catch {
+      /* 폴링 실패는 조용히 무시 — 다음 주기에 다시 시도 */
+    }
+  }, [])
+
+  const refreshUnreadCount = useCallback(() => fetchUnreadCount(), [fetchUnreadCount])
+
+  // 안읽은 알림 개수 폴링(30초 주기). 실시간 푸시가 없어 폴링으로 대체하는 MVP 수준.
+  // user 객체 자체가 아니라 로그인 여부(hasUser)에만 의존 — 매 폴링마다 user 참조가
+  // 바뀌는데 그걸 의존성에 넣으면 인터벌이 계속 재생성돼 사실상 쉬지 않고 도는 루프가 된다.
+  const hasUser = Boolean(user)
+  useEffect(() => {
+    if (!hasUser) return
+    void fetchUnreadCount()
+    const id = setInterval(() => void fetchUnreadCount(), 30_000)
+    return () => clearInterval(id)
+  }, [hasUser, fetchUnreadCount])
 
   // 글자 크기: 루트 font-size(%) 반영 + localStorage
   useEffect(() => {
@@ -265,8 +292,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo<AppContextValue>(
-    () => ({ user, authReady, login, logout, refreshUser, fontScale, setFontScale, easyMode, setEasyMode }),
-    [user, authReady, login, logout, refreshUser, fontScale, setFontScale, easyMode, setEasyMode],
+    () => ({
+      user,
+      authReady,
+      login,
+      logout,
+      refreshUser,
+      refreshUnreadCount,
+      fontScale,
+      setFontScale,
+      easyMode,
+      setEasyMode,
+    }),
+    [
+      user,
+      authReady,
+      login,
+      logout,
+      refreshUser,
+      refreshUnreadCount,
+      fontScale,
+      setFontScale,
+      easyMode,
+      setEasyMode,
+    ],
   )
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
