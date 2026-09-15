@@ -80,3 +80,15 @@ export function signupGeneral(req: GeneralSignupRequest): Promise<SignupResponse
 export function updateMyPhone(phone: string): Promise<void> {
   return apiFetch<void>('/api/members/me/phone', { method: 'PUT', body: { phone } })
 }
+
+/**
+ * 회원 탈퇴. 아이디/비밀번호 계정은 본인 확인을 위해 현재 비밀번호가 필요하다
+ * (소셜 전용 계정은 password 를 생략해도 된다). 성공하면 서버가 이 계정의 모든 세션을
+ * 무효화하므로, 호출부가 이어서 로컬 토큰도 정리해야 한다.
+ */
+export function withdrawMember(password?: string): Promise<void> {
+  return apiFetch<void>('/api/members/me/withdraw', {
+    method: 'PATCH',
+    body: { password: password || null },
+  })
+}
