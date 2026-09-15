@@ -20,6 +20,8 @@ export interface SessionUser {
   name: string
   /** 포인트 충전 등 포트원 결제창의 구매자(customer) 정보로 쓰인다. */
   email: string
+  /** 소셜 전용 회원 등은 null 일 수 있다. 포트원 결제창 customer.phoneNumber 로도 쓰인다. */
+  phone: string | null
   memberType: MemberType
   /** 원본 역할. 라우트 가드 등 세밀한 권한 판정에 사용한다 (memberType 은 표시용). */
   role: MemberRole
@@ -147,6 +149,7 @@ function toSessionUser(me: MyPageResponse): SessionUser {
   return {
     name: me.name,
     email: me.email,
+    phone: me.phone,
     memberType,
     role: me.role,
     facilityApprovalStatus: me.facilityApprovalStatus,
