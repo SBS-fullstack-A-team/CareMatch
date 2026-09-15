@@ -55,7 +55,9 @@ public class PointChargeService {
 
     @Transactional
     public PointChargeCompleteResponse complete(Long memberId, String paymentId) {
-        PointCharge charge = pointChargeRepository.findByPaymentId(paymentId)
+        // 비관적 락으로 조회 — 같은 paymentId 로 complete 가 동시에 들어와도 한 번에 하나씩만
+        // 아래 검증~markPaid 구간을 통과하게 해서 이중 적립을 막는다.
+        PointCharge charge = pointChargeRepository.findByPaymentIdForUpdate(paymentId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POINT_CHARGE_REQUEST_NOT_FOUND, "paymentId=" + paymentId));
 
         if (!charge.getMember().getId().equals(memberId)) {

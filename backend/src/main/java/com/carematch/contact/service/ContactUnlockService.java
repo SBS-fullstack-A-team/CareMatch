@@ -19,13 +19,15 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.ZoneId;
 
 /**
- * 연락처 열람(마스킹 → 이력 확인 → (스텁)차감 → 언마스크) 흐름.
+ * 연락처 열람(마스킹 → 이력 확인 → 차감 → 언마스크) 흐름.
  *
  * 흐름:
- *   1) 대상 상태 검증(EMPLOYED 면 열람 자체 차단) — 포인트와 무관
- *   2) 이미 열람 이력 있으면 PointService 호출 없이 무료 언마스크
- *   3) 없으면 PointService 로 실제 잔액 차감(부족하면 402)
- *   4) 성공 시 이력 저장 후 언마스크 응답
+ *   1) 대상 상태 검증(EMPLOYED 면 열람 자체 차단) — 포인트/이력과 무관
+ *   2) 시설 회원 row 에 비관적 락(findByIdForUpdate) — 같은 시설의 동시 열람 요청을 여기서부터
+ *      직렬화해서, "이력 확인 → 차감 → 이력 저장" 전체를 하나의 경쟁 없는 구간으로 만든다
+ *   3) 이미 열람 이력 있으면 PointService 호출 없이 무료 언마스크
+ *   4) 없으면 PointService 로 실제 잔액 차감(부족하면 402)
+ *   5) 성공 시 이력 저장 후 언마스크 응답
  */
 @Slf4j
 @Service
@@ -52,6 +54,15 @@ public class ContactUnlockService {
 
         Member unmaskedOwner = profile.getMember();
 
+        // 시설 회원 row 에 비관적 락을 걸어 "이력 확인 → 차감 → 이력 저장"을 하나의 락 구간으로
+        // 묶는다. 같은 시설이 같은 인재를 동시에 두 번 열람 요청해도, 두 번째 요청은 첫 번째
+        // 트랜잭션이 커밋될 때까지 여기서 대기했다가 "이미 이력이 있음"을 보고 무료로 처리된다.
+        // (unique 제약 위반을 catch 해서 계속 진행하는 방식은 Hibernate/Postgres 양쪽 다 해당
+        //  트랜잭션을 rollback-only 로 표시해버려서, 이후 정상 커밋 시 UnexpectedRollbackException
+        //  이 터진다 — 그래서 애초에 경쟁이 안 생기도록 락으로 막는다.)
+        Member facilityMember = memberRepository.findByIdForUpdate(facilityMemberId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+
         // 2) 이미 열람한 적 있으면 무료로 언마스크 (PointService 호출 안 함)
         var existing = unlockHistoryRepository
                 .findByFacilityMemberIdAndJobSeekerProfileId(facilityMemberId, jobSeekerProfileId);
@@ -66,7 +77,7 @@ public class ContactUnlockService {
                     h.getUnlockedAt().atZone(ZoneId.systemDefault()).toOffsetDateTime());
         }
 
-        // 3) 최초 열람 → 실제 포인트 차감
+        // 3) 최초 열람 → 실제 포인트 차감 (위에서 이미 락을 잡아둔 같은 row 라 재조회만 한다)
         int cost = PointPolicy.CONTACT_UNLOCK_COST;
         boolean deducted = pointService.deduct(
                 facilityMemberId, cost, "CONTACT_UNLOCK:jobSeekerProfileId=" + jobSeekerProfileId);
@@ -75,8 +86,6 @@ public class ContactUnlockService {
         }
 
         // 4) 이력 저장 후 언마스크 응답
-        Member facilityMember = memberRepository.findById(facilityMemberId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
         ContactUnlockHistory saved = unlockHistoryRepository.save(ContactUnlockHistory.builder()
                 .facilityMember(facilityMember)
                 .jobSeekerProfile(profile)
@@ -106,25 +115,24 @@ public class ContactUnlockService {
      */
     @Transactional
     public void grantFreeAccess(Long facilityMemberId, Long jobSeekerProfileId) {
+        // unlock() 과 동일하게 시설 회원 row 를 락으로 먼저 잡아 확인→저장 구간의 경쟁을 없앤다
+        // (unique 제약 위반을 catch 하고 계속 진행하면 트랜잭션이 rollback-only 로 표시돼
+        //  나중 커밋 시점에 UnexpectedRollbackException 이 난다).
+        Member facilityMember = memberRepository.findByIdForUpdate(facilityMemberId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
         if (unlockHistoryRepository
                 .existsByFacilityMemberIdAndJobSeekerProfileId(facilityMemberId, jobSeekerProfileId)) {
             return;
         }
-        Member facilityMember = memberRepository.findById(facilityMemberId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
         JobSeekerProfile profile = jobSeekerProfileRepository.findById(jobSeekerProfileId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND,
                         "jobSeekerProfile " + jobSeekerProfileId));
-        try {
-            unlockHistoryRepository.save(ContactUnlockHistory.builder()
-                    .facilityMember(facilityMember)
-                    .jobSeekerProfile(profile)
-                    .pointsSpent(0)
-                    .build());
-            log.info("[ContactUnlock] 지원으로 무료 열람 권한 부여 facilityMemberId={} profileId={}",
-                    facilityMemberId, jobSeekerProfileId);
-        } catch (org.springframework.dao.DataIntegrityViolationException e) {
-            // 동시 요청으로 이미 생성됨 — 무시
-        }
+        unlockHistoryRepository.save(ContactUnlockHistory.builder()
+                .facilityMember(facilityMember)
+                .jobSeekerProfile(profile)
+                .pointsSpent(0)
+                .build());
+        log.info("[ContactUnlock] 지원으로 무료 열람 권한 부여 facilityMemberId={} profileId={}",
+                facilityMemberId, jobSeekerProfileId);
     }
 }
