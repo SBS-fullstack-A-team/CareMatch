@@ -50,6 +50,7 @@ export function TalentDetailHeader({
                 {[talent.gender, talent.age != null ? `${talent.age}세` : null].filter(Boolean).join(' · ')}
               </p>
             )}
+            {talent.verifiedBadge && <Badge variant="new">인증구직자</Badge>}
             {talent.availableNow && <Badge variant="normal">즉시 근무 가능</Badge>}
           </div>
 

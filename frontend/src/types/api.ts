@@ -124,6 +124,12 @@ export type NotificationType =
   | 'FACILITY_APPROVED'
   | 'FACILITY_REJECTED'
   | 'INQUIRY_ANSWERED'
+  | 'CERTIFICATE_REVIEW_APPROVED'
+  | 'CERTIFICATE_REVIEW_REJECTED'
+  | 'CAREER_VERIFICATION_APPROVED'
+  | 'CAREER_VERIFICATION_REJECTED'
+  | 'BADGE_GRANTED'
+  | 'BADGE_REJECTED'
 
 /** GET /api/notifications — NotificationResponse */
 export interface NotificationResponse {
@@ -410,6 +416,9 @@ export interface CertificateDetailResponse {
   contentType: string | null
   downloadUrl: string | null
   rejectReason: string | null
+  /** 관리자 진위 심사 상태. 파일 검증(status) 과는 별개 축 — "인증구직자" 마크 요건 중 하나. */
+  adminReviewStatus: ReviewStatus
+  adminReviewReason: string | null
 }
 
 /**
@@ -734,6 +743,8 @@ export interface TalentSummaryResponse {
   /** certificateNames 와 같은 순서 대응하는 enum name. */
   certificateTypes: string[]
   updatedAt: string
+  /** "인증구직자" 마크 보유 여부 (관리자 승인 완료). */
+  verifiedBadge: boolean
   /** 이 시설의 OPEN 공고들 중 최고 매칭 점수. 시설이 아니거나 희망조건 미설정이면 null. */
   matchingScore: number | null
 }
@@ -767,6 +778,8 @@ export interface JobSeekerProfileResponseDto {
   introduction: string | null
   contactUnlocked: boolean
   unlockCost: number
+  /** "인증구직자" 마크 보유 여부 (관리자 승인 완료). */
+  verifiedBadge: boolean
   certificates: JobSeekerCertificate[]
   gender: ApiGender | null
   age: number | null
@@ -922,4 +935,91 @@ export interface FacilityApprovalItem {
   rejectReason: string | null
   /** 사업자등록증 미리보기/다운로드용 서명 URL(TTL 있음). 없으면 null. */
   businessLicenseUrl: string | null
+}
+
+/* ---------------------------------------------------------------------------
+   인증구직자 마크 (V13__verified_badge.sql) — 자격증 진위 심사 + 경력 인증 + 마크 신청.
+   자격증·경력이 각각 관리자 승인 1건 이상일 때만 마크를 신청할 수 있고,
+   관리자가 그 신청을 최종 승인하면 jobseeker_profile.verified_badge 가 켜진다.
+   --------------------------------------------------------------------------- */
+
+/** 심사 3단계. 자격증 진위 심사·경력 인증·마크 신청이 모두 같은 값 체계를 쓴다. */
+export type ReviewStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+
+/** POST/GET /api/badge-requests (BadgeRequestResponse) */
+export interface BadgeRequestResponse {
+  id: number
+  status: ReviewStatus
+  requestedAt: string
+  decidedAt: string | null
+  rejectReason: string | null
+}
+
+/** POST /api/career-verifications (CreateCareerVerificationRequest). 날짜는 "YYYY-MM-DD". */
+export interface CreateCareerVerificationRequest {
+  organizationName: string
+  roleTitle?: string | null
+  startDate: string
+  /** 비우면 재직중 */
+  endDate?: string | null
+  description?: string | null
+}
+
+/** GET /api/career-verifications/me (CareerVerificationDetailResponse) */
+export interface CareerVerificationDetailResponse {
+  id: number
+  organizationName: string
+  roleTitle: string | null
+  startDate: string
+  endDate: string | null
+  description: string | null
+  status: ReviewStatus
+  rejectReason: string | null
+}
+
+/** GET /api/admin/badge-requests (BadgeRequestReviewItem) */
+export interface BadgeRequestReviewItem {
+  badgeRequestId: number
+  jobSeekerProfileId: number
+  memberId: number
+  memberName: string
+  status: ReviewStatus
+  requestedAt: string
+  decidedAt: string | null
+  rejectReason: string | null
+}
+
+/** GET /api/admin/career-verifications (CareerVerificationReviewItem) */
+export interface CareerVerificationReviewItem {
+  careerVerificationId: number
+  jobSeekerProfileId: number
+  memberId: number
+  memberName: string
+  organizationName: string
+  roleTitle: string | null
+  startDate: string
+  endDate: string | null
+  description: string | null
+  status: ReviewStatus
+  rejectReason: string | null
+  createdAt: string
+}
+
+/** GET /api/admin/certificates (CertificateReviewItem) */
+export interface CertificateReviewItem {
+  certificateId: number
+  jobSeekerProfileId: number
+  memberId: number
+  memberName: string
+  certificateType: string
+  certificateName: string
+  certificateNumber: string | null
+  /** 업로드 파일 자체의 기술 검증 결과 */
+  fileVerificationStatus: CertificateStatus
+  downloadUrl: string | null
+  /** 관리자 진위 심사 결과 */
+  adminReviewStatus: ReviewStatus
+  adminReviewReason: string | null
+  reviewedAt: string | null
+  createdAt: string
 }

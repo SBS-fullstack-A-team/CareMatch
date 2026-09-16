@@ -53,6 +53,7 @@ function toPreferredHours(
 /** 목록 카드 — `GET /api/jobseekers` 응답 1건. */
 export function summaryToTalent(dto: TalentSummaryResponse): Talent {
   return {
+    verifiedBadge: dto.verifiedBadge,
     id: String(dto.profileId),
     name: dto.name,
     gender: toGender(dto.gender),
@@ -76,6 +77,7 @@ export function summaryToTalent(dto: TalentSummaryResponse): Talent {
 /** 상세 — `GET /api/jobseekers/{id}`, `GET /api/jobseekers/me` 공용 응답. */
 export function detailToTalent(dto: JobSeekerProfileResponseDto): Talent {
   return {
+    verifiedBadge: dto.verifiedBadge,
     id: String(dto.profileId),
     name: dto.name,
     gender: toGender(dto.gender),

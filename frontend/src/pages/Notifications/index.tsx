@@ -20,6 +20,12 @@ const TYPE_LABEL: Record<NotificationType, string> = {
   FACILITY_APPROVED: '시설 승인',
   FACILITY_REJECTED: '시설 승인 결과',
   INQUIRY_ANSWERED: '문의 답변',
+  CERTIFICATE_REVIEW_APPROVED: '자격증 인증 완료',
+  CERTIFICATE_REVIEW_REJECTED: '자격증 인증 결과',
+  CAREER_VERIFICATION_APPROVED: '경력 인증 완료',
+  CAREER_VERIFICATION_REJECTED: '경력 인증 결과',
+  BADGE_GRANTED: '인증구직자 마크',
+  BADGE_REJECTED: '인증 마크 신청 결과',
 }
 
 /**

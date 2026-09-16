@@ -2,6 +2,10 @@
 import { apiFetch } from '@/lib/api-client'
 import type {
   AdminMemberSummary,
+  BadgeRequestReviewItem,
+  CareerVerificationReviewItem,
+  CertificateReviewItem,
+  ReviewStatus,
   AdminPointChargeSummary,
   FacilityApprovalItem,
   FacilityApprovalStatus,
@@ -104,4 +108,86 @@ export function updateNotice(id: number | string, req: NoticeUpsertRequest): Pro
 /** 공지사항 삭제. */
 export function deleteNotice(id: number | string): Promise<void> {
   return apiFetch<void>(`/api/admin/support/notices/${id}`, { method: 'DELETE' })
+}
+
+/* ---------------------------------------------------------------------------
+   인증구직자 마크 심사 — 자격증 진위 / 경력 인증 / 마크 신청 (모두 ROLE_ADMIN).
+   승인·반려하면 백엔드가 신청자에게 알림을 자동 발송한다.
+   --------------------------------------------------------------------------- */
+
+/** 심사 목록 공통 쿼리. 자격증만 상태 파라미터 이름이 adminReviewStatus 다. */
+function reviewQuery(statusKey: string, params: { status?: ReviewStatus; page?: number; size?: number }) {
+  const query = new URLSearchParams()
+  if (params.status) query.set(statusKey, params.status)
+  query.set('page', String(params.page ?? 0))
+  query.set('size', String(params.size ?? 20))
+  return query.toString()
+}
+
+export function getAdminCertificates(params: {
+  status?: ReviewStatus
+  page?: number
+  size?: number
+}): Promise<SpringPage<CertificateReviewItem>> {
+  return apiFetch<SpringPage<CertificateReviewItem>>(
+    '/api/admin/certificates?' + reviewQuery('adminReviewStatus', params),
+  )
+}
+
+export function approveCertificate(certificateId: number): Promise<CertificateReviewItem> {
+  return apiFetch<CertificateReviewItem>('/api/admin/certificates/' + certificateId + '/approve', {
+    method: 'POST',
+  })
+}
+
+export function rejectCertificate(certificateId: number, reason: string): Promise<CertificateReviewItem> {
+  return apiFetch<CertificateReviewItem>('/api/admin/certificates/' + certificateId + '/reject', {
+    method: 'POST',
+    body: { reason },
+  })
+}
+
+export function getAdminCareerVerifications(params: {
+  status?: ReviewStatus
+  page?: number
+  size?: number
+}): Promise<SpringPage<CareerVerificationReviewItem>> {
+  return apiFetch<SpringPage<CareerVerificationReviewItem>>(
+    '/api/admin/career-verifications?' + reviewQuery('status', params),
+  )
+}
+
+export function approveCareerVerification(id: number): Promise<CareerVerificationReviewItem> {
+  return apiFetch<CareerVerificationReviewItem>('/api/admin/career-verifications/' + id + '/approve', {
+    method: 'POST',
+  })
+}
+
+export function rejectCareerVerification(id: number, reason: string): Promise<CareerVerificationReviewItem> {
+  return apiFetch<CareerVerificationReviewItem>('/api/admin/career-verifications/' + id + '/reject', {
+    method: 'POST',
+    body: { reason },
+  })
+}
+
+/** 마크 신청 심사. 승인하면 그 즉시 구직자 프로필에 마크가 붙는다. */
+export function getAdminBadgeRequests(params: {
+  status?: ReviewStatus
+  page?: number
+  size?: number
+}): Promise<SpringPage<BadgeRequestReviewItem>> {
+  return apiFetch<SpringPage<BadgeRequestReviewItem>>(
+    '/api/admin/badge-requests?' + reviewQuery('status', params),
+  )
+}
+
+export function approveBadgeRequest(id: number): Promise<BadgeRequestReviewItem> {
+  return apiFetch<BadgeRequestReviewItem>('/api/admin/badge-requests/' + id + '/approve', { method: 'POST' })
+}
+
+export function rejectBadgeRequest(id: number, reason: string): Promise<BadgeRequestReviewItem> {
+  return apiFetch<BadgeRequestReviewItem>('/api/admin/badge-requests/' + id + '/reject', {
+    method: 'POST',
+    body: { reason },
+  })
 }

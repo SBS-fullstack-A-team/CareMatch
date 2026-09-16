@@ -12,12 +12,19 @@ import { useApp } from '@/hooks/use-app'
 import { useAsync } from '@/hooks/use-async'
 import { ApiError } from '@/lib/api-client'
 import { LoadFailed } from '@/pages/Support/shared'
-import type { CertificateDetailResponse, CertificateStatus } from '@/types/api'
+import type { CertificateDetailResponse, CertificateStatus, ReviewStatus } from '@/types/api'
 
 const STATUS_BADGE: Record<CertificateStatus, { label: string; variant: BadgeProps['variant'] }> = {
   PENDING: { label: '확인중', variant: 'normal' },
   VERIFIED: { label: '인증완료', variant: 'new' },
   REJECTED: { label: '반려', variant: 'closing' },
+}
+
+/** 관리자 진위 심사 축. 위 STATUS_BADGE(파일 검증)와는 별개 상태다. */
+const ADMIN_REVIEW_BADGE: Record<ReviewStatus, { label: string; variant: BadgeProps['variant'] }> = {
+  PENDING: { label: '심사 대기', variant: 'neutralOutline' },
+  APPROVED: { label: '인증 승인', variant: 'new' },
+  REJECTED: { label: '인증 반려', variant: 'closing' },
 }
 
 const EMPTY_LIST: CertificateDetailResponse[] = []
@@ -82,7 +89,10 @@ export function MyPageCertificatesPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-fg">자격증</h1>
-          <p className="mt-2 text-base text-fg-muted">인재정보에 노출되는 자격증 목록입니다.</p>
+          <p className="mt-2 text-base text-fg-muted">
+            인재정보에 노출되는 자격증 목록입니다. 관리자 진위 심사를 통과하면 인증구직자 마크를 신청할 수
+            있습니다.
+          </p>
         </div>
         <Button type="button" size="sm" onClick={() => setFormOpen(true)}>
           <Plus className="size-[18px]" aria-hidden />
@@ -134,6 +144,9 @@ export function MyPageCertificatesPage() {
                       파일 보기
                     </a>
                   )}
+                  <Badge variant={ADMIN_REVIEW_BADGE[cert.adminReviewStatus].variant}>
+                    {ADMIN_REVIEW_BADGE[cert.adminReviewStatus].label}
+                  </Badge>
                   <Badge variant={STATUS_BADGE[cert.status].variant}>{STATUS_BADGE[cert.status].label}</Badge>
                   <button
                     type="button"

@@ -9,6 +9,7 @@ import {
   Megaphone,
   MessageSquare,
   Settings as SettingsIcon,
+  ShieldCheck,
   UserRound,
   UsersRound,
 } from 'lucide-react'
@@ -25,6 +26,7 @@ const JOBSEEKER_MENU = [
   { to: '/mypage/applications', label: '지원 현황', icon: FileText, end: false },
   { to: '/mypage/scraps', label: '관심 공고', icon: Heart, end: false },
   { to: '/mypage/certificates', label: '자격증', icon: Award, end: false },
+  { to: '/mypage/verified-badge', label: '인증구직자', icon: ShieldCheck, end: false },
   { to: '/mypage/settings', label: '설정', icon: SettingsIcon, end: false },
 ]
 
@@ -46,6 +48,7 @@ const ADMIN_MENU = [
   { to: '/mypage/admin/members', label: '회원관리', icon: UsersRound, end: false },
   { to: '/mypage/admin/point-charges', label: '포인트충전관리', icon: Coins, end: false },
   { to: '/mypage/admin/facilities', label: '시설관리', icon: Building2, end: false },
+  { to: '/mypage/admin/verifications', label: '인증심사', icon: ShieldCheck, end: false },
   { to: '/mypage/admin/inquiries', label: '문의관리', icon: MessageSquare, end: false },
   { to: '/mypage/admin/notices', label: '공지사항', icon: Megaphone, end: false },
 ]
