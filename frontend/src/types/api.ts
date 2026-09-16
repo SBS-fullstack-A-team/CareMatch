@@ -504,7 +504,7 @@ export type ApiCognitiveStatus = 'NORMAL' | 'MILD' | 'SEVERE'
 export type JobPostingStatus = 'OPEN' | 'CLOSED'
 export type ExposureType = 'NORMAL' | 'PREMIUM' | 'SPECIAL'
 /** RECOMMENDED(기본) / LATEST / DEADLINE / PAY_DESC / PAY_ASC / VIEWS */
-export type JobPostingSort = 'RECOMMENDED' | 'LATEST' | 'DEADLINE' | 'PAY_DESC' | 'PAY_ASC' | 'VIEWS'
+export type JobPostingSort = 'RECOMMENDED' | 'LATEST' | 'DEADLINE' | 'PAY_DESC' | 'PAY_ASC' | 'VIEWS' | 'MATCH_SCORE'
 
 /** 매칭 사유 한 건 (상세 응답 전용). kind: category/region/schedule/pay */
 export interface MatchReason {

@@ -69,6 +69,8 @@ public class JobPostingService {
     private static final int EXPOSURE_DAYS = 7;
     /** 페이지 크기 상한. */
     private static final int MAX_PAGE_SIZE = 100;
+    /** 매칭점수순 정렬 시 메모리에서 채점할 후보 상한 — 밀집 조건에서 메모리 폭주 방지. */
+    private static final int MATCH_SORT_CANDIDATE_CAP = 1000;
 
     private final JobPostingRepository jobPostingRepository;
     private final FacilityProfileRepository facilityProfileRepository;
@@ -172,10 +174,15 @@ public class JobPostingService {
     public PageResponse<SummaryResponse> search(SearchCondition cond, int page, int size, Long viewerMemberId) {
         int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
         String sortKey = sortKey(cond.sort());
+        JobSeekerProfile viewer = viewerProfile(viewerMemberId);
+
+        if ("MATCH_SCORE".equals(sortKey) && viewer != null) {
+            return searchByMatchScore(cond, page, safeSize, viewer, viewerMemberId);
+        }
+
         PageRequest pageable = PageRequest.of(Math.max(page, 0), safeSize, resolveSort(sortKey));
         Page<JobPosting> pageResult = jobPostingRepository.findAll(JobPostingSpecs.from(cond), pageable);
 
-        JobSeekerProfile viewer = viewerProfile(viewerMemberId);
         Set<Long> scrappedIds = scrappedIdsAmong(viewerMemberId, pageResult.getContent());
         Map<Long, Long> applicantCounts = applicantCountsAmong(pageResult.getContent());
 
@@ -199,6 +206,49 @@ public class JobPostingService {
                 .toList();
         return new PageResponse<>(mapped, pageResult.getNumber(), pageResult.getSize(),
                 pageResult.getTotalElements(), pageResult.getTotalPages());
+    }
+
+    /**
+     * 매칭점수 순 정렬. exposurePriority(유료 상단노출)와 무관하게 순수 매칭점수로만 정렬한다는 점이
+     * RECOMMENDED(노출등급 우선 + 페이지 내 근사 재정렬)와 다르다. 매칭점수는 DB 컬럼이 아니라
+     * 조회 시점 Java 계산값이라 SQL ORDER BY 로 못 하므로, 조건에 맞는 후보를 전부(최대
+     * {@link #MATCH_SORT_CANDIDATE_CAP}건) 메모리에 올려 채점 → 정렬 → 페이지 슬라이스한다.
+     */
+    private PageResponse<SummaryResponse> searchByMatchScore(
+            SearchCondition cond, int page, int size, JobSeekerProfile viewer, Long viewerMemberId) {
+        List<JobPosting> candidates = jobPostingRepository.findAll(JobPostingSpecs.from(cond));
+        if (candidates.size() > MATCH_SORT_CANDIDATE_CAP) {
+            candidates = candidates.stream()
+                    .sorted(Comparator.comparing(JobPosting::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
+                    .limit(MATCH_SORT_CANDIDATE_CAP)
+                    .toList();
+        }
+
+        Map<Long, Integer> scores = new HashMap<>();
+        candidates.forEach(jp -> scores.put(jp.getId(), matchScoreCalculator.score(viewer, jp)));
+
+        List<JobPosting> sorted = candidates.stream()
+                .sorted(Comparator.<JobPosting>comparingInt(jp -> {
+                            Integer s = scores.get(jp.getId());
+                            return s == null ? Integer.MIN_VALUE : s;
+                        }).reversed()
+                        .thenComparing(JobPosting::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
+                .toList();
+
+        int fromIndex = Math.min(Math.max(page, 0) * size, sorted.size());
+        int toIndex = Math.min(fromIndex + size, sorted.size());
+        List<JobPosting> pageContent = sorted.subList(fromIndex, toIndex);
+
+        Set<Long> scrappedIds = scrappedIdsAmong(viewerMemberId, pageContent);
+        Map<Long, Long> applicantCounts = applicantCountsAmong(pageContent);
+
+        List<SummaryResponse> mapped = pageContent.stream()
+                .map(jp -> SummaryResponse.from(jp, scrappedFlag(viewerMemberId, scrappedIds, jp.getId()),
+                        scores.get(jp.getId()), applicantCount(applicantCounts, jp.getId())))
+                .toList();
+
+        int totalPages = (int) Math.ceil((double) sorted.size() / size);
+        return new PageResponse<>(mapped, Math.max(page, 0), size, sorted.size(), totalPages);
     }
 
     /**

@@ -71,7 +71,8 @@ public class JobPostingController {
 
     /**
      * 목록/검색. 모든 필터는 선택. 다중값은 반복 파라미터(?jobTypes=A&jobTypes=B) 또는 콤마.
-     * sort: RECOMMENDED(기본)/LATEST/DEADLINE/PAY_DESC/PAY_ASC/VIEWS.
+     * sort: RECOMMENDED(기본)/LATEST/DEADLINE/PAY_DESC/PAY_ASC/VIEWS/MATCH_SCORE.
+     * MATCH_SCORE 는 로그인한 구직자(희망조건 설정됨)에게만 의미 있음 — 그 외에는 RECOMMENDED로 대체.
      */
     @GetMapping
     public PageResponse<SummaryResponse> search(

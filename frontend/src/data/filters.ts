@@ -152,12 +152,14 @@ export const WORK_TIME_OPTIONS: SelectOption[] = [
 
 /**
  * 구인공고 목록 정렬.
- * 위치 기반 기능이 없어 거리순은 두지 않고, 실제로 계산 가능한 3종만 제공한다.
+ * 위치 기반 기능이 없어 거리순은 두지 않고, 실제로 계산 가능한 정렬만 제공한다.
+ * matchScore(매칭점수순)는 로그인한 구직회원에게만 의미가 있어 JobList 에서 조건부로 노출한다.
  */
 export const JOB_SORT_OPTIONS: SelectOption[] = [
   { value: 'latest', label: '최신순' },
   { value: 'payDesc', label: '급여 높은순' },
   { value: 'payAsc', label: '급여 낮은순' },
+  { value: 'matchScore', label: '매칭점수순' },
 ]
 
 /**
