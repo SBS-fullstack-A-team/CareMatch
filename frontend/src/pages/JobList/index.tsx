@@ -18,6 +18,7 @@ import {
   WORK_SCHEDULE_OPTIONS,
 } from '@/data/filters'
 import { payTypeFromApi } from '@/data/labels'
+import { useApp } from '@/hooks/use-app'
 import { useAsync } from '@/hooks/use-async'
 import { summaryToJob } from '@/lib/job-adapter'
 import {
@@ -101,6 +102,12 @@ function toFilterCounts(facets: JobFacetsResponse | null): JobFilterCounts {
  * 페이지네이션은 서버 `PageResponse`(0-base) 를 `Pagination`(1-base) 에 맞춰 변환한다.
  */
 export function JobListPage() {
+  const { user } = useApp()
+  const isJobseeker = user?.role === 'JOBSEEKER'
+  const sortOptions = isJobseeker
+    ? JOB_SORT_OPTIONS
+    : JOB_SORT_OPTIONS.filter((option) => option.value !== 'matchScore')
+
   const [searchParams, setSearchParams] = useSearchParams()
 
   const [search, setSearch] = useState<JobSearchQuery>(() => readSearch(searchParams))
@@ -203,7 +210,7 @@ export function JobListPage() {
           </label>
           <Select
             id="job-sort"
-            options={JOB_SORT_OPTIONS}
+            options={sortOptions}
             value={sort}
             onChange={(event) => handleSortChange(event.target.value)}
             className="w-[160px]"

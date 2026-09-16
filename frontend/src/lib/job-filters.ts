@@ -53,7 +53,7 @@ export const EMPTY_JOB_FILTERS: JobFilterState = {
   payTypes: [],
 }
 
-export const JOB_SORTS = ['latest', 'payDesc', 'payAsc'] as const
+export const JOB_SORTS = ['latest', 'payDesc', 'payAsc', 'matchScore'] as const
 export type JobSort = (typeof JOB_SORTS)[number]
 
 export function isJobSort(value: string | null): value is JobSort {
@@ -70,11 +70,12 @@ export function fromRegionLabel(label: string): string {
   return REGION_SHORTCUTS.find((region) => region.label === label)?.sido ?? label
 }
 
-/** 정렬 값 변환. 프론트는 소문자 3종만 쓰고 나머지(RECOMMENDED/DEADLINE/VIEWS)는 API 전용. */
+/** 정렬 값 변환. 프론트는 소문자 4종만 쓰고 나머지(RECOMMENDED/DEADLINE/VIEWS)는 API 전용. */
 const SORT_TO_API: Record<JobSort, JobPostingSort> = {
   latest: 'LATEST',
   payDesc: 'PAY_DESC',
   payAsc: 'PAY_ASC',
+  matchScore: 'MATCH_SCORE',
 }
 
 /**
