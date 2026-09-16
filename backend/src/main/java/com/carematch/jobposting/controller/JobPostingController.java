@@ -72,7 +72,8 @@ public class JobPostingController {
     /**
      * 목록/검색. 모든 필터는 선택. 다중값은 반복 파라미터(?jobTypes=A&jobTypes=B) 또는 콤마.
      * sort: RECOMMENDED(기본)/LATEST/DEADLINE/PAY_DESC/PAY_ASC/VIEWS/MATCH_SCORE.
-     * MATCH_SCORE 는 로그인한 구직자(희망조건 설정됨)에게만 의미 있음 — 그 외에는 RECOMMENDED로 대체.
+     * MATCH_SCORE 는 노출등급(exposurePriority)과 무관하게 순수 매칭점수로만 정렬 — 비로그인/
+     * 희망조건 미설정이면 전원 무점수라 결과적으로 최신순과 같아지지만, 노출등급은 절대 끼어들지 않는다.
      */
     @GetMapping
     public PageResponse<SummaryResponse> search(
