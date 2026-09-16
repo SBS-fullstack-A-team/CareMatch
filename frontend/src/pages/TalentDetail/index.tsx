@@ -111,7 +111,7 @@ export function TalentDetailPage() {
 
           {talent.summary && (
             <DetailSection title="자기소개" icon={FileText}>
-              <p className="text-base leading-relaxed whitespace-pre-line text-fg">
+              <p className="text-base leading-relaxed whitespace-pre-line break-words text-fg">
                 {talent.summary}
               </p>
             </DetailSection>

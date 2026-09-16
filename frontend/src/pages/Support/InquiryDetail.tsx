@@ -89,7 +89,7 @@ export function SupportInquiryDetailPage() {
             </header>
 
             <div className="pt-6">
-              <p className="text-base leading-relaxed whitespace-pre-line text-fg">
+              <p className="text-base leading-relaxed whitespace-pre-line break-words text-fg">
                 {inquiry.content}
               </p>
             </div>
@@ -117,7 +117,7 @@ export function SupportInquiryDetailPage() {
                       <MessageSquare className="size-[18px] shrink-0" aria-hidden />
                       케어매치 고객센터
                     </p>
-                    <p className="mt-3 text-base leading-relaxed whitespace-pre-line text-fg">
+                    <p className="mt-3 text-base leading-relaxed whitespace-pre-line break-words text-fg">
                       {reply.content}
                     </p>
                     <p className="mt-3 text-xs text-fg-subtle tabular">

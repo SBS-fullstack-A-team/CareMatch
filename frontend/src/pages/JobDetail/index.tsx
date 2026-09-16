@@ -193,7 +193,7 @@ function RecruitmentSection({ job }: { job: Job }) {
 
         {job.description && (
           <SubBlock title="상세 내용">
-            <p className="text-base leading-relaxed whitespace-pre-line text-fg">
+            <p className="text-base leading-relaxed whitespace-pre-line break-words text-fg">
               {job.description}
             </p>
           </SubBlock>

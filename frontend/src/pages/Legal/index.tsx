@@ -22,7 +22,7 @@ export function LegalPage({ type }: { type: 'SERVICE' | 'PRIVACY' }) {
       ) : error ? (
         <LoadFailed message={error} onRetry={reload} />
       ) : (
-        <article className="rounded-card border border-border bg-surface p-6 whitespace-pre-wrap text-base text-fg">
+        <article className="rounded-card border border-border bg-surface p-6 whitespace-pre-wrap break-words text-base text-fg">
           {data?.content}
         </article>
       )}

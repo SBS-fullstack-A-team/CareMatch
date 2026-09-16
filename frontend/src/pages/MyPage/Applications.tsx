@@ -86,16 +86,15 @@ export function MyPageApplicationsPage() {
     <div>
       <h1 className="text-2xl font-bold text-fg">지원 현황</h1>
 
-      <div className="mt-4 overflow-x-auto">
-        <SegmentedControl
-          items={STATUS_FILTERS}
-          value={status}
-          onChange={(value) => {
-            setStatus(value)
-            setPage(1)
-          }}
-        />
-      </div>
+      <SegmentedControl
+        className="mt-4"
+        items={STATUS_FILTERS}
+        value={status}
+        onChange={(value) => {
+          setStatus(value)
+          setPage(1)
+        }}
+      />
 
       <div className="mt-4">
         {loading ? (

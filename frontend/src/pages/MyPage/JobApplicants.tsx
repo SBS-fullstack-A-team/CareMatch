@@ -130,7 +130,7 @@ export function MyPageJobApplicantsPage() {
                       {formatServerDateTime(applicant.appliedAt)}
                     </span>
                     {applicant.message && (
-                      <p className="mt-2 rounded-input bg-surface-sunken px-3 py-2 text-sm text-fg">
+                      <p className="mt-2 rounded-input bg-surface-sunken px-3 py-2 text-sm whitespace-pre-line break-words text-fg">
                         {applicant.message}
                       </p>
                     )}
