@@ -16,7 +16,10 @@ export function SpecialJobCard({ job, className }: { job: Job; className?: strin
   return (
     <article
       className={cn(
-        'group relative flex gap-4 rounded-card border border-border bg-surface p-5 transition-colors hover:border-primary/40',
+        // 모바일에서는 세로로 쌓는다 — 고정폭 사진 영역이 좌측 정보 영역 폭을
+        // 잠식해 급여 등 nowrap 텍스트가 카드 밖으로 넘치는 것을 막기 위함.
+        // sm 이상에서만 §19 목업대로 좌우 배치한다.
+        'group relative flex flex-col gap-4 rounded-card border border-border bg-surface p-5 transition-colors hover:border-primary/40 sm:flex-row',
         className,
       )}
     >
@@ -25,7 +28,7 @@ export function SpecialJobCard({ job, className }: { job: Job; className?: strin
 
         <p className="mt-3 truncate text-sm text-primary-deep">{job.facilityName}</p>
 
-        <h3 className="mt-1 text-xl font-bold text-fg">
+        <h3 className="mt-1 text-xl font-bold break-words text-fg">
           <Link to={`/jobs/${job.id}`} className="after:absolute after:inset-0">
             {job.title}
           </Link>
@@ -56,26 +59,28 @@ export function SpecialJobCard({ job, className }: { job: Job; className?: strin
         </dl>
       </div>
 
-      <div className="flex w-[104px] shrink-0 sm:w-[128px] flex-col items-center gap-2">
+      <div className="flex shrink-0 items-center gap-3 sm:w-[104px] sm:flex-col sm:gap-2 lg:w-[128px]">
         {job.imageUrl ? (
           <img
             src={job.imageUrl}
             alt={`${job.facilityName} 시설 사진`}
             width={90}
             height={70}
-            className="h-[70px] w-[90px] rounded-[8px] object-cover"
+            className="h-[70px] w-[90px] shrink-0 rounded-[8px] object-cover"
           />
         ) : (
           <span
             aria-hidden
-            className="grid h-[70px] w-[90px] place-items-center rounded-[8px] bg-primary-light text-primary"
+            className="grid h-[70px] w-[90px] shrink-0 place-items-center rounded-[8px] bg-primary-light text-primary"
           >
             <Building2 className="size-6" />
           </span>
         )}
 
         {job.catchphrase && (
-          <p className="text-center text-sm leading-snug text-fg-muted">{job.catchphrase}</p>
+          <p className="min-w-0 text-sm leading-snug break-words text-fg-muted sm:text-center">
+            {job.catchphrase}
+          </p>
         )}
       </div>
     </article>
