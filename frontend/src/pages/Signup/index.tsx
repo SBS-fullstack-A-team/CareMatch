@@ -26,6 +26,16 @@ type MemberKind = 'general' | 'jobseeker' | 'facility'
 type CheckStatus = 'idle' | 'checking' | 'available' | 'taken' | 'error'
 
 /**
+ * 서버가 409 로 돌려주는 중복 오류 코드 → 표시할 입력칸.
+ * 이 응답에는 fieldErrors 가 없어서(BusinessException) 폼 하단 메시지로만 보이던 것을
+ * 해당 입력칸에 직접 붙이기 위한 매핑이다. (ErrorCode.DUPLICATE_LOGIN_ID / DUPLICATE_EMAIL)
+ */
+const DUPLICATE_FIELD: Record<string, 'loginId' | 'email'> = {
+  MEMBER_001: 'loginId',
+  MEMBER_002: 'email',
+}
+
+/**
  * 필수 약관은 서버의 TermsType enum(SERVICE·PRIVACY = required)이 강제한다.
  * GET /api/terms 의 `required` 는 DB 시드값이라 현재 SERVICE/PRIVACY 도 false 로 내려와
  * 신뢰할 수 없어, 화면에서는 이 목록을 기준으로 필수 여부를 판단한다.
@@ -178,6 +188,14 @@ export function SignupPage() {
       const res = await checkExists({ [field]: value })
       const available = field === 'loginId' ? res.loginIdAvailable : res.emailAvailable
       setStatus(available ? 'available' : 'taken')
+      if (!available) {
+        toast({
+          variant: 'error',
+          title: field === 'loginId' ? '이미 사용 중인 아이디입니다.' : '이미 가입된 이메일입니다.',
+          description:
+            field === 'loginId' ? '다른 아이디를 입력해 주세요.' : '다른 이메일을 입력해 주세요.',
+        })
+      }
     } catch (err) {
       setStatus('error')
       setErrors((prev) => ({
@@ -397,6 +415,24 @@ export function SignupPage() {
         setErrors((prev) => ({ ...prev, businessLicense: err.message }))
         document.getElementById('field-businessLicense')?.scrollIntoView({ block: 'center' })
       } else if (err instanceof ApiError) {
+        // 중복 아이디·이메일(409)은 fieldErrors 가 없어 해당 입력칸에 직접 표시한다.
+        // 중복 확인을 통과한 뒤 제출하기까지 사이에 다른 사람이 먼저 가입한 경우가 여기 걸린다.
+        const duplicatedField = DUPLICATE_FIELD[err.code]
+        if (duplicatedField) {
+          const message =
+            duplicatedField === 'loginId'
+              ? '이미 사용 중인 아이디입니다. 다른 아이디를 입력해 주세요.'
+              : '이미 가입된 이메일입니다. 다른 이메일을 입력해 주세요.'
+          setErrors((prev) => ({ ...prev, [duplicatedField]: message }))
+          if (duplicatedField === 'loginId') {
+            setLoginIdStatus('taken')
+          } else {
+            setEmailStatus('taken')
+          }
+          toast({ variant: 'error', title: message })
+          document.getElementById(`field-${duplicatedField}`)?.scrollIntoView({ block: 'center' })
+          return
+        }
         if (err.fieldErrors.length > 0) {
           const mapped = err.fieldErrors.map((item) => ({
             field: SERVER_FIELD_MAP[item.field] ?? item.field,
@@ -497,7 +533,11 @@ main
                 {loginIdStatus === 'checking' ? '확인 중…' : '중복 확인'}
               </Button>
             </div>
-            <CheckHint status={loginIdStatus} okText="사용할 수 있는 아이디입니다." takenText="이미 사용 중인 아이디입니다." />
+            <CheckHint
+              status={loginIdStatus}
+              okText="사용할 수 있는 아이디입니다."
+              takenText="이미 사용 중인 아이디입니다. 다른 아이디를 사용해 주세요."
+            />
           </Field>
 
           {/* 비밀번호 */}
@@ -562,7 +602,11 @@ main
                 {emailStatus === 'checking' ? '확인 중…' : '중복 확인'}
               </Button>
             </div>
-            <CheckHint status={emailStatus} okText="사용할 수 있는 이메일입니다." takenText="이미 가입된 이메일입니다." />
+            <CheckHint
+              status={emailStatus}
+              okText="사용할 수 있는 이메일입니다."
+              takenText="이미 가입된 이메일입니다. 다른 이메일을 사용해 주세요."
+            />
           </Field>
 
           {/* 이름 / 휴대폰 / 거주지 */}
