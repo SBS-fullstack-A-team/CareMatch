@@ -6,6 +6,8 @@ package com.carematch.storage;
 public enum FilePurpose {
     BUSINESS_LICENSE("business-license"),
     CERTIFICATE("certificate"),
+    /** 경력 인증 증빙(재직/경력 증명서 등) */
+    CAREER_PROOF("career-proof"),
     INQUIRY_ATTACHMENT("inquiry-attachment"),
     JOB_POSTING_IMAGE("job-posting-image");
 

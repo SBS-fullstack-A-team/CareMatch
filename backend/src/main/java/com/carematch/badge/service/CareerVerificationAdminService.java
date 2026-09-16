@@ -7,6 +7,8 @@ import com.carematch.common.exception.BusinessException;
 import com.carematch.common.exception.ErrorCode;
 import com.carematch.notification.domain.NotificationType;
 import com.carematch.notification.service.NotificationService;
+import com.carematch.storage.FileStorageService;
+import com.carematch.storage.StorageProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -27,6 +29,8 @@ public class CareerVerificationAdminService {
 
     private final CareerVerificationRepository careerVerificationRepository;
     private final NotificationService notificationService;
+    private final FileStorageService fileStorageService;
+    private final StorageProperties storageProperties;
 
     @Transactional(readOnly = true)
     public Page<CareerVerificationReviewItem> list(CareerVerificationStatus status, Pageable pageable) {
@@ -71,6 +75,15 @@ public class CareerVerificationAdminService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.CAREER_VERIFICATION_NOT_FOUND, "careerVerification " + id));
     }
 
+    /** 증빙 파일 서명 URL. 파일 없이 만들어진 예전 데이터는 null. */
+    private String downloadUrl(CareerVerification c) {
+        if (c.getFileKey() == null) {
+            return null;
+        }
+        return fileStorageService.issueDownloadUrl(c.getFileKey(),
+                java.time.Duration.ofSeconds(storageProperties.presignExpirySeconds()));
+    }
+
     private CareerVerificationReviewItem toItem(CareerVerification c) {
         return new CareerVerificationReviewItem(
                 c.getId(),
@@ -84,7 +97,8 @@ public class CareerVerificationAdminService {
                 c.getDescription(),
                 c.getStatus().name(),
                 c.getRejectReason(),
-                c.getCreatedAt());
+                c.getCreatedAt(),
+                downloadUrl(c));
     }
 
     public record CareerVerificationReviewItem(
@@ -99,7 +113,9 @@ public class CareerVerificationAdminService {
             String description,
             String status,
             String rejectReason,
-            LocalDateTime createdAt
+            LocalDateTime createdAt,
+            /** 증빙 파일 서명(만료) URL. 파일이 없으면 null. */
+            String downloadUrl
     ) {
     }
 }

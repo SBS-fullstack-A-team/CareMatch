@@ -1,5 +1,5 @@
-import { Award, BadgeCheck, Building2, Check, Plus, Trash2, X } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import { Award, BadgeCheck, Building2, Check, FileText, Plus, Trash2, X } from 'lucide-react'
+import { useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { EmptyState } from '@/components/common/empty-state'
 import { LoadingState } from '@/components/common/loading-state'
@@ -21,6 +21,7 @@ import { getMyJobSeekerProfile } from '@/api/jobseekers'
 import { useApp } from '@/hooks/use-app'
 import { useAsync } from '@/hooks/use-async'
 import { ApiError } from '@/lib/api-client'
+import { ACCEPT_ATTR, FileUploadError, uploadFile } from '@/lib/file-upload'
 import { LoadFailed } from '@/pages/Support/shared'
 import type { CareerVerificationDetailResponse, ReviewStatus } from '@/types/api'
 
@@ -67,6 +68,8 @@ export function MyPageVerifiedBadgePage() {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [description, setDescription] = useState('')
+  const [file, setFile] = useState<File | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [formError, setFormError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [deletingId, setDeletingId] = useState<number | null>(null)
@@ -111,6 +114,8 @@ export function MyPageVerifiedBadgePage() {
     setStartDate('')
     setEndDate('')
     setDescription('')
+    setFile(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
     setFormError(null)
   }
 
@@ -129,11 +134,18 @@ export function MyPageVerifiedBadgePage() {
       setFormError('종료일은 시작일보다 빠를 수 없습니다.')
       return
     }
+    if (!file) {
+      setFormError('재직증명서·경력증명서 등 증빙 파일을 첨부해 주세요.')
+      return
+    }
 
     setSubmitting(true)
     setFormError(null)
     try {
+      // 자격증과 같은 순서: 업로드 URL 발급 -> 스토리지로 직접 PUT -> 받은 fileKey 로 신청
+      const uploaded = await uploadFile(file, 'CAREER_PROOF')
       await createCareerVerification({
+        fileKey: uploaded.fileKey,
         organizationName: organizationName.trim(),
         roleTitle: roleTitle.trim() || null,
         startDate,
@@ -148,7 +160,9 @@ export function MyPageVerifiedBadgePage() {
       reload()
     } catch (err) {
       setFormError(
-        err instanceof ApiError ? err.message : '신청에 실패했습니다. 잠시 후 다시 시도해 주세요.',
+        err instanceof FileUploadError || err instanceof ApiError
+          ? err.message
+          : '신청에 실패했습니다. 잠시 후 다시 시도해 주세요.',
       )
     } finally {
       setSubmitting(false)
@@ -310,7 +324,7 @@ export function MyPageVerifiedBadgePage() {
               경력 인증
             </h2>
             <p className="mt-1.5 text-sm text-fg-muted">
-              근무했던 기관과 기간을 남기면 관리자가 확인합니다. 증빙 파일은 필요하지 않습니다.
+              재직증명서·경력증명서 같은 증빙 파일을 첨부하면 관리자가 확인 후 승인합니다.
             </p>
           </div>
           <Button type="button" size="sm" onClick={() => setFormOpen(true)}>
@@ -339,6 +353,17 @@ export function MyPageVerifiedBadgePage() {
                     <p className="mt-1 text-sm text-fg-muted tabular">
                       {periodLabel(career.startDate, career.endDate)}
                     </p>
+                    {career.downloadUrl && (
+                      <a
+                        href={career.downloadUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-primary-deep underline underline-offset-4 hover:text-primary"
+                      >
+                        <FileText className="size-4" aria-hidden />
+                        첨부한 증빙 파일 보기
+                      </a>
+                    )}
                     {career.description && (
                       <p className="mt-2 text-sm whitespace-pre-line text-fg-muted">{career.description}</p>
                     )}
@@ -426,6 +451,24 @@ export function MyPageVerifiedBadgePage() {
           </div>
 
           <div>
+            <label htmlFor="careerProof" className="mb-1.5 block text-base font-semibold text-fg">
+              증빙 파일
+              <span className="ml-1 text-danger">*</span>
+            </label>
+            <input
+              id="careerProof"
+              ref={fileInputRef}
+              type="file"
+              accept={ACCEPT_ATTR}
+              onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+              className="block w-full text-base text-fg file:mr-3 file:rounded-btn file:border file:border-border-strong file:bg-surface file:px-4 file:py-2 file:text-base file:font-semibold file:text-fg hover:file:border-primary"
+            />
+            <p className="mt-1.5 text-sm text-fg-subtle">
+              재직증명서·경력증명서 등 이미지(jpg·png) 또는 PDF, 5MB 이하
+            </p>
+          </div>
+
+          <div>
             <label htmlFor="description" className="mb-1.5 block text-base font-semibold text-fg">
               설명
             </label>
@@ -433,7 +476,7 @@ export function MyPageVerifiedBadgePage() {
               id="description"
               rows={3}
               maxLength={500}
-              placeholder="담당했던 업무나 확인에 도움이 될 내용을 적어주세요. (선택)"
+              placeholder="첨부한 증빙에 대해 덧붙일 내용이 있으면 적어주세요. (선택)"
               value={description}
               onChange={(event) => setDescription(event.target.value)}
             />

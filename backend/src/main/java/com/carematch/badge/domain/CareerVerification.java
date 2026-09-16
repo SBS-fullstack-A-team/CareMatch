@@ -63,18 +63,23 @@ public class CareerVerification extends BaseTimeEntity {
     @Column(name = "reject_reason", length = 300)
     private String rejectReason;
 
+    /** 증빙 파일 스토리지 key. POST /api/files/upload-url (purpose=CAREER_PROOF) 로 올린 값. */
+    @Column(name = "file_key", length = 500)
+    private String fileKey;
+
     @Column(name = "reviewed_at")
     private LocalDateTime reviewedAt;
 
     @Builder
     private CareerVerification(JobSeekerProfile jobSeekerProfile, String organizationName, String roleTitle,
-                               LocalDate startDate, LocalDate endDate, String description) {
+                               LocalDate startDate, LocalDate endDate, String description, String fileKey) {
         this.jobSeekerProfile = jobSeekerProfile;
         this.organizationName = organizationName;
         this.roleTitle = roleTitle;
         this.startDate = startDate;
         this.endDate = endDate;
         this.description = description;
+        this.fileKey = fileKey;
         this.status = CareerVerificationStatus.PENDING;
     }
 
