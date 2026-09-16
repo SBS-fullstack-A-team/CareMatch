@@ -41,6 +41,20 @@ export interface JobApplyDraft {
   availableNow: boolean
 }
 
+/**
+ * 근무 시간대(WorkSchedule)별 희망 근무시간 기본 문구.
+ * 시간대를 고르면 이 값으로 채워 넣고, 사용자가 직접 고쳐 쓸 수 있다.
+ * "HH:mm ~ HH:mm" 을 포함해 두면 profile-mapper 가 서버의
+ * desiredWorkStartTime/EndTime 으로 분해해 저장한다 (교대는 시각이 정해지지 않아 문구만).
+ */
+export const PREFERRED_HOURS_BY_SCHEDULE: Record<string, string> = {
+  DAY: '평일 종일 (09:00 ~ 18:00)',
+  MORNING: '평일 오전 (09:00 ~ 13:00)',
+  AFTERNOON: '평일 오후 (13:00 ~ 18:00)',
+  NIGHT: '야간 (21:00 ~ 07:00)',
+  SHIFT: '교대 근무 협의',
+}
+
 export const EMPTY_DRAFT: JobApplyDraft = {
   gender: '',
   age: '',

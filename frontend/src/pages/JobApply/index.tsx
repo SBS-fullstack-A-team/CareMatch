@@ -43,6 +43,7 @@ import type { CertificateDetailResponse, JobSeekerProfileResponseDto } from '@/t
 import {
   clearDraft,
   EMPTY_DRAFT,
+  PREFERRED_HOURS_BY_SCHEDULE,
   loadDraft,
   saveDraft,
   validateDraft,
@@ -437,7 +438,13 @@ function JobApplyForm({
                         label: option.label,
                       }))}
                       value={draft.workSchedule}
-                      onChange={(value) => update({ workSchedule: value })}
+                      onChange={(value) =>
+                        // 시간대를 고르면 희망 근무시간도 그 시간대 기본 문구로 맞춘다 (이후 직접 수정 가능)
+                        update({
+                          workSchedule: value,
+                          preferredHours: PREFERRED_HOURS_BY_SCHEDULE[value] ?? draft.preferredHours,
+                        })
+                      }
                     />
                   </Field>
 
@@ -450,6 +457,9 @@ function JobApplyForm({
                       invalid={Boolean(errors.preferredHours)}
                       onChange={(event) => update({ preferredHours: event.target.value })}
                     />
+                    <p className="mt-2 text-sm text-fg-muted">
+                      근무 시간대를 선택하면 자동으로 채워집니다. 직접 고쳐 쓰셔도 됩니다.
+                    </p>
                   </Field>
 
                   <Field label="희망 최소 급여" htmlFor="payType" error={errors.payAmount}>
