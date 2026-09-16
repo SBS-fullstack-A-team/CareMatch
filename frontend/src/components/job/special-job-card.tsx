@@ -38,10 +38,7 @@ export function SpecialJobCard({ job, className }: { job: Job; className?: strin
           <div className="flex items-center gap-1.5">
             <dt className="sr-only">근무 지역</dt>
             <MapPin className="size-[18px] shrink-0 text-fg-subtle" aria-hidden />
-            <dd className="truncate">
-              {job.region}
-              {job.district && ` ${job.district}`}
-            </dd>
+            <dd className="truncate">{job.region}</dd>
           </div>
           <div className="flex items-center gap-1.5">
             <dt className="sr-only">근무 시간대와 급여</dt>

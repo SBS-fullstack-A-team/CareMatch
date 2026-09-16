@@ -66,10 +66,7 @@ export function JobListItem({
             <div className="flex items-center gap-1.5">
               <dt className="sr-only">근무 지역</dt>
               <MapPin className="size-[18px] shrink-0 text-fg-subtle" aria-hidden />
-              <dd>
-                {job.region}
-                {job.district && ` ${job.district}`}
-              </dd>
+              <dd>{job.region}</dd>
             </div>
             <div className="flex items-center gap-1.5">
               <dt className="sr-only">근무 시간대와 근무시간</dt>
