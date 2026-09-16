@@ -107,6 +107,13 @@ export function PointChargeModal({ open, onClose }: { open: boolean; onClose: ()
           fullName: user?.name,
           phoneNumber,
         },
+        // 모바일 등 대부분의 환경은 결제창이 프로미스로 결과를 반환하지 않고 결제사
+        // 페이지로 이동하는 "리다이렉트 방식"을 쓴다 — 포트원 SDK 문서상 이 경우
+        // redirectUrl 이 없으면 결제창 호출 자체가 실패한다(모바일 전용 에러의 원인).
+        // 리다이렉트로 돌아왔을 때는 이 페이지가 아니라 PointChargeCallbackPage 가
+        // 쿼리 파라미터를 읽어 완료 처리한다 — PC의 팝업/iframe 방식은 그대로 아래
+        // await 결과로 즉시 처리된다.
+        redirectUrl: `${window.location.origin}/payment/point-charge/callback`,
       })
 
       if (!payment || payment.code) {
