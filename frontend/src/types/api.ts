@@ -444,6 +444,7 @@ export interface CreateCertificateRequest {
 export type FilePurpose =
   | 'BUSINESS_LICENSE'
   | 'CERTIFICATE'
+  | 'CAREER_PROOF'
   | 'INQUIRY_ATTACHMENT'
   | 'JOB_POSTING_IMAGE'
 
@@ -959,6 +960,8 @@ export interface BadgeRequestResponse {
 
 /** POST /api/career-verifications (CreateCareerVerificationRequest). 날짜는 "YYYY-MM-DD". */
 export interface CreateCareerVerificationRequest {
+  /** 증빙 파일 key — uploadFile(file, 'CAREER_PROOF') 로 업로드한 결과. 필수. */
+  fileKey: string
   organizationName: string
   roleTitle?: string | null
   startDate: string
@@ -977,6 +980,8 @@ export interface CareerVerificationDetailResponse {
   description: string | null
   status: ReviewStatus
   rejectReason: string | null
+  /** 증빙 파일 서명(만료) URL. 파일 없이 만들어진 예전 데이터는 null. */
+  downloadUrl: string | null
 }
 
 /** GET /api/admin/badge-requests (BadgeRequestReviewItem) */
@@ -1005,6 +1010,8 @@ export interface CareerVerificationReviewItem {
   status: ReviewStatus
   rejectReason: string | null
   createdAt: string
+  /** 증빙 파일 서명(만료) URL. 파일 없이 만들어진 예전 데이터는 null. */
+  downloadUrl: string | null
 }
 
 /** GET /api/admin/certificates (CertificateReviewItem) */

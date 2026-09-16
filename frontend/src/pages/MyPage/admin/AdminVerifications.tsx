@@ -139,9 +139,21 @@ export function AdminVerificationsPage() {
                 {item.description && (
                   <p className="mt-3 text-sm whitespace-pre-line text-fg">{item.description}</p>
                 )}
-                <p className="mt-3 text-sm text-fg-subtle">
-                  경력은 증빙 파일 없이 신청자가 적은 내용만으로 판단합니다.
-                </p>
+                {item.downloadUrl ? (
+                  <a
+                    href={item.downloadUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-primary-deep underline underline-offset-4 hover:text-primary"
+                  >
+                    <FileText className="size-4" aria-hidden />
+                    증빙 파일 보기
+                  </a>
+                ) : (
+                  <p className="mt-3 text-sm text-fg-subtle">
+                    첨부된 증빙 파일이 없습니다 (파일 첨부 기능 추가 이전 신청).
+                  </p>
+                )}
               </>
             )}
           />

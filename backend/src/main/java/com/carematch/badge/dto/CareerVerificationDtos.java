@@ -17,7 +17,9 @@ public final class CareerVerificationDtos {
             @NotNull LocalDate startDate,
             /** null 이면 재직중. */
             LocalDate endDate,
-            String description
+            String description,
+            /** 증빙 파일 key. POST /api/files/upload-url (purpose=CAREER_PROOF) 로 업로드한 값. */
+            @NotBlank String fileKey
     ) {
     }
 
@@ -29,7 +31,9 @@ public final class CareerVerificationDtos {
             LocalDate endDate,
             String description,
             String status,
-            String rejectReason
+            String rejectReason,
+            /** 증빙 파일 서명(만료) URL. 파일이 없으면 null. */
+            String downloadUrl
     ) {
     }
 }

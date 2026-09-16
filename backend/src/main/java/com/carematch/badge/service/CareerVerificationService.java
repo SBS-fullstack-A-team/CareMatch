@@ -6,6 +6,8 @@ import com.carematch.badge.dto.CareerVerificationDtos.CreateCareerVerificationRe
 import com.carematch.badge.repository.CareerVerificationRepository;
 import com.carematch.common.exception.BusinessException;
 import com.carematch.common.exception.ErrorCode;
+import com.carematch.storage.FileStorageService;
+import com.carematch.storage.StorageProperties;
 import com.carematch.member.domain.JobSeekerProfile;
 import com.carematch.member.repository.JobSeekerProfileRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,8 @@ public class CareerVerificationService {
 
     private final CareerVerificationRepository careerVerificationRepository;
     private final JobSeekerProfileRepository jobSeekerProfileRepository;
+    private final FileStorageService fileStorageService;
+    private final StorageProperties storageProperties;
 
     @Transactional
     public CareerVerificationDetailResponse register(Long memberId, CreateCareerVerificationRequest req) {
@@ -37,6 +41,7 @@ public class CareerVerificationService {
                 .startDate(req.startDate())
                 .endDate(req.endDate())
                 .description(req.description())
+                .fileKey(req.fileKey())
                 .build();
         profile.addCareerVerification(careerVerification);
         careerVerificationRepository.save(careerVerification);
@@ -59,6 +64,15 @@ public class CareerVerificationService {
         careerVerificationRepository.delete(careerVerification);
     }
 
+    /** 증빙 파일 서명 URL. 파일 없이 만들어진 예전 데이터는 null. */
+    private String downloadUrl(CareerVerification c) {
+        if (c.getFileKey() == null) {
+            return null;
+        }
+        return fileStorageService.issueDownloadUrl(c.getFileKey(),
+                java.time.Duration.ofSeconds(storageProperties.presignExpirySeconds()));
+    }
+
     private CareerVerification loadOwned(Long memberId, Long careerVerificationId) {
         CareerVerification careerVerification = careerVerificationRepository.findById(careerVerificationId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CAREER_VERIFICATION_NOT_FOUND, "careerVerification " + careerVerificationId));
@@ -71,6 +85,6 @@ public class CareerVerificationService {
     private CareerVerificationDetailResponse toDetail(CareerVerification c) {
         return new CareerVerificationDetailResponse(
                 c.getId(), c.getOrganizationName(), c.getRoleTitle(), c.getStartDate(), c.getEndDate(),
-                c.getDescription(), c.getStatus().name(), c.getRejectReason());
+                c.getDescription(), c.getStatus().name(), c.getRejectReason(), downloadUrl(c));
     }
 }
