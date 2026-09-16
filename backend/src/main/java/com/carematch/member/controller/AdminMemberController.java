@@ -10,6 +10,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -32,5 +35,14 @@ public class AdminMemberController {
             @RequestParam(required = false) String keyword,
             @PageableDefault(size = 20) Pageable pageable) {
         return adminMemberService.search(role, status, keyword, pageable);
+    }
+
+    /** 구직회원에게 "인증구직자" 마크를 직접 부여/해제한다 (정상 심사 절차 우회, 운영 편의용). */
+    @PatchMapping("/{memberId}/verified-badge")
+    public AdminMemberSummary setVerifiedBadge(@PathVariable Long memberId, @RequestBody SetVerifiedBadgeRequest request) {
+        return adminMemberService.setVerifiedBadge(memberId, request.granted());
+    }
+
+    public record SetVerifiedBadgeRequest(boolean granted) {
     }
 }

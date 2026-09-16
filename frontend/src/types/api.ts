@@ -904,6 +904,8 @@ export interface AdminMemberSummary {
   verified: boolean
   point: number
   createdAt: string
+  /** 구직회원의 "인증구직자" 마크 보유 여부. 구직회원이 아니면 null. */
+  verifiedBadge: boolean | null
 }
 
 /** GET /api/admin/points/charges — 관리자 포인트충전관리 한 줄 */
