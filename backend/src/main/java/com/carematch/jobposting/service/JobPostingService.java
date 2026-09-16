@@ -176,7 +176,10 @@ public class JobPostingService {
         String sortKey = sortKey(cond.sort());
         JobSeekerProfile viewer = viewerProfile(viewerMemberId);
 
-        if ("MATCH_SCORE".equals(sortKey) && viewer != null) {
+        if ("MATCH_SCORE".equals(sortKey)) {
+            // viewer==null(비로그인/구직자 아님)이면 전부 무점수로 묶여 최신순과 같아지지만,
+            // 노출등급(exposurePriority)은 여전히 전혀 개입하지 않는다 — resolveSort() 의
+            // default 분기(exposurePriority 우선)를 타지 않도록 viewer 유무와 무관하게 이 경로로 보낸다.
             return searchByMatchScore(cond, page, safeSize, viewer, viewerMemberId);
         }
 
