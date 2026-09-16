@@ -765,7 +765,10 @@ function toSaveErrorMessage(err: unknown) {
   if (!(err instanceof ApiError)) return '저장에 실패했습니다. 잠시 후 다시 시도해 주세요.'
   switch (err.status) {
     case 400:
-      return `입력한 내용을 확인해 주세요. (${err.message})`
+      // 필드별 오류가 없는 400 은 본문 파싱 실패(서버가 모르는 값)다 — 어떤 항목을 다시 고를지 알려준다
+      return err.fieldErrors.length > 0
+        ? `입력한 내용을 확인해 주세요. (${err.message})`
+        : '저장할 수 없는 값이 포함되어 있습니다. 희망 직종·희망 지역·근무 시간대·급여 형태를 다시 선택한 뒤 저장해 주세요.'
     case 403:
       return '구직자 회원만 구직 프로필을 저장할 수 있습니다. 로그인한 계정의 회원 유형을 확인해 주세요.'
     case 404:
