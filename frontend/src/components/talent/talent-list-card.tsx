@@ -50,10 +50,11 @@ export function TalentListCard({ talent, className }: { talent: Talent; classNam
               {[talent.gender, talent.age != null ? `${talent.age}세` : null].filter(Boolean).join(' · ')}
             </p>
           )}
-          {talent.availableNow && (
-            <Badge variant="normal" className="mt-1.5">
-              즉시 근무 가능
-            </Badge>
+          {(talent.verifiedBadge || talent.availableNow) && (
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {talent.verifiedBadge && <Badge variant="new">인증구직자</Badge>}
+              {talent.availableNow && <Badge variant="normal">즉시 근무 가능</Badge>}
+            </div>
           )}
         </div>
       </div>

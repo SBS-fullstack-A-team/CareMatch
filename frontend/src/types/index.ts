@@ -196,6 +196,8 @@ export interface Talent {
   summary?: string
   matching?: Matching
   availableNow?: boolean
+  /** "인증구직자" 마크 — 관리자가 자격증·경력을 확인하고 최종 승인한 구직자. */
+  verifiedBadge?: boolean
   /** ---- 아래는 상세 화면(시설회원 열람) 전용 ---- */
   /** 마스킹된 연락처("010-****-5678"). 열람 전. contactUnlocked=true 면 언마스크 값. */
   phone?: string

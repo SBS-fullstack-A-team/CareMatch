@@ -21,6 +21,8 @@ import { AdminNoticeFormPage } from '@/pages/MyPage/admin/AdminNoticeForm'
 import { AdminNoticesPage } from '@/pages/MyPage/admin/AdminNotices'
 import { AdminPointChargesPage } from '@/pages/MyPage/admin/AdminPointCharges'
 import { AdminRoute } from '@/pages/MyPage/admin/shared'
+import { AdminVerificationsPage } from '@/pages/MyPage/admin/AdminVerifications'
+import { MyPageVerifiedBadgePage } from '@/pages/MyPage/VerifiedBadge'
 import { MyPageApplicationsPage } from '@/pages/MyPage/Applications'
 import { MyPageCertificatesPage } from '@/pages/MyPage/Certificates'
 import { MyPageJobApplicantsPage } from '@/pages/MyPage/JobApplicants'
@@ -88,11 +90,20 @@ export const router = createBrowserRouter([
           { path: 'applications', element: <MyPageApplicationsPage /> },
           { path: 'scraps', element: <MyPageScrapsPage /> },
           { path: 'certificates', element: <MyPageCertificatesPage /> },
+          { path: 'verified-badge', element: <MyPageVerifiedBadgePage /> },
           { path: 'jobs', element: <MyPageJobsPage /> },
           { path: 'jobs/new', element: <JobPostingFormPage /> },
           { path: 'jobs/:jobPostingId/edit', element: <JobPostingFormPage /> },
           { path: 'jobs/:jobPostingId/applicants', element: <MyPageJobApplicantsPage /> },
           { path: 'settings', element: <MyPageSettingsPage /> },
+          {
+            path: 'admin/verifications',
+            element: (
+              <AdminRoute>
+                <AdminVerificationsPage />
+              </AdminRoute>
+            ),
+          },
           {
             path: 'admin/members',
             element: (
