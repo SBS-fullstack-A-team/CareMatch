@@ -1,3 +1,4 @@
+import { DISTRICT_OPTIONS, SIDO_OPTIONS } from '@/data/filters'
 import type { PayType } from '@/lib/utils'
 
 /**
@@ -79,18 +80,73 @@ export const EMPTY_DRAFT: JobApplyDraft = {
  */
 export const DRAFT_KEY = 'carematch.jobApply.draft'
 
+/*
+ * 서버가 받아들이는 값 목록 (docs/ENUM_MAPPING.md).
+ * 화면 옵션 목록이 아니라 "서버 enum" 기준이다 — 직종 ETC 처럼 화면 선택지에는 없지만
+ * 서버에는 있는 값도 포함해야 한다. 이 목록에 없는 값을 보내면 서버가 본문 파싱 단계에서
+ * 막아 400(COMMON_001, 필드별 오류 없음)을 돌려준다.
+ */
+const JOB_TYPES = [
+  'CAREGIVER',
+  'CARE_ATTENDANT',
+  'NURSE_AIDE',
+  'SOCIAL_WORKER',
+  'LIFE_SUPPORT',
+  'HOUSEKEEPER',
+  'ETC',
+]
+const WORK_SCHEDULES = ['DAY', 'MORNING', 'AFTERNOON', 'NIGHT', 'SHIFT']
+const CERTIFICATE_TYPES = [
+  'CAREGIVER',
+  'NURSE_AIDE',
+  'SOCIAL_WORKER_1',
+  'SOCIAL_WORKER_2',
+  'CARE_ASSISTANT',
+  'DRIVER_LICENSE',
+  'OTHER',
+]
+/** 폼이 쓰는 소문자 급여 형태 — 서버로 보낼 때 대문자로 바꾼다 (profile-mapper) */
+const PAY_TYPES = ['hourly', 'daily', 'monthly']
+const GENDERS = ['여', '남']
+
+/**
+ * 오래된 임시저장 정리.
+ *
+ * enum 전환(2026-09) 이전 임시저장에는 직종이 "요양보호사", 근무 시간대가 "주간" 같은
+ * 한글 값으로 들어 있다. 그대로 두면 화면에는 정상처럼 보이지만 저장할 때 서버가 거절한다.
+ * 알아볼 수 없는 값은 비워서 사용자가 다시 고르게 한다.
+ */
+function sanitizeDraft(draft: JobApplyDraft): JobApplyDraft {
+  const sido = SIDO_OPTIONS.some((option) => option.value === draft.sido) ? draft.sido : ''
+  const district =
+    sido && (DISTRICT_OPTIONS[sido] ?? []).some((option) => option.value === draft.district)
+      ? draft.district
+      : ''
+
+  return {
+    ...draft,
+    gender: GENDERS.includes(draft.gender) ? draft.gender : '',
+    category: JOB_TYPES.includes(draft.category) ? draft.category : '',
+    sido,
+    district,
+    workSchedule: WORK_SCHEDULES.includes(draft.workSchedule) ? draft.workSchedule : '',
+    payType: PAY_TYPES.includes(draft.payType) ? draft.payType : '',
+    certificates: draft.certificates.filter((value) => CERTIFICATE_TYPES.includes(value)),
+  }
+}
+
 /** 임시저장 불러오기. 값이 깨져 있으면 무시한다. */
 export function loadDraft(): JobApplyDraft | null {
   try {
     const raw = localStorage.getItem(DRAFT_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as Partial<JobApplyDraft>
-    return {
+    return sanitizeDraft({
       ...EMPTY_DRAFT,
       ...parsed,
       // 배열 필드가 다른 타입으로 저장돼 있으면 되돌린다
       certificates: Array.isArray(parsed.certificates) ? parsed.certificates : [],
-    }
+    })
   } catch {
     return null
   }
