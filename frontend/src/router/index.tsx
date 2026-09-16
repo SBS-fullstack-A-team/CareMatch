@@ -33,6 +33,7 @@ import { MyPageSettingsPage } from '@/pages/MyPage/Settings'
 import { OAuthCallbackPage } from '@/pages/OAuthCallback'
 import { OAuthSelectRolePage } from '@/pages/OAuthSelectRole'
 import { PasswordResetPage } from '@/pages/PasswordReset'
+import { PointChargeCallbackPage } from '@/pages/PointChargeCallback'
 import { SignupPage } from '@/pages/Signup'
 import { SupportHomePage } from '@/pages/Support'
 import { SupportFaqPage } from '@/pages/Support/Faq'
@@ -78,6 +79,7 @@ export const router = createBrowserRouter([
       { path: '/password-reset', element: <PasswordResetPage /> },
       { path: '/oauth/callback', element: <OAuthCallbackPage /> },
       { path: '/oauth/select-role', element: <OAuthSelectRolePage /> },
+      { path: '/payment/point-charge/callback', element: <PointChargeCallbackPage /> },
       { path: '/signup', element: <SignupPage /> },
       { path: '/notifications', element: <NotificationsPage /> },
       {
