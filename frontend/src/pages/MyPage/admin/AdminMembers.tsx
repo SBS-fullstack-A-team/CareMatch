@@ -4,7 +4,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
-import { searchMembers } from '@/api/admin'
+import { useToast } from '@/components/ui/toast'
+import { searchMembers, setMemberVerifiedBadge } from '@/api/admin'
 import { ApiError } from '@/lib/api-client'
 import { formatNumber } from '@/lib/utils'
 import type { AdminMemberSummary, MemberRole, MemberStatus, SpringPage } from '@/types/api'
@@ -45,6 +46,7 @@ const STATUS_BADGE: Record<string, { label: string; variant: 'new' | 'neutral' |
 
 /** 관리자 — 회원관리. 역할/상태/키워드로 전체 회원을 검색한다. */
 export function AdminMembersPage() {
+  const { toast } = useToast()
   const [role, setRole] = useState('')
   const [status, setStatus] = useState('')
   const [keywordInput, setKeywordInput] = useState('')
@@ -53,6 +55,7 @@ export function AdminMembersPage() {
   const [data, setData] = useState<SpringPage<AdminMemberSummary> | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [badgePendingId, setBadgePendingId] = useState<number | null>(null)
 
   const load = useCallback(() => {
     setLoading(true)
@@ -75,6 +78,33 @@ export function AdminMembersPage() {
     event.preventDefault()
     setPage(1)
     setKeyword(keywordInput.trim())
+  }
+
+  const handleToggleBadge = (member: AdminMemberSummary) => {
+    const granted = !member.verifiedBadge
+    setBadgePendingId(member.id)
+    setMemberVerifiedBadge(member.id, granted)
+      .then((updated) => {
+        setData((prev) =>
+          prev
+            ? {
+                ...prev,
+                content: prev.content.map((m) => (m.id === updated.id ? updated : m)),
+              }
+            : prev,
+        )
+        toast({
+          title: granted ? '인증구직자 마크를 부여했습니다.' : '인증구직자 마크를 해제했습니다.',
+        })
+      })
+      .catch((err) => {
+        toast({
+          title: '처리하지 못했습니다.',
+          description: err instanceof ApiError ? err.message : '잠시 후 다시 시도해 주세요.',
+          variant: 'error',
+        })
+      })
+      .finally(() => setBadgePendingId(null))
   }
 
   return (
@@ -147,11 +177,13 @@ export function AdminMembersPage() {
                     <th className="px-4 py-3 font-semibold">상태</th>
                     <th className="px-4 py-3 text-right font-semibold">포인트</th>
                     <th className="px-4 py-3 font-semibold">가입일</th>
+                    <th className="px-4 py-3 font-semibold">인증구직자</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.content.map((member) => {
                     const statusBadge = STATUS_BADGE[member.status]
+                    const isJobseeker = member.role === 'JOBSEEKER'
                     return (
                       <tr key={member.id} className="border-b border-border last:border-b-0 hover:bg-primary-light/20">
                         <td className="px-4 py-3 font-semibold text-fg">{member.name}</td>
@@ -166,6 +198,24 @@ export function AdminMembersPage() {
                         </td>
                         <td className="px-4 py-3 text-right tabular text-fg">{formatNumber(member.point)}P</td>
                         <td className="px-4 py-3 text-fg-subtle tabular">{formatServerDateTime(member.createdAt)}</td>
+                        <td className="px-4 py-3">
+                          {isJobseeker ? (
+                            <div className="flex items-center gap-2">
+                              {member.verifiedBadge && <Badge variant="new">인증됨</Badge>}
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant={member.verifiedBadge ? 'secondary' : 'primary'}
+                                disabled={badgePendingId === member.id}
+                                onClick={() => handleToggleBadge(member)}
+                              >
+                                {member.verifiedBadge ? '마크 해제' : '마크 활성화'}
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className="text-fg-subtle">-</span>
+                          )}
+                        </td>
                       </tr>
                     )
                   })}

@@ -262,4 +262,10 @@ public class JobSeekerProfile extends BaseTimeEntity {
         this.verifiedBadge = true;
         this.verifiedBadgeAt = when;
     }
+
+    /** 관리자가 정상 심사 절차 없이(수동으로) 부여했던 마크를 되돌릴 때 사용. */
+    public void revokeBadge() {
+        this.verifiedBadge = false;
+        this.verifiedBadgeAt = null;
+    }
 }

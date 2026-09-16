@@ -15,9 +15,15 @@ public record AdminMemberSummary(
         String status,
         boolean verified,
         long point,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        /** 구직회원의 "인증구직자" 마크 보유 여부. 구직회원이 아니면 항상 null. */
+        Boolean verifiedBadge
 ) {
     public static AdminMemberSummary from(Member m) {
+        return from(m, null);
+    }
+
+    public static AdminMemberSummary from(Member m, Boolean verifiedBadge) {
         return new AdminMemberSummary(
                 m.getId(),
                 m.getLoginId(),
@@ -28,6 +34,7 @@ public record AdminMemberSummary(
                 m.getStatus().name(),
                 m.isVerified(),
                 m.getPoint(),
-                m.getCreatedAt());
+                m.getCreatedAt(),
+                verifiedBadge);
     }
 }

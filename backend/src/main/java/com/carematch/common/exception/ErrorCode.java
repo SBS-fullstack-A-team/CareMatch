@@ -103,7 +103,8 @@ public enum ErrorCode {
     BADGE_REQUEST_ALREADY_PENDING(HttpStatus.CONFLICT, "BADGE_007", "이미 심사 중인 인증 요청이 있습니다."),
     BADGE_ALREADY_GRANTED(HttpStatus.CONFLICT, "BADGE_008", "이미 인증구직자 마크를 보유하고 있습니다."),
     BADGE_REQUEST_NOT_FOUND(HttpStatus.NOT_FOUND, "BADGE_009", "인증 요청을 찾을 수 없습니다."),
-    BADGE_REQUEST_ALREADY_PROCESSED(HttpStatus.CONFLICT, "BADGE_010", "이미 처리된 인증 요청입니다.");
+    BADGE_REQUEST_ALREADY_PROCESSED(HttpStatus.CONFLICT, "BADGE_010", "이미 처리된 인증 요청입니다."),
+    MEMBER_NOT_JOBSEEKER(HttpStatus.BAD_REQUEST, "BADGE_011", "구직회원만 인증구직자 마크를 부여할 수 있습니다.");
 
     private final HttpStatus status;
     private final String code;

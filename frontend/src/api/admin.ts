@@ -35,6 +35,17 @@ export function searchMembers(params: {
   return apiFetch<SpringPage<AdminMemberSummary>>(`/api/admin/members?${query.toString()}`)
 }
 
+/**
+ * 구직회원에게 "인증구직자" 마크를 직접 부여/해제한다.
+ * 정상 절차(자격증·경력인증 승인 → 본인 신청 → 관리자 승인)를 건너뛰는 운영 편의용 기능.
+ */
+export function setMemberVerifiedBadge(memberId: number, granted: boolean): Promise<AdminMemberSummary> {
+  return apiFetch<AdminMemberSummary>(`/api/admin/members/${memberId}/verified-badge`, {
+    method: 'PATCH',
+    body: { granted },
+  })
+}
+
 /** 포인트충전관리 — 전체 회원 충전 내역. page 는 0-base. */
 export function getAdminPointCharges(params: {
   status?: 'PENDING' | 'PAID'
