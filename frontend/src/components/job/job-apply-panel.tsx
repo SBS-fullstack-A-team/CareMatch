@@ -30,10 +30,7 @@ export function JobApplyPanel({ job, className }: { job: Job; className?: string
         </div>
         <div className="flex gap-3">
           <dt className="w-16 shrink-0 text-fg-muted">지역</dt>
-          <dd className="min-w-0 flex-1 text-fg">
-            {job.region}
-            {job.district && ` ${job.district}`}
-          </dd>
+          <dd className="min-w-0 flex-1 text-fg">{job.region}</dd>
         </div>
         <div className="flex gap-3">
           <dt className="w-16 shrink-0 text-fg-muted">고용형태</dt>

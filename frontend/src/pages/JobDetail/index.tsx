@@ -148,10 +148,7 @@ function WorkConditionSection({ job }: { job: Job }) {
   return (
     <DetailSection title="근무조건" icon={ClipboardList}>
       <dl>
-        <DetailRow label="근무지역">
-          {job.region}
-          {job.district && ` ${job.district}`}
-        </DetailRow>
+        <DetailRow label="근무지역">{job.region}</DetailRow>
         <DetailRow label="근무 시간대">{workScheduleLabel(job.workSchedule) || '-'}</DetailRow>
         <DetailRow label="근무시간">
           <span className="tabular">{job.workHours}</span>
@@ -240,10 +237,7 @@ function FacilitySection({ job }: { job: Job }) {
       <p className="text-lg font-bold text-fg">{job.facilityName}</p>
       <dl className="mt-4">
         <DetailRow label="시설유형">{facilityTypeLabel(job.facilityType)}</DetailRow>
-        <DetailRow label="지역">
-          {job.region}
-          {job.district && ` ${job.district}`}
-        </DetailRow>
+        <DetailRow label="지역">{job.region}</DetailRow>
         <DetailRow label="주소">{job.address}</DetailRow>
         <DetailRow label="담당자">{job.managerName}</DetailRow>
       </dl>
