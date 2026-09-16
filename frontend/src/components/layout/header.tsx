@@ -60,7 +60,7 @@ export function Header() {
 
               {(user.role === 'GENERAL' || user.role === 'ADMIN' || user.memberType === 'facility') && (
                 <Link
-                  to="/mypage/point"
+                  to="/mypage"
                   className="hidden h-11 items-center gap-1.5 rounded-btn border border-border px-3 text-base font-semibold text-fg transition-colors hover:border-primary/40 hover:bg-primary-light xl:flex"
                 >
                   <Coins className="size-[18px] text-accent" aria-hidden />

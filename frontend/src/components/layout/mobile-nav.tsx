@@ -1,4 +1,4 @@
-import { Bell, ChevronRight, Coins, LogOut } from 'lucide-react'
+import { Bell, ChevronRight, Coins, LogOut, UserRound } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Drawer } from '@/components/ui/drawer'
 import { buttonVariants } from '@/components/ui/button'
@@ -14,23 +14,33 @@ export function MobileNav({ open, onClose }: { open: boolean; onClose: () => voi
     <Drawer open={open} onClose={onClose} title="전체 메뉴">
       {user ? (
         <div className="rounded-card border border-border bg-surface-sunken p-4">
-          <p className="text-lg font-bold text-fg">
-            {user.name}
-            <span className="ml-1.5 text-sm font-normal text-fg-muted">
-              {user.memberType === 'facility'
-                ? '시설회원'
-                : user.role === 'ADMIN'
-                  ? '관리자'
-                  : user.role === 'GENERAL'
-                    ? '보호자회원'
-                    : '구직회원'}
+          <Link
+            to="/mypage"
+            onClick={onClose}
+            className="-m-1 flex items-center justify-between gap-2 rounded-[6px] p-1"
+          >
+            <span className="min-w-0">
+              <span className="flex items-center gap-1.5 text-lg font-bold text-fg">
+                <UserRound className="size-[18px] shrink-0 text-fg-muted" aria-hidden />
+                {user.name}
+                <span className="text-sm font-normal text-fg-muted">
+                  {user.memberType === 'facility'
+                    ? '시설회원'
+                    : user.role === 'ADMIN'
+                      ? '관리자'
+                      : user.role === 'GENERAL'
+                        ? '보호자회원'
+                        : '구직회원'}
+                </span>
+              </span>
+              <span className="mt-0.5 block truncate text-base text-fg-muted">{user.subtitle}</span>
             </span>
-          </p>
-          <p className="mt-0.5 text-base text-fg-muted">{user.subtitle}</p>
+            <ChevronRight className="size-5 shrink-0 text-fg-subtle" aria-hidden />
+          </Link>
           <div className="mt-3 grid grid-cols-2 gap-2">
             {(user.role === 'GENERAL' || user.role === 'ADMIN' || user.memberType === 'facility') && (
               <Link
-                to="/mypage/point"
+                to="/mypage"
                 onClick={onClose}
                 className="flex h-11 items-center justify-center gap-1.5 rounded-btn bg-surface text-base font-bold text-fg"
               >
