@@ -31,7 +31,10 @@ public final class CertificateDtos {
             Long fileSize,
             String contentType,
             String downloadUrl,   // 서명(만료) URL
-            String rejectReason
+            String rejectReason,
+            /** 관리자 진위 심사 상태(PENDING/APPROVED/REJECTED). "인증구직자" 마크 요건 중 하나. */
+            String adminReviewStatus,
+            String adminReviewReason
     ) {
     }
 }

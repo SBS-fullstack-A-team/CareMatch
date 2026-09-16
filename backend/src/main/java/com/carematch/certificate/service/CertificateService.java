@@ -130,6 +130,7 @@ public class CertificateService {
         return new CertificateDetailResponse(
                 c.getId(), c.getCertificateType().name(), c.getCertificateName(),
                 c.getCertificateNumber(), c.getStatus().name(),
-                c.getFileSize(), c.getContentType(), url, c.getRejectReason());
+                c.getFileSize(), c.getContentType(), url, c.getRejectReason(),
+                c.getAdminReviewStatus().name(), c.getAdminReviewReason());
     }
 }

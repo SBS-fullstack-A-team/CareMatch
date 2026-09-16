@@ -1,6 +1,7 @@
 package com.carematch.member.domain;
 
 import com.carematch.common.entity.BaseTimeEntity;
+import com.carematch.badge.domain.CareerVerification;
 import com.carematch.certificate.domain.Certificate;
 import com.carematch.jobposting.domain.EmploymentType;
 import com.carematch.jobposting.domain.JobType;
@@ -28,6 +29,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -152,6 +154,16 @@ public class JobSeekerProfile extends BaseTimeEntity {
     @OneToMany(mappedBy = "jobSeekerProfile", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Certificate> certificates = new ArrayList<>();
 
+    @OneToMany(mappedBy = "jobSeekerProfile", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<CareerVerification> careerVerifications = new ArrayList<>();
+
+    /** "인증구직자" 마크. 승인된 자격증+경력인증을 근거로 관리자가 인증요청을 최종 승인하면 true. */
+    @Column(name = "verified_badge", nullable = false)
+    private boolean verifiedBadge;
+
+    @Column(name = "verified_badge_at")
+    private LocalDateTime verifiedBadgeAt;
+
     @Builder
     private JobSeekerProfile(Member member, EmploymentStatus employmentStatus, String residence, String introduction) {
         this.member = member;
@@ -239,5 +251,15 @@ public class JobSeekerProfile extends BaseTimeEntity {
     public void addCertificate(Certificate certificate) {
         certificates.add(certificate);
         certificate.assignProfile(this);
+    }
+
+    public void addCareerVerification(CareerVerification careerVerification) {
+        careerVerifications.add(careerVerification);
+        careerVerification.assignProfile(this);
+    }
+
+    public void grantBadge(LocalDateTime when) {
+        this.verifiedBadge = true;
+        this.verifiedBadgeAt = when;
     }
 }

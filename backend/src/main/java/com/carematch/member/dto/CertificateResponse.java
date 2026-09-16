@@ -14,15 +14,20 @@ public record CertificateResponse(
         String certificateName,
         String certificateNumber,
         String status,
-        String downloadUrl
+        String downloadUrl,
+        /** 관리자 진위 심사 상태(PENDING/APPROVED/REJECTED). "인증구직자" 마크 요건 중 하나. */
+        String adminReviewStatus,
+        String adminReviewReason
 ) {
     public static CertificateResponse withoutUrl(Certificate c) {
         return new CertificateResponse(c.getId(), c.getCertificateType().name(), c.getCertificateName(),
-                c.getCertificateNumber(), c.getStatus().name(), null);
+                c.getCertificateNumber(), c.getStatus().name(), null,
+                c.getAdminReviewStatus().name(), c.getAdminReviewReason());
     }
 
     public static CertificateResponse withUrl(Certificate c, String signedUrl) {
         return new CertificateResponse(c.getId(), c.getCertificateType().name(), c.getCertificateName(),
-                c.getCertificateNumber(), c.getStatus().name(), signedUrl);
+                c.getCertificateNumber(), c.getStatus().name(), signedUrl,
+                c.getAdminReviewStatus().name(), c.getAdminReviewReason());
     }
 }

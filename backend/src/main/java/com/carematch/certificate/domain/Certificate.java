@@ -18,6 +18,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 /**
  * 요양보호사 자격증. 파일 자체는 스토리지에 있고 여기엔 "키"만 저장한다.
  * 공개 URL 을 저장하지 않는다 — 열람 시 서명(만료) URL 을 발급.
@@ -66,6 +68,17 @@ public class Certificate extends BaseTimeEntity {
     @Column(name = "reject_reason", length = 300)
     private String rejectReason;
 
+    /** 관리자 진위 심사 상태. {@link #status} 가 VERIFIED(파일 기술검증 통과)여야 심사 가능. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "admin_review_status", nullable = false, length = 20)
+    private CertificateReviewStatus adminReviewStatus;
+
+    @Column(name = "admin_review_reason", length = 300)
+    private String adminReviewReason;
+
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
+
     @Builder
     private Certificate(JobSeekerProfile jobSeekerProfile, CertificateType certificateType,
                         String certificateName, String certificateNumber, String fileKey) {
@@ -75,6 +88,7 @@ public class Certificate extends BaseTimeEntity {
         this.certificateNumber = certificateNumber;
         this.fileKey = fileKey;
         this.status = CertificateStatus.PENDING;
+        this.adminReviewStatus = CertificateReviewStatus.PENDING;
     }
 
     public void assignProfile(JobSeekerProfile profile) {
@@ -91,5 +105,17 @@ public class Certificate extends BaseTimeEntity {
     public void markRejected(String reason) {
         this.status = CertificateStatus.REJECTED;
         this.rejectReason = reason;
+    }
+
+    public void approveByAdmin(LocalDateTime when) {
+        this.adminReviewStatus = CertificateReviewStatus.APPROVED;
+        this.adminReviewReason = null;
+        this.reviewedAt = when;
+    }
+
+    public void rejectByAdmin(String reason, LocalDateTime when) {
+        this.adminReviewStatus = CertificateReviewStatus.REJECTED;
+        this.adminReviewReason = reason;
+        this.reviewedAt = when;
     }
 }
