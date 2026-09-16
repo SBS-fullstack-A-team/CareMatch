@@ -6,6 +6,7 @@ import com.carematch.common.masking.MaskingUtil;
 import com.carematch.contact.service.ContactUnlockService;
 import com.carematch.member.domain.DesiredRegion;
 import com.carematch.member.domain.JobSeekerProfile;
+import com.carematch.member.dto.CareerVerificationResponse;
 import com.carematch.member.dto.CertificateResponse;
 import com.carematch.member.dto.JobSeekerProfileResponse;
 import com.carematch.member.dto.PostingMatchResponse;
@@ -107,6 +108,8 @@ public class JobSeekerProfileQueryService {
                 unlocked,
                 PointPolicy.CONTACT_UNLOCK_COST,
                 certs,
+                profile.getCareerVerifications().stream().map(CareerVerificationResponse::from).toList(),
+                profile.isVerifiedBadge(),
                 name(profile.getGender()),
                 age,
                 profile.getPhotoUrl(),

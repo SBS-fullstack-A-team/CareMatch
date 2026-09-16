@@ -22,6 +22,9 @@ public record JobSeekerProfileResponse(
         boolean contactUnlocked,
         int unlockCost,
         List<CertificateResponse> certificates,
+        List<CareerVerificationResponse> careerVerifications,
+        /** "인증구직자" 마크. 승인된 자격증+경력인증 근거로 관리자가 인증요청을 최종 승인하면 true. */
+        boolean verifiedBadge,
 
         // 인적사항 / 표시용 (미설정 시 null / 빈 리스트)
         String gender,

@@ -155,7 +155,9 @@ public final class TalentSearchDtos {
             /** "마지막 확인일" 표기용. */
             java.time.LocalDateTime updatedAt,
             /** 이 시설의 OPEN 공고들 중 최고 매칭 점수. 시설 아님 / 공고 없음 / 인재 희망조건 미설정이면 null. */
-            Integer matchingScore
+            Integer matchingScore,
+            /** "인증구직자" 마크. 승인된 자격증+경력인증 근거로 관리자가 인증요청을 최종 승인하면 true. */
+            boolean verifiedBadge
     ) {
         public static TalentSummary from(JobSeekerProfile p, List<String> certificateNames,
                                          List<String> certificateTypes, Integer matchingScore) {
@@ -169,7 +171,7 @@ public final class TalentSearchDtos {
                     p.getDesiredRegions().stream().map(RegionDto::from).toList(),
                     name(p.getDesiredPayType()), p.getDesiredMinPay(),
                     p.getDesiredWorkDays(), p.getDesiredWorkStartTime(), p.getDesiredWorkEndTime(),
-                    certificateNames, certificateTypes, p.getUpdatedAt(), matchingScore);
+                    certificateNames, certificateTypes, p.getUpdatedAt(), matchingScore, p.isVerifiedBadge());
         }
 
         private static String name(Enum<?> e) {

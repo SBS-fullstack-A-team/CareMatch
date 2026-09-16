@@ -91,7 +91,19 @@ public enum ErrorCode {
     INQUIRY_ALREADY_ANSWERED(HttpStatus.CONFLICT, "SUPPORT_005", "이미 답변이 완료된 문의입니다."),
 
     // --- 알림 ---
-    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTIFICATION_001", "알림을 찾을 수 없습니다.");
+    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTIFICATION_001", "알림을 찾을 수 없습니다."),
+
+    // --- 인증구직자 마크(자격증 관리자 검토 / 경력인증 / 인증요청) ---
+    CERTIFICATE_ALREADY_REVIEWED(HttpStatus.CONFLICT, "BADGE_001", "이미 심사가 완료된 자격증입니다."),
+    CERTIFICATE_FILE_NOT_VERIFIED(HttpStatus.CONFLICT, "BADGE_002", "파일 검증이 완료되지 않은 자격증은 심사할 수 없습니다."),
+    CAREER_VERIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "BADGE_003", "경력 인증 신청을 찾을 수 없습니다."),
+    CAREER_VERIFICATION_ACCESS_DENIED(HttpStatus.FORBIDDEN, "BADGE_004", "본인의 경력 인증 신청만 조회·삭제할 수 있습니다."),
+    CAREER_VERIFICATION_ALREADY_REVIEWED(HttpStatus.CONFLICT, "BADGE_005", "이미 심사가 완료된 경력 인증입니다."),
+    BADGE_REQUIREMENTS_NOT_MET(HttpStatus.BAD_REQUEST, "BADGE_006", "승인된 자격증과 경력 인증이 각각 1건 이상 있어야 인증을 요청할 수 있습니다."),
+    BADGE_REQUEST_ALREADY_PENDING(HttpStatus.CONFLICT, "BADGE_007", "이미 심사 중인 인증 요청이 있습니다."),
+    BADGE_ALREADY_GRANTED(HttpStatus.CONFLICT, "BADGE_008", "이미 인증구직자 마크를 보유하고 있습니다."),
+    BADGE_REQUEST_NOT_FOUND(HttpStatus.NOT_FOUND, "BADGE_009", "인증 요청을 찾을 수 없습니다."),
+    BADGE_REQUEST_ALREADY_PROCESSED(HttpStatus.CONFLICT, "BADGE_010", "이미 처리된 인증 요청입니다.");
 
     private final HttpStatus status;
     private final String code;
