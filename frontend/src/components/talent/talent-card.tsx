@@ -63,7 +63,7 @@ export function TalentCard({ talent, className }: { talent: Talent; className?: 
           {talent.updatedAt && (
             <div className="flex gap-2">
               <dt className="shrink-0 text-fg-subtle">갱신일</dt>
-              <dd className="text-fg-muted tabular">{formatDotDate(talent.updatedAt)}</dd>
+              <dd className="truncate text-fg-muted tabular">{formatDotDate(talent.updatedAt)}</dd>
             </div>
           )}
         </dl>
