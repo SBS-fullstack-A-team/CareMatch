@@ -16,25 +16,25 @@ export function JobTable({ jobs, className }: { jobs: Job[]; className?: string 
       <table className="hidden w-full border-collapse text-left lg:table">
         <thead>
           <tr className="bg-surface-sunken text-sm text-fg-muted">
-            <th scope="col" className="w-[96px] rounded-l-[8px] px-4 py-3 font-medium">
+            <th scope="col" className="w-[6rem] rounded-l-[8px] px-4 py-3 font-medium">
               상태
             </th>
             <th scope="col" className="px-4 py-3 font-medium">
               시설명
             </th>
-            <th scope="col" className="w-[104px] px-4 py-3 font-medium">
+            <th scope="col" className="w-[6.5rem] px-4 py-3 font-medium">
               직종
             </th>
-            <th scope="col" className="w-[140px] px-4 py-3 font-medium">
+            <th scope="col" className="w-[8.75rem] px-4 py-3 font-medium">
               지역
             </th>
-            <th scope="col" className="w-[170px] px-4 py-3 font-medium">
+            <th scope="col" className="w-[10.625rem] px-4 py-3 font-medium">
               근무 시간대
             </th>
-            <th scope="col" className="w-[150px] px-4 py-3 font-medium">
+            <th scope="col" className="w-[9.375rem] px-4 py-3 font-medium">
               급여
             </th>
-            <th scope="col" className="w-[104px] rounded-r-[8px] px-4 py-3 font-medium">
+            <th scope="col" className="w-[6.5rem] rounded-r-[8px] px-4 py-3 font-medium">
               등록일
             </th>
           </tr>
