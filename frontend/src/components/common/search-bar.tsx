@@ -136,7 +136,7 @@ export function JobSearchBar({
             </Field>
 
             <div className="self-end">
-              <Button type="submit" variant="primaryDeep" block className="lg:w-[120px]">
+              <Button type="submit" variant="primaryDeep" block className="lg:w-[7.5rem]">
                 <Search aria-hidden />
                 검색
               </Button>
