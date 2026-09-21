@@ -148,6 +148,7 @@ export function profileToDraft(profile: Profile): JobApplyDraft {
   return {
     gender: profile.gender ? (GENDER_TO_FORM[profile.gender] ?? '') : '',
     age: profile.age == null ? '' : String(profile.age),
+    residence: profile.residence ?? '',
     category: profile.desiredJobType ?? '',
     sido: firstRegion?.sido ?? '',
     district: firstRegion?.sigungu ?? '',
@@ -180,7 +181,7 @@ export function buildUpdateRequest(
   return {
     // --- 폼에 없는 값: 조회값 그대로 (employmentStatus 도 임의로 바꾸지 않는다) ---
     employmentStatus: profile.employmentStatus,
-    residence: orUndefined(profile.residence),
+    residence: draft.residence.trim() ? draft.residence.trim() : undefined,
     photoUrl: orUndefined(profile.photoUrl),
     education: orUndefined(profile.education),
     headline: orUndefined(profile.headline),

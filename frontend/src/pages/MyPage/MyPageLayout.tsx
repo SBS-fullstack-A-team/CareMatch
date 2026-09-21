@@ -8,6 +8,7 @@ import {
   LogIn,
   Megaphone,
   MessageSquare,
+  Pencil,
   Settings as SettingsIcon,
   ShieldCheck,
   UserRound,
@@ -23,6 +24,7 @@ import { cn } from '@/lib/utils'
 
 const JOBSEEKER_MENU = [
   { to: '/mypage', label: '마이페이지', icon: UserRound, end: true },
+  { to: '/mypage/profile', label: '프로필 수정', icon: Pencil, end: false },
   { to: '/mypage/applications', label: '지원 현황', icon: FileText, end: false },
   { to: '/mypage/scraps', label: '관심 공고', icon: Heart, end: false },
   { to: '/mypage/certificates', label: '자격증', icon: Award, end: false },

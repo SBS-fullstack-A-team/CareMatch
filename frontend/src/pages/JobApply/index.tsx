@@ -90,15 +90,26 @@ type LoadError = { status: number; message: string }
  * adminPreview: 관리자가 화면 점검용으로 열었을 때. 구직자 전용 API(`/api/jobseekers/me`,
  * `/api/certificates/me`)를 호출하지 않고 빈 폼을 읽기 전용으로만 보여준다.
  */
-function JobApplyForm({
+export function JobApplyForm({
   userName,
   adminPreview = false,
+  chrome = 'apply',
 }: {
   userName: string
   adminPreview?: boolean
+  /**
+   * 같은 프로필을 두 화면에서 편집한다 — 폼은 하나만 두고 껍데기만 바꾼다.
+   * apply: 구직신청 화면(브레드크럼·큰 제목·저장 후 완료 모달)
+   * mypage: 마이페이지 프로필 수정(레이아웃 안이라 제목만, 저장 후 토스트)
+   */
+  chrome?: 'apply' | 'mypage'
 }) {
   const { toast } = useToast()
   const navigate = useNavigate()
+
+  const isApply = chrome === 'apply'
+  /** 저장 버튼 문구 — 구직신청은 "등록", 프로필 수정은 "저장" */
+  const submitLabel = isApply ? '구직신청 등록' : '프로필 저장'
 
   const [serverProfile, setServerProfile] = useState<JobSeekerProfileResponseDto | null>(null)
   const [loading, setLoading] = useState(true)
@@ -230,7 +241,7 @@ function JobApplyForm({
     if (saveDraft(draft)) {
       toast({
         title: '이 브라우저에 임시저장했습니다.',
-        description: '내 구직 프로필에 저장하려면 [구직신청 등록]을 눌러 주세요.',
+        description: `내 구직 프로필에 저장하려면 [${submitLabel}]을 눌러 주세요.`,
       })
     } else {
       toast({ variant: 'error', title: '임시저장에 실패했습니다.' })
@@ -245,7 +256,7 @@ function JobApplyForm({
     setStoredDraft(null)
     toast({
       title: '임시저장한 내용을 불러왔습니다.',
-      description: '[구직신청 등록]을 눌러야 내 구직 프로필에 저장됩니다.',
+      description: `[${submitLabel}]을 눌러야 내 구직 프로필에 저장됩니다.`,
     })
   }
 
@@ -273,7 +284,12 @@ function JobApplyForm({
       setErrors({})
       clearDraft()
       setStoredDraft(null)
-      setDone(true)
+      if (isApply) {
+        setDone(true)
+      } else {
+        // 마이페이지에서는 모달로 흐름을 끊지 않고 그 자리에 머문다
+        toast({ title: '프로필을 저장했습니다.' })
+      }
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         // 세션이 끝나면 화면이 로그인 안내로 바뀌므로, 작성 중이던 내용은 임시저장으로 남긴다
@@ -313,15 +329,25 @@ function JobApplyForm({
   }, [draft.sido, draft.district, draft.category])
 
   return (
-    <div className="container-page py-6 lg:py-8">
-      <Breadcrumb items={[{ label: '홈', to: '/' }, { label: '구직신청' }]} />
-
-      <header className="mt-3">
-        <h1 className="text-3xl font-bold text-fg">구직신청</h1>
-        <p className="mt-2 text-base text-fg-muted">
-          원하는 조건을 등록하면 나에게 맞는 일자리를 더 쉽게 찾을 수 있어요.
-        </p>
-      </header>
+    <div className={isApply ? 'container-page py-6 lg:py-8' : undefined}>
+      {isApply ? (
+        <>
+          <Breadcrumb items={[{ label: '홈', to: '/' }, { label: '구직신청' }]} />
+          <header className="mt-3">
+            <h1 className="text-3xl font-bold text-fg">구직신청</h1>
+            <p className="mt-2 text-base text-fg-muted">
+              원하는 조건을 등록하면 나에게 맞는 일자리를 더 쉽게 찾을 수 있어요.
+            </p>
+          </header>
+        </>
+      ) : (
+        <header>
+          <h1 className="text-2xl font-bold text-fg">프로필 수정</h1>
+          <p className="mt-2 text-base text-fg-muted">
+            인재정보에 표시되는 내 프로필과 희망 근무조건을 수정합니다.
+          </p>
+        </header>
+      )}
 
       {loading ? (
         <div className="mt-5 overflow-hidden rounded-card border border-border">
@@ -392,6 +418,19 @@ function JobApplyForm({
                       />
                       <span className="shrink-0 text-base text-fg-muted">세</span>
                     </div>
+                  </Field>
+
+                  <Field label="거주지" htmlFor="residence">
+                    <Input
+                      id="residence"
+                      maxLength={200}
+                      placeholder="예) 서울특별시 강남구"
+                      value={draft.residence}
+                      onChange={(event) => update({ residence: event.target.value })}
+                    />
+                    <p className="mt-2 text-sm text-fg-muted">
+                      인재정보에서는 일부만 보이고, 연락처를 열람한 시설에만 전체가 공개됩니다.
+                    </p>
                   </Field>
                 </div>
               </DetailSection>
@@ -670,13 +709,13 @@ function JobApplyForm({
                   </p>
                 )}
                 <Button type="submit" block disabled={saving || adminPreview}>
-                  {saving ? '저장 중…' : '구직신청 등록'}
+                  {saving ? '저장 중…' : submitLabel}
                 </Button>
                 <Button type="button" variant="secondary" block onClick={handleSaveDraft}>
                   임시저장
                 </Button>
                 <p className="text-sm text-fg-subtle">
-                  임시저장은 이 브라우저에만 보관됩니다. [구직신청 등록]을 눌러야 내 구직 프로필에
+                  임시저장은 이 브라우저에만 보관됩니다. [{submitLabel}]을 눌러야 내 구직 프로필에
                   저장됩니다.
                 </p>
               </div>

@@ -86,12 +86,15 @@ export function MyPageSettingsPage() {
 
       {user.role === 'JOBSEEKER' && (
         <section className="rounded-card border border-border bg-surface p-6">
-          <h2 className="text-lg font-bold text-fg">희망 근무조건</h2>
+          <h2 className="text-lg font-bold text-fg">프로필 · 희망 근무조건</h2>
           <p className="mt-2 text-base text-fg-muted">
-            구직 프로필(희망 직종·지역·근무조건)은 구직신청 화면에서 관리합니다.
+            인재정보에 표시되는 프로필과 희망 직종·지역·근무조건은 프로필 수정에서 관리합니다.
           </p>
-          <Link to="/apply" className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'mt-4 inline-flex')}>
-            구직신청 화면으로
+          <Link
+            to="/mypage/profile"
+            className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'mt-4 inline-flex')}
+          >
+            프로필 수정하러 가기
           </Link>
         </section>
       )}
