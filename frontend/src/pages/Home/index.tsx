@@ -47,7 +47,7 @@ export function HomePage() {
         icon={Users}
         title={`${user?.name ?? '회원'}님께 맞는 공고`}
         description="님의 희망조건과 가장 잘 맞는 일자리예요."
-        moreHref="/jobs?sort=matching"
+        moreHref={user?.role === 'JOBSEEKER' ? '/jobs?sort=matchScore' : '/jobs'}
       >
         <RecommendedJobs />
       </Section>
@@ -147,9 +147,17 @@ function HeroBanner() {
   )
 }
 
-/** "회원님께 맞는 공고" 4열 — `sort=RECOMMENDED` 는 로그인 구직자면 희망조건 매칭점수 순, 그 외엔 노출등급순. */
+/**
+ * "회원님께 맞는 공고" 4열.
+ *
+ * 구직자는 매칭점수가 높은 순서 그대로 보여준다(`MATCH_SCORE` — 노출등급이 개입하지 않는다).
+ * 매칭점수는 구직자 프로필이 있어야 나오므로, 그 외 회원·비로그인에게 MATCH_SCORE 를 쓰면
+ * 전부 무점수가 되어 최신순으로 밀리고 유료 노출(스페셜·프리미엄)도 사라진다 — 그때는 RECOMMENDED 유지.
+ */
 function RecommendedJobs() {
-  const { data, loading } = useAsync(() => getJobPostings({ sort: 'RECOMMENDED', size: 4 }), [])
+  const { user } = useApp()
+  const sort = user?.role === 'JOBSEEKER' ? 'MATCH_SCORE' : 'RECOMMENDED'
+  const { data, loading } = useAsync(() => getJobPostings({ sort, size: 4 }), [sort])
   const jobs = (data?.content ?? []).map(summaryToJob)
 
   if (loading) return <LoadingState rows={4} variant="card" />
