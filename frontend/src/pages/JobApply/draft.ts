@@ -14,6 +14,8 @@ export interface JobApplyDraft {
   gender: '' | '여' | '남'
   /** Talent.age — 서버는 응답 age / 요청 birthYear */
   age: string
+  /** 서버 residence. 인재정보에서는 마스킹되어 보인다 (최대 200자) */
+  residence: string
   /** Talent.category — 서버 desiredJobType */
   category: string
   /** 서버 desiredRegions[0].sido */
@@ -59,6 +61,7 @@ export const PREFERRED_HOURS_BY_SCHEDULE: Record<string, string> = {
 export const EMPTY_DRAFT: JobApplyDraft = {
   gender: '',
   age: '',
+  residence: '',
   category: '',
   sido: '',
   district: '',

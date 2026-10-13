@@ -22,6 +22,7 @@ import { AdminNoticesPage } from '@/pages/MyPage/admin/AdminNotices'
 import { AdminPointChargesPage } from '@/pages/MyPage/admin/AdminPointCharges'
 import { AdminRoute } from '@/pages/MyPage/admin/shared'
 import { AdminVerificationsPage } from '@/pages/MyPage/admin/AdminVerifications'
+import { MyPageProfilePage } from '@/pages/MyPage/Profile'
 import { MyPageVerifiedBadgePage } from '@/pages/MyPage/VerifiedBadge'
 import { MyPageApplicationsPage } from '@/pages/MyPage/Applications'
 import { MyPageCertificatesPage } from '@/pages/MyPage/Certificates'
@@ -92,6 +93,7 @@ export const router = createBrowserRouter([
           { path: 'applications', element: <MyPageApplicationsPage /> },
           { path: 'scraps', element: <MyPageScrapsPage /> },
           { path: 'certificates', element: <MyPageCertificatesPage /> },
+          { path: 'profile', element: <MyPageProfilePage /> },
           { path: 'verified-badge', element: <MyPageVerifiedBadgePage /> },
           { path: 'jobs', element: <MyPageJobsPage /> },
           { path: 'jobs/new', element: <JobPostingFormPage /> },
